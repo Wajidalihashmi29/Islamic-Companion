@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="IslamicCompanion.API/IslamicCompanion.API.csproj" />
+  <Project Path="IslamicCompanion.Application/IslamicCompanion.Application.csproj" />
+  <Project Path="IslamicCompanion.Domain/IslamicCompanion.Domain.csproj" />
+  <Project Path="IslamicCompanion.Infrastructure/IslamicCompanion.Infrastructure.csproj" />
+  <Project Path="IslamicCompanion.Tests/IslamicCompanion.Tests.csproj" />
+</Solution>
