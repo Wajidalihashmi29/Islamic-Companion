@@ -3,14 +3,14 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy solution and csproj files first (better Docker layer caching)
-COPY IslamicCompanion.sln .
+COPY IslamicCompanion.slnx .
 COPY IslamicCompanion.Domain/*.csproj IslamicCompanion.Domain/
 COPY IslamicCompanion.Application/*.csproj IslamicCompanion.Application/
 COPY IslamicCompanion.Infrastructure/*.csproj IslamicCompanion.Infrastructure/
 COPY IslamicCompanion.API/*.csproj IslamicCompanion.API/
 COPY IslamicCompanion.Tests/*.csproj IslamicCompanion.Tests/
 
-RUN dotnet restore
+RUN dotnet restore IslamicCompanion.slnx
 
 # Copy everything else and publish
 COPY . .
