@@ -63,8 +63,8 @@ frontend/
     └── src/
         ├── api/          → Axios client + typed API calls
         ├── components/   → Reusable UI components
-        ├── context/       → React Context (auth state)
-        └── pages/         → Route-level views
+        ├── context/      → React Context (auth state)
+        └── pages/        → Route-level views
 ```
 
 **Dependency direction:** `API → Infrastructure → Application → Domain`. Domain has zero external dependencies, which keeps core business rules testable and framework-agnostic.
@@ -76,9 +76,7 @@ frontend/
 ### Prerequisites
 - [.NET 8 SDK](https://dotnet.microsoft.com/download)
 - [Node.js LTS](https://nodejs.org)
-- A free [Neon.tech](https://neon.tech) PostgreSQL database
-- Visual Studio Community (backend) or any .NET-capable IDE
-- VS Code (frontend)
+- A [Neon.tech](https://neon.tech) PostgreSQL database
 
 ### Backend
 
@@ -97,7 +95,7 @@ dotnet ef database update --project ../IslamicCompanion.Infrastructure --startup
 dotnet run
 ```
 
-API will be available at `https://localhost:7037`, with Swagger UI at `/swagger`.
+API will be available at `https://localhost:XXXX`, with Swagger UI at `/swagger`.
 
 ### Frontend
 
@@ -108,14 +106,14 @@ npm install
 
 Create `frontend/.env`:
 ```
-VITE_API_BASE_URL=https://localhost:7037/api
+VITE_API_BASE_URL=https://localhost:XXXX/api
 ```
 
 ```bash
 npm run dev
 ```
 
-App runs at `http://localhost:5173`.
+App runs at `http://localhost:XXXX`.
 
 ---
 
@@ -135,7 +133,8 @@ ConnectionStrings__DefaultConnection
 Jwt__Key
 Jwt__Issuer
 Jwt__Audience
-Jwt__ExpiryMinutes
+Jwt__AccessTokenExpiryMinutes
+Jwt__RefreshTokenExpiryDays
 AllowedOrigins__0
 ASPNETCORE_ENVIRONMENT=Production
 ```
@@ -165,7 +164,7 @@ VITE_API_BASE_URL
 - [x] React frontend with protected routes
 - [x] Dashboard shell with feature navigation
 - [x] Production deployment (Render + Vercel)
-- [ ] Prayer times integration (Aladhan API)
+- [x] Prayer times integration (Aladhan API)
 - [ ] Qibla direction calculator
 - [ ] Qur'an reader (Quran API integration)
 - [ ] Hadith browser
