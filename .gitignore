@@ -12,3 +12,6 @@ frontend/.env.local
 # IDE
 .vs/
 .vscode/
+
+#Documents
+TECHNICAL-DEEP-DIVE.md
