@@ -1,21 +1,18 @@
 import { Routes, Route } from "react-router-dom";
 import AuthPage from "./pages/AuthPage";
-import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
+import SessionWatcher from "./components/SessionWatcher";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<AuthPage />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+    <>
+      <SessionWatcher />
+      <Routes>
+        <Route path="/" element={<AuthPage />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+      </Routes>
+    </>
   );
 }
 

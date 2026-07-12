@@ -2,13 +2,27 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
   margin: 0;
   padding: 0;
+  font-family: "Inter", sans-serif;
+  background: var(--ivory);
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+html, body, #root {
   width: 100%;
   min-height: 100vh;
 }
 
-body {
-  font-family: "Inter", sans-serif;
+#root {
+  display: flex;
+  flex-direction: column;
 }

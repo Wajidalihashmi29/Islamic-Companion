@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { loginUser, registerUser } from "../api/authApi";
 import { useAuth } from "../context/AuthContext";
 import "./AuthPage.css";
@@ -19,6 +21,16 @@ export default function AuthPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  // Password validation
+  const passwordRequirements = {
+    minLength: password.length >= 8,
+    hasUpperCase: /[A-Z]/.test(password),
+    hasLowerCase: /[a-z]/.test(password),
+    hasNumber: /[0-9]/.test(password),
+  };
+
+  const isPasswordValid = Object.values(passwordRequirements).every(req => req);
+
   const switchTab = (next: Tab) => {
     setTab(next);
     setError("");
@@ -31,7 +43,15 @@ export default function AuthPage() {
     setLoading(true);
     try {
       const response = await loginUser({ email, password });
-      login(response.data.token);
+      // Decode token to extract user name
+      const decoded = jwtDecode<{ name?: string; fullName?: string; sub?: string; email?: string }>(response.data.token);
+      // Use first name, full name, or email (first part before @) as fallback
+      let userName = response.data.fullName || decoded.name || decoded.fullName;
+      if (!userName && email) {
+        userName = email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1);
+      }
+      userName = userName || "User";
+      login(response.data.token, response.data.refreshToken, userName);
       navigate("/dashboard");
     } catch {
       setError("That email or password doesn't match our records.");
@@ -49,8 +69,28 @@ export default function AuthPage() {
       setNotice("Account created. Sign in to continue.");
       setTab("login");
       setPassword("");
-    } catch {
-      setError("We couldn't create that account. Try a different email.");
+    } catch (err: unknown) {
+      // Extract error details from API response
+      if (err && typeof err === "object" && "response" in err) {
+        const response = (err as any).response;
+        if (response?.data && Array.isArray(response.data)) {
+          const errorDetails = response.data
+            .map((e: any) => e.description || e.code)
+            .join("; ");
+          
+          if(errorDetails.includes("is already taken")) {
+            setError("Specified Email is already registered. Try logging in or use a different email.");
+            return;
+          }
+          setError(errorDetails || "We couldn't create that account.");
+        } else if (response?.data?.message) {
+          setError(response.data.message);
+        } else {
+          setError("We couldn't create that account. Try a different emailxyz.");
+        }
+      } else {
+        setError("We couldn't create that account. Try a different emailabc.");
+      }
     } finally {
       setLoading(false);
     }
@@ -164,11 +204,33 @@ export default function AuthPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
+                  placeholder="Create a strong password"
                   required
                 />
               </label>
-              <button type="submit" className="auth-submit" disabled={loading}>
+              
+              {tab === "register" && password && (
+                <div className="password-requirements">
+                  <div className={`requirement ${passwordRequirements.minLength ? "met" : ""}`}>
+                    {passwordRequirements.minLength ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`requirement ${passwordRequirements.hasUpperCase ? "met" : ""}`}>
+                    {passwordRequirements.hasUpperCase ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                    <span>One uppercase letter</span>
+                  </div>
+                  <div className={`requirement ${passwordRequirements.hasLowerCase ? "met" : ""}`}>
+                    {passwordRequirements.hasLowerCase ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                    <span>One lowercase letter</span>
+                  </div>
+                  <div className={`requirement ${passwordRequirements.hasNumber ? "met" : ""}`}>
+                    {passwordRequirements.hasNumber ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
+                    <span>One number</span>
+                  </div>
+                </div>
+              )}
+              
+              <button type="submit" className="auth-submit" disabled={loading || (tab === "register" && !isPasswordValid)}>
                 {loading ? "Creating account…" : "Create account"}
               </button>
             </form>

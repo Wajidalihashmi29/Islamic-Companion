@@ -11,8 +11,18 @@ export interface LoginPayload {
   password: string;
 }
 
+export interface AuthResponse {
+  token: string;
+  fullName: string;
+  refreshToken: string;
+  expiresAt: string;
+}
+
 export const registerUser = (data: RegisterPayload) =>
   axiosClient.post("/auth/register", data);
 
 export const loginUser = (data: LoginPayload) =>
-  axiosClient.post<{ token: string }>("/auth/login", data);
+  axiosClient.post<AuthResponse>("/auth/login", data);
+
+export const refreshTokenRequest = (refreshToken: string) =>
+  axiosClient.post<AuthResponse>("/auth/refresh", { refreshToken });

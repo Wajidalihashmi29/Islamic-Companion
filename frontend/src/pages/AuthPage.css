@@ -180,6 +180,33 @@
   margin: -8px 0 16px;
 }
 
+.password-requirements {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(15, 61, 58, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(15, 61, 58, 0.12);
+}
+
+.requirement {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.requirement.met {
+  color: var(--teal-deep);
+}
+
+.requirement svg {
+  flex-shrink: 0;
+}
+
 @media (max-width: 720px) {
   .auth-page {
     flex-direction: column;

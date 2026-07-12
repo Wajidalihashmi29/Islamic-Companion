@@ -1,0 +1,135 @@
+.loc-selector {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.loc-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.loc-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.loc-tab.active {
+  background: var(--teal-deep);
+  color: var(--ivory);
+  border-color: var(--teal-deep);
+}
+
+.loc-auto p,
+.loc-manual {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.loc-manual {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.loc-manual input {
+  flex: 1;
+  min-width: 130px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.85rem;
+}
+
+.loc-detect-btn {
+  background: var(--gold);
+  color: var(--teal-deeper);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.loc-detect-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loc-error {
+  color: var(--error);
+  font-size: 0.75rem;
+  margin-top: 6px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .loc-selector {
+    padding: 14px;
+    margin-bottom: 16px;
+  }
+
+  .loc-tab {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+  }
+
+  .loc-manual input {
+    min-width: 110px;
+    font-size: 0.8rem;
+  }
+
+  .loc-detect-btn {
+    padding: 8px 14px;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .loc-selector {
+    padding: 12px;
+  }
+
+  .loc-tabs {
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .loc-tab {
+    font-size: 0.7rem;
+    padding: 5px 8px;
+  }
+
+  .loc-manual {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .loc-manual input {
+    min-width: auto;
+    width: 100%;
+    font-size: 0.75rem;
+  }
+
+  .loc-detect-btn {
+    width: 100%;
+    padding: 8px 14px;
+    font-size: 0.75rem;
+  }
+}

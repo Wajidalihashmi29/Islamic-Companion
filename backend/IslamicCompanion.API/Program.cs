@@ -7,6 +7,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using IslamicCompanion.Application.Interfaces;
+using IslamicCompanion.Infrastructure.ExternalServices;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRateLimiter(options =>
@@ -23,6 +25,8 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddControllers();
 
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<IPrayerTimesService, AladhanPrayerTimesService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
