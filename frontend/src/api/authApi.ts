@@ -18,6 +18,11 @@ export interface AuthResponse {
   expiresAt: string;
 }
 
+export interface ConfirmEmailPayload {
+  userId: string;
+  token: string;
+}
+
 export const registerUser = (data: RegisterPayload) =>
   axiosClient.post("/auth/register", data);
 
@@ -26,3 +31,12 @@ export const loginUser = (data: LoginPayload) =>
 
 export const refreshTokenRequest = (refreshToken: string) =>
   axiosClient.post<AuthResponse>("/auth/refresh", { refreshToken });
+
+export const confirmEmail = (data: ConfirmEmailPayload) =>
+  axiosClient.post("/auth/confirm-email", data);
+
+export const resendConfirmation = (email: string) =>
+  axiosClient.post("/auth/resend-confirmation", { email });
+
+export const googleSignIn = (idToken: string) =>
+  axiosClient.post<AuthResponse>("/auth/google", { idToken });

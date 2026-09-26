@@ -8,7 +8,9 @@ A full-stack Islamic lifestyle application providing prayer times, Qibla directi
 
 ## Features
 
-- 🔐 Secure authentication (JWT-based, ASP.NET Core Identity)
+- Secure authentication (JWT-based, ASP.NET Core Identity)
+- Email verification for new accounts
+- Google Sign-In
 - 🕌 Prayer times based on user location *(in progress)*
 - 🧭 Qibla direction finder *(in progress)*
 - 📖 Qur'an reader with translations *(in progress)*
@@ -106,7 +108,8 @@ npm install
 
 Create `frontend/.env`:
 ```
-VITE_API_BASE_URL=https://localhost:XXXX/api
+VITE_API_BASE_URL=/api
+VITE_GOOGLE_CLIENT_ID=<your Google OAuth client ID>
 ```
 
 ```bash
@@ -135,6 +138,14 @@ Jwt__Issuer
 Jwt__Audience
 Jwt__AccessTokenExpiryMinutes
 Jwt__RefreshTokenExpiryDays
+Frontend__BaseUrl
+Google__ClientId
+Email__SmtpHost
+Email__SmtpPort
+Email__SmtpUser
+Email__SmtpPassword
+Email__FromAddress
+Email__FromName
 AllowedOrigins__0
 ASPNETCORE_ENVIRONMENT=Production
 ```
@@ -142,6 +153,7 @@ ASPNETCORE_ENVIRONMENT=Production
 **Vercel (Frontend)**
 ```
 VITE_API_BASE_URL
+VITE_GOOGLE_CLIENT_ID
 ```
 
 ---
@@ -161,6 +173,8 @@ VITE_API_BASE_URL
 
 - [x] Clean Architecture backend scaffold
 - [x] JWT authentication (register/login)
+- [x] Email verification
+- [x] Google Sign-In
 - [x] React frontend with protected routes
 - [x] Dashboard shell with feature navigation
 - [x] Production deployment (Render + Vercel)

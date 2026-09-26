@@ -1,13 +1,32 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { CheckCircle2, XCircle } from "lucide-react";
-import { loginUser, registerUser } from "../api/authApi";
+import { googleSignIn, loginUser, registerUser, resendConfirmation, type AuthResponse } from "../api/authApi";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 import { useAuth } from "../context/AuthContext";
 import "./AuthPage.css";
 
 type Tab = "login" | "register";
+
+function axiosMessage(err: unknown, fallback: string): { message: string; code?: string } {
+  if (err && typeof err === "object" && "response" in err) {
+    const response = (err as { response?: { data?: unknown } }).response;
+    const data = response?.data as { message?: string; code?: string; description?: string }[] | { message?: string; code?: string } | undefined;
+    if (Array.isArray(data)) {
+      const errorDetails = data.map((e) => e.description || e.code).join("; ");
+      if (errorDetails.includes("is already taken")) {
+        return { message: "Specified Email is already registered. Try logging in or use a different email." };
+      }
+      return { message: errorDetails || fallback };
+    }
+    if (data && typeof data === "object") {
+      return { message: data.message || fallback, code: data.code };
+    }
+  }
+  return { message: fallback };
+}
 
 export default function AuthPage() {
   const [tab, setTab] = useState<Tab>("login");
@@ -17,11 +36,11 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState("");
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  // Password validation
   const passwordRequirements = {
     minLength: password.length >= 8,
     hasUpperCase: /[A-Z]/.test(password),
@@ -29,32 +48,43 @@ export default function AuthPage() {
     hasNumber: /[0-9]/.test(password),
   };
 
-  const isPasswordValid = Object.values(passwordRequirements).every(req => req);
+  const isPasswordValid = Object.values(passwordRequirements).every((req) => req);
 
   const switchTab = (next: Tab) => {
     setTab(next);
     setError("");
     setNotice("");
+    setUnverifiedEmail("");
   };
+
+  const completeLogin = useCallback((response: AuthResponse, fallbackEmail?: string) => {
+    const decoded = jwtDecode<{ name?: string; fullName?: string; email?: string }>(response.token);
+    let userName = response.fullName || decoded.name || decoded.fullName;
+    const sourceEmail = fallbackEmail || decoded.email;
+    if (!userName && sourceEmail) {
+      userName = sourceEmail.split("@")[0].charAt(0).toUpperCase() + sourceEmail.split("@")[0].slice(1);
+    }
+    login(response.token, response.refreshToken, userName || "User");
+    navigate("/dashboard");
+  }, [login, navigate]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setNotice("");
+    setUnverifiedEmail("");
     setLoading(true);
     try {
       const response = await loginUser({ email, password });
-      // Decode token to extract user name
-      const decoded = jwtDecode<{ name?: string; fullName?: string; sub?: string; email?: string }>(response.data.token);
-      // Use first name, full name, or email (first part before @) as fallback
-      let userName = response.data.fullName || decoded.name || decoded.fullName;
-      if (!userName && email) {
-        userName = email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1);
+      completeLogin(response.data, email);
+    } catch (err: unknown) {
+      const parsed = axiosMessage(err, "That email or password doesn't match our records.");
+      if (parsed.code === "email_not_confirmed") {
+        setUnverifiedEmail(email);
+        setError(parsed.message);
+      } else {
+        setError(parsed.message);
       }
-      userName = userName || "User";
-      login(response.data.token, response.data.refreshToken, userName);
-      navigate("/dashboard");
-    } catch {
-      setError("That email or password doesn't match our records.");
     } finally {
       setLoading(false);
     }
@@ -66,35 +96,44 @@ export default function AuthPage() {
     setLoading(true);
     try {
       await registerUser({ email, password, fullName });
-      setNotice("Account created. Sign in to continue.");
+      setNotice("Account created. Check your email to verify your address, then sign in.");
       setTab("login");
       setPassword("");
+      setUnverifiedEmail(email);
     } catch (err: unknown) {
-      // Extract error details from API response
-      if (err && typeof err === "object" && "response" in err) {
-        const response = (err as any).response;
-        if (response?.data && Array.isArray(response.data)) {
-          const errorDetails = response.data
-            .map((e: any) => e.description || e.code)
-            .join("; ");
-          
-          if(errorDetails.includes("is already taken")) {
-            setError("Specified Email is already registered. Try logging in or use a different email.");
-            return;
-          }
-          setError(errorDetails || "We couldn't create that account.");
-        } else if (response?.data?.message) {
-          setError(response.data.message);
-        } else {
-          setError("We couldn't create that account. Try a different emailxyz.");
-        }
-      } else {
-        setError("We couldn't create that account. Try a different emailabc.");
-      }
+      setError(axiosMessage(err, "We couldn't create that account. Try a different email.").message);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleResend = async () => {
+    if (!unverifiedEmail) return;
+    setLoading(true);
+    setError("");
+    try {
+      await resendConfirmation(unverifiedEmail);
+      setNotice("If an unverified account exists for that email, a new confirmation link has been sent.");
+    } catch {
+      setError("We couldn't resend the confirmation email right now.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = useCallback(async (idToken: string) => {
+    setError("");
+    setNotice("");
+    setLoading(true);
+    try {
+      const response = await googleSignIn(idToken);
+      completeLogin(response.data);
+    } catch (err: unknown) {
+      setError(axiosMessage(err, "Google sign-in could not be completed.").message);
+    } finally {
+      setLoading(false);
+    }
+  }, [completeLogin]);
 
   return (
     <div className="auth-page">
@@ -149,6 +188,11 @@ export default function AuthPage() {
 
           {notice && <p className="auth-notice">{notice}</p>}
           {error && <p className="auth-error">{error}</p>}
+          {unverifiedEmail && (
+            <button type="button" className="auth-resend" onClick={handleResend} disabled={loading}>
+              Resend verification email
+            </button>
+          )}
 
           {tab === "login" ? (
             <form className="auth-form" onSubmit={handleLogin}>
@@ -208,8 +252,8 @@ export default function AuthPage() {
                   required
                 />
               </label>
-              
-              {tab === "register" && password && (
+
+              {password && (
                 <div className="password-requirements">
                   <div className={`requirement ${passwordRequirements.minLength ? "met" : ""}`}>
                     {passwordRequirements.minLength ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
@@ -229,12 +273,17 @@ export default function AuthPage() {
                   </div>
                 </div>
               )}
-              
-              <button type="submit" className="auth-submit" disabled={loading || (tab === "register" && !isPasswordValid)}>
+
+              <button type="submit" className="auth-submit" disabled={loading || !isPasswordValid}>
                 {loading ? "Creating account…" : "Create account"}
               </button>
             </form>
           )}
+
+          <div className="auth-divider">
+            <span>or</span>
+          </div>
+          <GoogleSignInButton onCredential={handleGoogle} disabled={loading} />
         </div>
       </div>
     </div>

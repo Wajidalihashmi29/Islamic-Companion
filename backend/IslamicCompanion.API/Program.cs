@@ -27,6 +27,8 @@ builder.Services.AddControllers();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<IPrayerTimesService, AladhanPrayerTimesService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -45,6 +47,13 @@ builder.Services.Configure<IdentityOptions>(options =>
     options.Password.RequireNonAlphanumeric = false;
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+    options.SignIn.RequireConfirmedEmail = true;
+    options.User.RequireUniqueEmail = true;
+});
+
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options =>
+{
+    options.TokenLifespan = TimeSpan.FromHours(24);
 });
 
 // JWT Authentication
