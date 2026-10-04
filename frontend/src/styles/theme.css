@@ -1,11 +1,132 @@
+/* ==========================================================================
+   Islamic Companion — Modern Premium Color Grading & Design System
+   --------------------------------------------------------------------------
+   Built on Golden Ratio (φ ≈ 1.618) & Glassmorphic Elevation
+   ========================================================================== */
+
 :root {
-  --teal-deep: #0f3d3a;
-  --teal-deeper: #0a2c2a;
-  --gold: #c9a24b;
-  --gold-light: #e3c878;
-  --ivory: #faf6ec;
-  --ink: #1c2b29;
-  --muted: #6b8783;
-  --error: #b3452f;
-  --border: rgba(15, 61, 58, 0.14);
+  /* ---------- Golden ratio ---------- */
+  --phi: 1.618;
+  --phi-inverse: 0.618;
+
+  /* ---------- Modern Color Grading ---------- */
+  /* Deep Obsidian Emerald / Slate Teal */
+  --teal-950: #031211;
+  --teal-900: #072220;
+  --teal-800: #0d3532;
+  --teal-700: #144b47;
+  --teal-600: #1d635f;
+  --teal-500: #29807a;
+  --teal-100: #dff0ee;
+  --teal-50: #f2f9f8;
+
+  /* Premium Champagne Gold & Warm Amber */
+  --gold-700: #937324;
+  --gold-600: #b59231;
+  --gold-500: #d4af37;
+  --gold-400: #e7c867;
+  --gold-300: #f4df96;
+  --gold-100: #faf3de;
+  --gold-50: #fcf9ee;
+
+  /* Neutrals & Surfaces */
+  --bg-main: #f7f5ef;
+  --bg-subtle: #f0eddf;
+  --surface: #ffffff;
+  --surface-subtle: #faf8f3;
+  --surface-glass: rgba(255, 255, 255, 0.75);
+  --surface-glass-dark: rgba(7, 34, 32, 0.82);
+
+  --ink: #111c1b;
+  --ink-soft: #334745;
+  --muted: #5e7a77;
+  --muted-light: #8ba5a2;
+
+  --error: #c93b2b;
+  --error-bg: #fdf0ed;
+  --error-border: rgba(201, 59, 43, 0.2);
+  --success: #238557;
+  --success-bg: #eaf7f1;
+  --success-border: rgba(35, 133, 87, 0.2);
+
+  /* Legacy aliases */
+  --teal-deep: var(--teal-800);
+  --teal-deeper: var(--teal-900);
+  --gold: var(--gold-500);
+  --gold-light: var(--gold-400);
+  --ivory: var(--bg-main);
+  --border: rgba(13, 53, 50, 0.1);
+  --border-strong: rgba(13, 53, 50, 0.18);
+  --border-gold: rgba(212, 175, 55, 0.35);
+
+  /* Gradients */
+  --gradient-emerald: linear-gradient(135deg, var(--teal-950) 0%, var(--teal-900) 45%, var(--teal-800) 100%);
+  --gradient-gold: linear-gradient(135deg, var(--gold-500) 0%, var(--gold-400) 100%);
+  --gradient-gold-text: linear-gradient(135deg, #f4df96 0%, #d4af37 60%, #b59231 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.5) 100%);
+  --gradient-mesh: radial-gradient(at 0% 0%, rgba(212, 175, 55, 0.12) 0px, transparent 50%),
+                    radial-gradient(at 100% 100%, rgba(29, 99, 95, 0.15) 0px, transparent 50%);
+
+  /* ---------- Golden Spacing ---------- */
+  --space-1: 0.236rem;  /* ~4px */
+  --space-2: 0.382rem;  /* ~6px */
+  --space-3: 0.618rem;  /* ~10px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.618rem;  /* ~26px */
+  --space-6: 2.618rem;  /* ~42px */
+  --space-7: 4.236rem;  /* ~68px */
+  --space-8: 6.854rem;  /* ~110px */
+
+  /* ---------- Type Scale ---------- */
+  --text-xs: 0.786rem;
+  --text-sm: 0.886rem;
+  --text-base: 1rem;
+  --text-md: 1.272rem;
+  --text-lg: 1.618rem;
+  --text-xl: 2.058rem;
+  --text-2xl: 2.618rem;
+  --text-3xl: 3.33rem;
+  --leading: 1.618;
+  --leading-tight: 1.236;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Amiri", Georgia, serif;
+
+  /* ---------- Icons & Tiles (Fibonacci) ---------- */
+  --icon-xs: 13px;
+  --icon-sm: 16px;
+  --icon-md: 21px;
+  --icon-lg: 34px;
+  --tile-xs: 21px;
+  --tile-sm: 34px;
+  --tile-md: 55px;
+  --tile-lg: 89px;
+
+  /* ---------- Radii ---------- */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 36px;
+  --radius-full: 999px;
+
+  /* ---------- Elevation & Shadows ---------- */
+  --shadow-xs: 0 2px 4px rgba(7, 34, 32, 0.04);
+  --shadow-sm: 0 4px 12px rgba(7, 34, 32, 0.06), 0 1px 3px rgba(7, 34, 32, 0.03);
+  --shadow-md: 0 12px 32px rgba(7, 34, 32, 0.09), 0 2px 8px rgba(7, 34, 32, 0.04);
+  --shadow-lg: 0 24px 64px rgba(7, 34, 32, 0.16), 0 6px 16px rgba(7, 34, 32, 0.06);
+  --shadow-glow: 0 0 32px rgba(212, 175, 55, 0.22);
+  --ring: 0 0 0 4px rgba(212, 175, 55, 0.28);
+
+  /* ---------- Motion ---------- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-flip: cubic-bezier(0.4, 0.2, 0.2, 1);
+  --dur-fast: 180ms;
+  --dur-base: 280ms;
+  --dur-slow: 480ms;
+
+  /* ---------- Layout ---------- */
+  --nav-height: 72px;
+  --content-max: 1280px;
 }

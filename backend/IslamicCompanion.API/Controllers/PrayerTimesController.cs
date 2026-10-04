@@ -1,4 +1,4 @@
-﻿using IslamicCompanion.Application.Interfaces;
+using IslamicCompanion.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,19 +17,19 @@ public class PrayerTimesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetByCoordinates([FromQuery] double latitude, [FromQuery] double longitude, [FromQuery] int method = 2)
+    public async Task<IActionResult> GetByCoordinates([FromQuery] double latitude, [FromQuery] double longitude, [FromQuery] int method = 2, [FromQuery] int school = 0)
     {
-        var result = await _service.GetByCoordinatesAsync(latitude, longitude, method);
+        var result = await _service.GetByCoordinatesAsync(latitude, longitude, method, school);
         return Ok(result);
     }
 
     [HttpGet("by-city")]
-    public async Task<IActionResult> GetByCity([FromQuery] string city, [FromQuery] string country, [FromQuery] int method = 2)
+    public async Task<IActionResult> GetByCity([FromQuery] string city, [FromQuery] string country, [FromQuery] int method = 2, [FromQuery] int school = 0)
     {
         if (string.IsNullOrWhiteSpace(city) || string.IsNullOrWhiteSpace(country))
             return BadRequest(new { message = "City and country are required" });
 
-        var result = await _service.GetByCityAsync(city, country, method);
+        var result = await _service.GetByCityAsync(city, country, method, school);
         return Ok(result);
     }
 }

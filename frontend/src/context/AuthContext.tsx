@@ -1,10 +1,16 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { jwtDecode } from "jwt-decode";
 import { refreshTokenRequest } from "../api/authApi";
+
+interface AuthUser {
+  name: string;
+  email?: string;
+}
 
 interface AuthContextType {
   token: string | null;
-  user: { name: string } | null;
+  user: AuthUser | null;
   login: (token: string, refreshToken: string, userName?: string) => void;
   logout: () => void;
   refreshSession: () => Promise<boolean>;
@@ -13,31 +19,44 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function emailFromToken(token: string | null): string | undefined {
+  if (!token) return undefined;
+  try {
+    const decoded = jwtDecode<Record<string, unknown>>(token);
+    const email =
+      decoded.email ??
+      decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"];
+    return typeof email === "string" ? email : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
-  const [user, setUser] = useState<{ name: string } | null>(
-    localStorage.getItem("userName") ? { name: localStorage.getItem("userName")! } : null
-  );
+  const [userName, setUserName] = useState<string | null>(localStorage.getItem("userName"));
 
-  const login = (newToken: string, newRefreshToken: string, userName?: string) => {
+  const login = useCallback((newToken: string, newRefreshToken: string, name?: string) => {
     localStorage.setItem("token", newToken);
     localStorage.setItem("refreshToken", newRefreshToken);
-    if (userName) {
-      localStorage.setItem("userName", userName);
-      setUser({ name: userName });
+    if (name) {
+      localStorage.setItem("userName", name);
+      setUserName(name);
     }
     setToken(newToken);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("userName");
     setToken(null);
-    setUser(null);
-  };
+    setUserName(null);
+    // Prevent Google One Tap from silently signing the user straight back in.
+    window.google?.accounts?.id?.disableAutoSelect?.();
+  }, []);
 
-  const refreshSession = async (): Promise<boolean> => {
+  const refreshSession = useCallback(async (): Promise<boolean> => {
     const storedRefresh = localStorage.getItem("refreshToken");
     if (!storedRefresh) return false;
     try {
@@ -49,15 +68,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       return false;
     }
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ token, user, login, logout, refreshSession, isAuthenticated: !!token }}>
-      {children}
-    </AuthContext.Provider>
+  const user = useMemo<AuthUser | null>(
+    () => (userName ? { name: userName, email: emailFromToken(token) } : null),
+    [userName, token]
   );
+
+  const value = useMemo(
+    () => ({ token, user, login, logout, refreshSession, isAuthenticated: !!token }),
+    [token, user, login, logout, refreshSession]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) throw new Error("useAuth must be used within AuthProvider");
