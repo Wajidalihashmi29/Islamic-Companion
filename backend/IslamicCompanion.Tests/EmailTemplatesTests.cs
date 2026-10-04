@@ -22,9 +22,8 @@ public class EmailTemplatesTests
     {
         var fullName = "<script>alert(1)</script>";
         var url = "http://localhost:5173/verify-email?userId=1&token=2";
-        var logoUrl = "https://localhost:7037/images/favicon.png";
 
-        var html = EmailTemplates.BuildConfirmationEmail(fullName, url, logoUrl);
+        var html = EmailTemplates.BuildConfirmationEmail(fullName, url);
 
         Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;", html);
         Assert.DoesNotContain("<script>", html);
