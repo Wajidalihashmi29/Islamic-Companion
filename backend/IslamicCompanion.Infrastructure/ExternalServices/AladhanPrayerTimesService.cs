@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Text.Json;
 using IslamicCompanion.Application.DTOs;
 using IslamicCompanion.Application.Interfaces;
@@ -19,17 +19,17 @@ public class AladhanPrayerTimesService : IPrayerTimesService
         _cache = cache;
     }
 
-    public async Task<PrayerTimesResult> GetByCoordinatesAsync(double latitude, double longitude, int method)
+    public async Task<PrayerTimesResult> GetByCoordinatesAsync(double latitude, double longitude, int method, int school)
     {
-        var cacheKey = $"prayer:coords:{latitude:F2}:{longitude:F2}:{method}:{DateTime.UtcNow:yyyy-MM-dd}";
-        var url = $"https://api.aladhan.com/v1/timings?latitude={latitude}&longitude={longitude}&method={method}";
+        var cacheKey = $"prayer:coords:{latitude:F2}:{longitude:F2}:{method}:{school}:{DateTime.UtcNow:yyyy-MM-dd}";
+        var url = $"https://api.aladhan.com/v1/timings?latitude={latitude}&longitude={longitude}&method={method}&school={school}";
         return await FetchCachedAsync(cacheKey, url);
     }
 
-    public async Task<PrayerTimesResult> GetByCityAsync(string city, string country, int method)
+    public async Task<PrayerTimesResult> GetByCityAsync(string city, string country, int method, int school)
     {
-        var cacheKey = $"prayer:city:{city.ToLower()}:{country.ToLower()}:{method}:{DateTime.UtcNow:yyyy-MM-dd}";
-        var url = $"https://api.aladhan.com/v1/timingsByCity?city={Uri.EscapeDataString(city)}&country={Uri.EscapeDataString(country)}&method={method}";
+        var cacheKey = $"prayer:city:{city.ToLower()}:{country.ToLower()}:{method}:{school}:{DateTime.UtcNow:yyyy-MM-dd}";
+        var url = $"https://api.aladhan.com/v1/timingsByCity?city={Uri.EscapeDataString(city)}&country={Uri.EscapeDataString(country)}&method={method}&school={school}";
         return await FetchCachedAsync(cacheKey, url);
     }
 

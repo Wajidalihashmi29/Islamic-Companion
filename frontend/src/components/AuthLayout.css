@@ -1,0 +1,254 @@
+/* ==========================================================================
+   Auth Layout — Responsive Side-by-Side (PC) & Stacked Touch Scroll (Phone)
+   ========================================================================== */
+
+.auth-shell {
+  position: relative;
+  /* Exactly one viewport tall: the page itself can never scroll */
+  --u: clamp(0.68px, calc(100vh / 920), 1px); /* fluid scale shared by hero + card */
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: center;
+  background: var(--gradient-emerald);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Ambient lighting mesh spanning full screen */
+.auth-shell-mesh {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(at 10% 20%, rgba(212, 175, 55, 0.2) 0px, transparent 55%),
+    radial-gradient(at 85% 85%, rgba(29, 99, 95, 0.45) 0px, transparent 55%),
+    radial-gradient(at 50% 50%, rgba(13, 53, 50, 0.5) 0px, transparent 70%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.auth-shell-spiral {
+  position: absolute;
+  right: -5%;
+  bottom: -10%;
+  width: 45vw;
+  max-width: 550px;
+  color: var(--gold-400);
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+/* ---------- Left Side: Brand Text (PC) ---------- */
+.auth-hero {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-5) var(--space-6);
+  color: var(--ivory);
+  box-sizing: border-box;
+}
+
+.auth-hero-inner {
+  display: flex;
+  flex-direction: column;
+  gap: calc(22 * var(--u));
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+.auth-hero-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--gold-400);
+  letter-spacing: 0.01em;
+}
+
+.auth-hero-bismillah {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  color: var(--gold-300);
+  opacity: 0.9;
+  text-align: left;
+}
+
+.auth-hero-copy h1 {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: clamp(24px, min(2.8vw, 5.2vh), 44px);
+  font-weight: 700;
+  line-height: var(--leading-tight);
+  color: #ffffff;
+}
+
+.auth-hero-copy h1 em {
+  font-style: italic;
+  background: var(--gradient-gold-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.auth-hero-lead {
+  max-width: 38ch;
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-xs);
+  line-height: var(--leading);
+  color: rgba(250, 246, 236, 0.82);
+}
+
+.auth-hero-highlights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-hero-highlights li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.auth-hero-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: max(26px, calc(32 * var(--u)));
+  height: max(26px, calc(32 * var(--u)));
+  border-radius: var(--radius-sm);
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  color: var(--gold-400);
+}
+
+.auth-hero-icon svg {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+}
+
+.auth-hero-highlights strong {
+  display: block;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ivory);
+}
+
+.auth-hero-highlights small {
+  display: block;
+  font-size: 0.7rem;
+  color: rgba(250, 246, 236, 0.65);
+}
+
+.auth-hero-quote {
+  margin: 0;
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--gold-500);
+}
+
+.auth-hero-quote blockquote {
+  margin: 0 0 2px;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-style: italic;
+  line-height: var(--leading-tight);
+  color: rgba(250, 246, 236, 0.88);
+}
+
+.auth-hero-quote figcaption {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-400);
+}
+
+/* ---------- Right Side: Translucent Login Card ---------- */
+.auth-main {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+  padding: calc(16 * var(--u)) var(--space-5);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.auth-main-brand {
+  display: none;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  color: var(--gold-400);
+  margin-bottom: var(--space-2);
+}
+
+.auth-main-inner {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth-main-footer {
+  margin: calc(10 * var(--u)) 0 0;
+  font-size: var(--text-xs);
+  color: rgba(250, 246, 236, 0.6);
+  text-align: center;
+}
+
+/* ---------- Responsive Breakpoints (Phone / Tablet / Laptop / PC) ---------- */
+@media (max-width: 960px) {
+  .auth-shell {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 var(--space-4);
+    gap: 0;
+  }
+
+  .auth-hero {
+    display: none;
+  }
+
+  .auth-main {
+    padding: calc(12 * var(--u)) 0;
+  }
+
+  .auth-main-brand {
+    display: flex;
+    margin-bottom: calc(12 * var(--u));
+  }
+}
+
+@media (max-width: 520px) {
+  .auth-hero-highlights {
+    grid-template-columns: 1fr;
+  }
+}
+
+@supports (height: 100dvh) {
+  .auth-shell { --u: clamp(0.68px, calc(100dvh / 920), 1px); }
+}
+
+/* Extremely short windows (e.g. phone in landscape): allow scrolling so nothing is unreachable */
+@media (max-height: 520px) {
+  .auth-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+}
