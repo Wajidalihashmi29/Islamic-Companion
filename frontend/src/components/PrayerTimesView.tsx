@@ -238,24 +238,31 @@ export default function PrayerTimesView() {
 
                 <div className="ptv-next-info">
                   <span className="ptv-next-tag">
-                    <Sparkles size={14} aria-hidden="true" /> Ongoing: {schedule.current}
+                    <Sparkles size={14} aria-hidden="true" /> Now Ongoing
                   </span>
-                  <h2 className="ptv-next-title" title="Next Prayer">{schedule.next}</h2>
-                  <span className="ptv-next-time">{formatTime(timings[schedule.next], use12h)}</span>
+                  <h2 className="ptv-next-title" title="Ongoing Prayer">{schedule.current}</h2>
+                  <div className="ptv-next-subtitle">
+                    Next: <strong>{schedule.next}</strong> at {formatTime(timings[schedule.next], use12h)}
+                  </div>
                   {place && (
-                    <span className="ptv-next-place">
+                    <span className="ptv-next-place" style={{ marginTop: "12px" }}>
                       <MapPin size={14} aria-hidden="true" /> {place.label}
                     </span>
                   )}
                 </div>
 
                 <div className="ptv-countdown" role="timer" aria-label={`Time until ${schedule.next}`}>
-                  <div className="ptv-countdown-boxes">
-                    <div><strong>{pad(hrs)}</strong><small>hrs</small></div>
-                    <span aria-hidden="true">:</span>
-                    <div><strong>{pad(mins)}</strong><small>min</small></div>
-                    <span aria-hidden="true">:</span>
-                    <div><strong>{pad(secs)}</strong><small>sec</small></div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--p-gold-soft)", opacity: 0.9 }}>
+                      Time remaining
+                    </span>
+                    <div className="ptv-countdown-boxes">
+                      <div><strong>{pad(hrs)}</strong><small>hrs</small></div>
+                      <span aria-hidden="true">:</span>
+                      <div><strong>{pad(mins)}</strong><small>min</small></div>
+                      <span aria-hidden="true">:</span>
+                      <div><strong>{pad(secs)}</strong><small>sec</small></div>
+                    </div>
                   </div>
                   <div className="ptv-progress" aria-hidden="true">
                     <span style={{ width: `${Math.round(schedule.progress * 100)}%` }} />
