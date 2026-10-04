@@ -18,7 +18,7 @@ export default function UnderConstructionModal({ featureName, onClose }: Props) 
         </div>
 
         <h3>{featureName}</h3>
-        <p>This feature is currently under active development. Check back soon, in shaa Allah.</p>
+        <p>This feature is currently under active development. Check back soon, In Sha Allah.</p>
 
         <button type="button" className="btn btn-primary btn-block" onClick={onClose}>
           Got it

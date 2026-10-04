@@ -29,27 +29,27 @@
   display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
   gap: clamp(20px, 4vw, 48px);
   padding: clamp(24px, 4vw, 44px);
-  color: #f3efe2; border-radius: 28px;
-  border: 1px solid rgba(243, 210, 122, 0.3);
+  color: #f5f7f6; border-radius: 28px;
+  border: 1px solid rgba(224, 184, 79, 0.25);
   background:
-    radial-gradient(520px 300px at 100% 0%, rgba(224, 184, 79, 0.22), transparent 60%),
-    radial-gradient(420px 320px at 0% 100%, rgba(40, 140, 130, 0.25), transparent 60%),
-    linear-gradient(145deg, #145550 0%, #0a2f2c 55%, #061e1c 100%);
-  box-shadow: 0 30px 70px -26px rgba(6, 30, 28, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    radial-gradient(800px 400px at 100% 0%, rgba(224, 184, 79, 0.15), transparent 50%),
+    radial-gradient(600px 400px at 0% 100%, rgba(255, 255, 255, 0.04), transparent 50%),
+    linear-gradient(135deg, #2a5a56 0%, #1a3c39 100%);
+  box-shadow: 0 20px 50px -16px rgba(13, 53, 50, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 .ptv-hero-spiral { position: absolute; z-index: -1; right: -4%; bottom: -30%; width: 340px; color: var(--p-gold); opacity: 0.13; pointer-events: none; }
 
 .ptv-next-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ptv-next-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--p-gold-soft); }
-.ptv-next-title { margin: 0; font-family: var(--p-display); font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.05; color: #fff; }
+.ptv-next-title { margin: 0; font-family: var(--p-display); font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.05; color: #ffffff; }
 .ptv-next-time {
   font-family: var(--p-display); font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 700;
-  background: linear-gradient(120deg, #f6dc8c, #e0b84f 60%, #c99a2e);
+  background: linear-gradient(120deg, #f3d27a, #e0b84f 60%, #c99a2e);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
 .ptv-next-subtitle {
   margin-top: 6px;
-  font-size: 1rem; font-weight: 600; color: rgba(243, 239, 226, 0.9);
+  font-size: 1rem; font-weight: 600; color: rgba(245, 247, 246, 0.85);
   display: flex; align-items: baseline; gap: 6px;
 }
 .ptv-next-subtitle strong {
@@ -60,13 +60,14 @@
 .ptv-countdown-boxes { display: flex; align-items: center; gap: 8px; }
 .ptv-countdown-boxes > div {
   display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 74px; padding: 12px 8px;
-  border-radius: 16px; background: rgba(255, 255, 255, 0.09); border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 16px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.1);
 }
-.ptv-countdown-boxes strong { font-size: clamp(1.7rem, 3vw, 2.2rem); line-height: 1; font-variant-numeric: tabular-nums; color: #fff; }
-.ptv-countdown-boxes small { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(243, 239, 226, 0.7); }
+.ptv-countdown-boxes strong { font-size: clamp(1.7rem, 3vw, 2.2rem); line-height: 1; font-variant-numeric: tabular-nums; color: #ffffff; }
+.ptv-countdown-boxes small { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(245, 247, 246, 0.75); }
 .ptv-countdown-boxes > span { font-size: 1.6rem; font-weight: 700; color: var(--p-gold-soft); opacity: 0.7; }
 
-.ptv-progress { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); overflow: hidden; }
+.ptv-progress { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
 .ptv-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f6dc8c, #e0b84f); transition: width 1s linear; }
 
 /* ---------- Date / location / tools ---------- */
@@ -172,7 +173,7 @@
 }
 
 /* ---------- Place + calculation settings ---------- */
-.ptv-next-place { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 0.9rem; font-weight: 600; color: rgba(243, 239, 226, 0.85); }
+.ptv-next-place { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 0.9rem; font-weight: 600; color: rgba(245, 247, 246, 0.85); }
 
 .ptv-place {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 24px;

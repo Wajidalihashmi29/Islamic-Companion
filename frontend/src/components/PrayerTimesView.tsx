@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, CloudSun, MapPin, Moon, Sparkles, Star, Sun, Sunrise, Sunset } from "lucide-react";
 import LocationSelector from "./LocationSelector";
 import type { ResolvedLocation } from "./LocationSelector";
@@ -245,7 +245,7 @@ export default function PrayerTimesView() {
                     Next: <strong>{schedule.next}</strong> at {formatTime(timings[schedule.next], use12h)}
                   </div>
                   {place && (
-                    <span className="ptv-next-place" style={{ marginTop: "12px" }}>
+                    <span className="ptv-next-place" style={{ marginTop: "12px", color: "rgba(245, 247, 246, 0.85)" }}>
                       <MapPin size={14} aria-hidden="true" /> {place.label}
                     </span>
                   )}

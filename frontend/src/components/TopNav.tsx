@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { LogOut, Menu, Settings, X, Ellipsis } from "lucide-react";
 import BrandMark from "./BrandMark";
 import { dashboardItem, features } from "../config/features";
@@ -20,7 +20,22 @@ export default function TopNav({
 }: TopNavProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    }
+    if (moreMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [moreMenuOpen]);
 
   const primaryItems = [dashboardItem, ...features.filter((f) => f.primary)];
   const secondaryItems = features.filter((f) => !f.primary);
@@ -69,7 +84,7 @@ export default function TopNav({
 
             {/* More dropdown */}
             {secondaryItems.length > 0 && (
-              <div className="top-nav-dropdown-wrapper">
+              <div className="top-nav-dropdown-wrapper" ref={dropdownRef}>
                 <button
                   type="button"
                   className={`top-nav-link ${isSecondaryActive ? "active" : ""}`}

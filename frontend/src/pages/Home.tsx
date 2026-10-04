@@ -110,8 +110,9 @@ export default function Home() {
             <div className="home-hero-header-line">
               <span className="home-eyebrow">
                 Assalamu Alaikum{user?.name ? `, ${user.name}` : ""}
-              </span>
-              <div className="home-date-group">
+              </span>              
+            </div>
+            <div className="home-date-group">
                 {currentDateString && (
                   <span className="home-date-pill">
                     <Calendar size={13} aria-hidden="true" />
@@ -124,9 +125,7 @@ export default function Home() {
                     <span>{hijriDateString}</span>
                   </span>
                 )}
-              </div>
             </div>
-
             <h1>
               Your Daily <em>Faith Hub</em>
             </h1>
