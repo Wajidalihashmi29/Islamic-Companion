@@ -1,146 +1,203 @@
-.ptv-content {
+/* ==========================================================================
+   PrayerTimesView — emerald hero with live countdown + clear prayer states
+   ========================================================================== */
+
+.ptv-container {
+  --p-ink: #0d2b29;
+  --p-body: #4a615e;
+  --p-line: rgba(13, 53, 50, 0.13);
+  --p-gold: #e0b84f;
+  --p-gold-soft: #f3d27a;
+  --p-gold-ink: #856510;
+  --p-display: var(--font-display, "Playfair Display", Georgia, serif);
   width: 100%;
-  font-family: "Inter", sans-serif;
+  color: var(--p-ink);
+  scroll-margin-top: calc(var(--nav-height, 70px) + 20px);
 }
 
-.ptv-header {
-  margin-bottom: 28px;
-  text-align: center;
-}
-
-.ptv-subtitle {
-  color: var(--muted);
-  font-size: 0.9rem;
-  margin: 0;
-}
+.ptv-card-wrapper { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 30px); }
+.ptv-result { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 28px); animation: ptv-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 .ptv-error {
-  color: var(--error);
-  font-size: 0.85rem;
-  background: rgba(220, 38, 38, 0.1);
-  padding: 10px 14px;
-  border-radius: 8px;
-  margin: 14px 0;
+  margin: 0; padding: 14px 16px; font-size: 0.92rem; line-height: 1.45;
+  color: #8f1d1d; background: #fdecec; border: 1px solid rgba(185, 28, 28, 0.25); border-radius: 14px;
 }
 
-.ptv-result {
-  margin-top: 28px;
-  animation: fadeIn 0.3s ease;
+/* ---------- Hero ---------- */
+.ptv-next-hero {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+  gap: clamp(20px, 4vw, 48px);
+  padding: clamp(24px, 4vw, 44px);
+  color: #f5f7f6; border-radius: 28px;
+  border: 1px solid rgba(224, 184, 79, 0.25);
+  background:
+    radial-gradient(800px 400px at 100% 0%, rgba(224, 184, 79, 0.15), transparent 50%),
+    radial-gradient(600px 400px at 0% 100%, rgba(255, 255, 255, 0.04), transparent 50%),
+    linear-gradient(135deg, #2a5a56 0%, #1a3c39 100%);
+  box-shadow: 0 20px 50px -16px rgba(13, 53, 50, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+.ptv-hero-spiral { position: absolute; z-index: -1; right: -4%; bottom: -30%; width: 340px; color: var(--p-gold); opacity: 0.13; pointer-events: none; }
+
+.ptv-next-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ptv-next-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--p-gold-soft); }
+.ptv-next-title { margin: 0; font-family: var(--p-display); font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.05; color: #ffffff; }
+.ptv-next-time {
+  font-family: var(--p-display); font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 700;
+  background: linear-gradient(120deg, #f3d27a, #e0b84f 60%, #c99a2e);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.ptv-next-subtitle {
+  margin-top: 6px;
+  font-size: 1rem; font-weight: 600; color: rgba(245, 247, 246, 0.85);
+  display: flex; align-items: baseline; gap: 6px;
+}
+.ptv-next-subtitle strong {
+  font-family: var(--p-display); font-size: 1.3rem; color: var(--p-gold-soft);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.ptv-countdown { display: flex; flex-direction: column; gap: 14px; min-width: 280px; }
+.ptv-countdown-boxes { display: flex; align-items: center; gap: 8px; }
+.ptv-countdown-boxes > div {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 74px; padding: 12px 8px;
+  border-radius: 16px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.1);
+}
+.ptv-countdown-boxes strong { font-size: clamp(1.7rem, 3vw, 2.2rem); line-height: 1; font-variant-numeric: tabular-nums; color: #ffffff; }
+.ptv-countdown-boxes small { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(245, 247, 246, 0.75); }
+.ptv-countdown-boxes > span { font-size: 1.6rem; font-weight: 700; color: var(--p-gold-soft); opacity: 0.7; }
+
+.ptv-progress { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.ptv-progress span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f6dc8c, #e0b84f); transition: width 1s linear; }
+
+/* ---------- Date / location / tools ---------- */
+.ptv-result-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--p-line); }
+.ptv-dates { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.ptv-gregorian { font-size: 0.95rem; color: var(--p-body); }
+.ptv-hijri { font-family: var(--p-display); font-size: 1.2rem; font-weight: 700; color: var(--p-gold-ink); }
+
+.ptv-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.ptv-location-tag {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px;
+  font-size: 0.85rem; font-weight: 600; color: #0f4d49; background: #e6f1ee; border-radius: 999px;
+}
+.ptv-toggle { display: inline-flex; padding: 3px; border-radius: 999px; background: #eef1ee; }
+.ptv-toggle button {
+  min-width: 52px; min-height: 40px; padding: 0 14px; border: none; border-radius: 999px; background: transparent;
+  color: var(--p-body); font: inherit; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: background 0.2s ease, color 0.2s ease;
+}
+.ptv-toggle button.is-on { color: #f3efe2; background: linear-gradient(135deg, #145550, #0a2f2c); }
+.ptv-change {
+  min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid var(--p-line); background: #fff;
+  color: #0f4d49; font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; transition: border-color 0.2s ease, transform 0.15s ease;
+}
+.ptv-change:hover { border-color: var(--p-gold); transform: translateY(-1px); }
+
+/* ---------- Prayer cards ---------- */
+.ptv-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+
+.ptv-prayer-card {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  min-height: 170px; padding: 20px 14px; text-align: center;
+  background: #fff; border: 1px solid var(--p-line); border-radius: 22px;
+  box-shadow: 0 2px 6px rgba(13, 53, 50, 0.05), 0 14px 30px -20px rgba(13, 53, 50, 0.3);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.ptv-prayer-card:hover { transform: translateY(-4px); border-color: rgba(201, 154, 46, 0.7); }
+
+.ptv-prayer-icon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 15px; color: #0f4d49; background: linear-gradient(145deg, #e6f1ee, #cfe3de); }
+.ptv-prayer-name { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--p-body); }
+.ptv-prayer-time { font-family: var(--p-display); font-size: clamp(1.5rem, 2.6vw, 1.9rem); font-weight: 700; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.ptv-prayer-state { display: inline-flex; align-items: center; gap: 5px; min-height: 22px; padding: 2px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: #51655f; background: #eef1ee; }
+
+.ptv-prayer-card.is-passed .ptv-prayer-state { 
+  color: #095c41; 
+  background: #d6f3e5; 
+  border: none;
 }
 
-.ptv-result-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-bottom: 18px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+.ptv-prayer-card.is-ongoing { 
+  background: linear-gradient(160deg, #fffcf0, #fff7d6); 
+  border-color: rgba(224, 184, 79, 0.7); 
+  box-shadow: 0 8px 24px -10px rgba(224, 184, 79, 0.35);
+}
+.ptv-prayer-card.is-ongoing .ptv-prayer-icon { color: #1d1604; background: linear-gradient(135deg, #f6dc8c, #e0b84f); box-shadow: 0 4px 12px -4px rgba(224, 184, 79, 0.5); }
+.ptv-prayer-card.is-ongoing .ptv-prayer-time { color: var(--p-gold-ink); }
+.ptv-prayer-card.is-ongoing .ptv-prayer-state { 
+  color: #1d1604; 
+  background: linear-gradient(135deg, #f6dc8c, #e0b84f); 
+  box-shadow: 0 2px 6px rgba(224, 184, 79, 0.35);
+  font-weight: 800;
 }
 
-.ptv-hijri {
-  color: var(--gold);
-  font-weight: 600;
-  font-size: 0.95rem;
+.ptv-prayer-card.is-next {
+  color: #f3efe2; border: 2px solid var(--p-gold);
+  background: linear-gradient(150deg, #145550, #0a2f2c 60%, #061e1c);
+  box-shadow: 0 0 0 4px rgba(224, 184, 79, 0.18), 0 26px 44px -20px rgba(6, 30, 28, 0.7);
+}
+.ptv-prayer-card.is-next .ptv-prayer-icon { color: #1d1604; background: linear-gradient(135deg, #f6dc8c, #e0b84f); }
+.ptv-prayer-card.is-next .ptv-prayer-name { color: rgba(243, 239, 226, 0.85); }
+.ptv-prayer-card.is-next .ptv-prayer-time { color: var(--p-gold-soft); }
+.ptv-prayer-card.is-next .ptv-prayer-state { color: #1d1604; background: linear-gradient(135deg, #f6dc8c, #e0b84f); }
+
+/* ---------- Placeholder ---------- */
+.ptv-placeholder {
+  position: relative; overflow: hidden; padding: 56px 24px; text-align: center;
+  background: rgba(255, 255, 255, 0.7); border: 1px dashed rgba(201, 154, 46, 0.5); border-radius: 24px; color: var(--p-body);
+}
+.ptv-placeholder-spiral { position: absolute; top: 50%; left: 50%; width: 300px; transform: translate(-50%, -50%); color: var(--p-gold); opacity: 0.1; pointer-events: none; }
+.ptv-placeholder p { position: relative; margin: 0; font-size: 1rem; }
+
+.ptv-container :focus-visible { outline: 3px solid var(--p-gold); outline-offset: 3px; border-radius: 12px; }
+
+@keyframes ptv-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ptv-result { animation: none; }
+  .ptv-progress span, .ptv-prayer-card, .ptv-change, .ptv-toggle button { transition: none; }
+  .ptv-prayer-card:hover { transform: none; }
 }
 
-.ptv-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 14px;
+/* ---------- Responsive ---------- */
+@media (max-width: 860px) {
+  .ptv-next-hero { grid-template-columns: 1fr; }
+  .ptv-countdown { min-width: 0; }
+  .ptv-countdown-boxes > div { flex: 1; min-width: 0; }
+  .ptv-hero-spiral { display: none; }
+  .ptv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .ptv-grid { gap: 12px; }
+  .ptv-prayer-card { min-height: 150px; padding: 16px 10px; }
+  .ptv-tools { width: 100%; }
 }
 
-.ptv-card {
-  background: var(--teal-deep);
-  color: var(--ivory);
-  border-radius: 12px;
-  padding: 16px 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-  box-shadow: 0 3px 10px rgba(15, 61, 58, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+/* ---------- Place + calculation settings ---------- */
+.ptv-next-place { display: inline-flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 0.9rem; font-weight: 600; color: rgba(245, 247, 246, 0.85); }
+
+.ptv-place {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 24px;
+  padding: clamp(16px, 2.4vw, 22px); background: #fff; border: 1px solid var(--p-line); border-radius: 22px;
+  box-shadow: 0 2px 6px rgba(13, 53, 50, 0.05), 0 14px 30px -22px rgba(13, 53, 50, 0.3);
 }
+.ptv-place-main { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.ptv-place-icon { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 52px; height: 52px; border-radius: 16px; color: #1d1604; background: linear-gradient(135deg, #f6dc8c, #e0b84f); }
+.ptv-place-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ptv-place-text small { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--p-gold-ink); }
+.ptv-place-text strong { font-family: var(--p-display); font-size: 1.2rem; line-height: 1.25; color: var(--p-ink); overflow-wrap: anywhere; }
+.ptv-place-coords { font-size: 0.82rem; color: var(--p-body); font-variant-numeric: tabular-nums; }
 
-.ptv-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 14px rgba(15, 61, 58, 0.14);
-}
+.ptv-place-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; }
+.ptv-control { display: flex; flex-direction: column; gap: 6px; }
+.ptv-control > span { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--p-body); }
+.ptv-toggle button:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.ptv-icon {
-  color: var(--gold-light);
-}
+.ptv-prayer-sub { margin-top: -2px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--p-gold-ink); }
+.ptv-prayer-card.is-next .ptv-prayer-sub { color: var(--p-gold-soft); }
 
-.ptv-name {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: rgba(250, 246, 236, 0.7);
-  font-weight: 600;
-}
+.ptv-note { margin: 0; padding: 14px 16px; font-size: 0.85rem; line-height: 1.5; color: var(--p-body); background: rgba(255, 255, 255, 0.7); border: 1px dashed var(--p-line); border-radius: 14px; }
 
-.ptv-time {
-  font-family: "Amiri", serif;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .ptv-content {
-    width: 100%;
-  }
-
-  .ptv-header {
-    margin-bottom: 20px;
-  }
-
-  .ptv-grid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 10px;
-  }
-
-  .ptv-card {
-    padding: 12px 10px;
-  }
-
-  .ptv-time {
-    font-size: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .ptv-header {
-    margin-bottom: 16px;
-  }
-
-  .ptv-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .ptv-card {
-    padding: 10px 8px;
-  }
-
-  .ptv-time {
-    font-size: 0.95rem;
-  }
-
-  .ptv-name {
-    font-size: 0.65rem;
-  }
+@media (max-width: 700px) {
+  .ptv-place-controls { width: 100%; }
+  .ptv-change { width: 100%; }
 }
