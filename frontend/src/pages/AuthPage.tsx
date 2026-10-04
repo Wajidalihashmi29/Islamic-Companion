@@ -1,60 +1,188 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { CheckCircle2, XCircle } from "lucide-react";
-import { loginUser, registerUser } from "../api/authApi";
+import {
+  ArrowRight,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  MailCheck,
+  RefreshCw,
+  User,
+  Sparkles,
+} from "lucide-react";
+import {
+  googleSignIn,
+  loginUser,
+  parseApiError,
+  registerUser,
+  resendConfirmation,
+  type AuthResponse,
+} from "../api/authApi";
+import AuthLayout from "../components/AuthLayout";
+import GoogleSignInButton, { isGoogleSignInConfigured } from "../components/GoogleSignInButton";
 import { useAuth } from "../context/AuthContext";
 import "./AuthPage.css";
 
-type Tab = "login" | "register";
+const RESEND_COOLDOWN_SECONDS = 34;
+
+function Field({
+  label,
+  icon,
+  children,
+  trailing,
+}: {
+  label: string;
+  icon: ReactNode;
+  children: ReactNode;
+  trailing?: ReactNode;
+}) {
+  return (
+    <label className="field">
+      <span className="field-label">{label}</span>
+      <span className="field-control">
+        <span className="field-icon" aria-hidden="true">{icon}</span>
+        {children}
+        {trailing}
+      </span>
+    </label>
+  );
+}
+
+function PasswordToggle({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      className="field-trailing"
+      onClick={onToggle}
+      aria-label={visible ? "Hide password" : "Show password"}
+      tabIndex={-1}
+    >
+      {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+    </button>
+  );
+}
+
+function useCooldown() {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    if (seconds <= 0) return;
+    const t = window.setTimeout(() => setSeconds((s) => s - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [seconds]);
+  return [seconds, () => setSeconds(RESEND_COOLDOWN_SECONDS)] as const;
+}
 
 export default function AuthPage() {
-  const [tab, setTab] = useState<Tab>("login");
+  const location = useLocation();
+  const initialIsRegister = location.pathname === "/register";
+
+  const [isFlipped, setIsFlipped] = useState(initialIsRegister);
+  const [isCheckEmailView, setIsCheckEmailView] = useState(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState("");
+  const [cooldown, startCooldown] = useCooldown();
 
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Password validation
-  const passwordRequirements = {
-    minLength: password.length >= 8,
-    hasUpperCase: /[A-Z]/.test(password),
-    hasLowerCase: /[a-z]/.test(password),
-    hasNumber: /[0-9]/.test(password),
-  };
+  const frontRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLDivElement>(null);
+  const prevFlipped = useRef(isFlipped);
 
-  const isPasswordValid = Object.values(passwordRequirements).every(req => req);
+  // The face that is turned away becomes `inert`: it can't be clicked, tabbed
+  // to, or read by screen readers. After a flip, focus the visible face's first input.
+  useEffect(() => {
+    frontRef.current?.toggleAttribute("inert", isFlipped);
+    backRef.current?.toggleAttribute("inert", !isFlipped);
 
-  const switchTab = (next: Tab) => {
-    setTab(next);
+    if (prevFlipped.current === isFlipped) return;
+    prevFlipped.current = isFlipped;
+
+    const t = window.setTimeout(() => {
+      const active = isFlipped ? backRef.current : frontRef.current;
+      active?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+    }, 420);
+    return () => window.clearTimeout(t);
+  }, [isFlipped]);
+
+  useEffect(() => {
+    document.documentElement.classList.add("auth-no-scroll");
+    return () => document.documentElement.classList.remove("auth-no-scroll");
+  }, []);
+
+  const requirements = [
+    { label: "8+ chars", met: password.length >= 8 },
+    { label: "Uppercase", met: /[A-Z]/.test(password) },
+    { label: "Lowercase", met: /[a-z]/.test(password) },
+    { label: "Number", met: /[0-9]/.test(password) },
+  ];
+  const strength = requirements.filter((r) => r.met).length;
+  const isPasswordValid = strength === requirements.length;
+  const strengthLabel = ["Weak", "Fair", "Good", "Strong"][Math.max(0, strength - 1)] || "Weak";
+
+  const toggleFlip = (toRegister: boolean) => {
+    // Directly toggle the single boolean state to avoid multi-step flips
+    setIsFlipped(toRegister);
+    // clear transient UI state
+    setIsCheckEmailView(false);
     setError("");
     setNotice("");
+    setUnverifiedEmail("");
+    setShowPassword(false);
   };
+
+  const completeLogin = useCallback(
+    (response: AuthResponse, fallbackEmail?: string) => {
+      let decoded: { name?: string; unique_name?: string; email?: string } = {};
+      try {
+        decoded = jwtDecode(response.token);
+      } catch {
+        /* token valid */
+      }
+      let userName = response.fullName || decoded.name || decoded.unique_name;
+      const sourceEmail = fallbackEmail || decoded.email;
+      if (!userName && sourceEmail) {
+        const local = sourceEmail.split("@")[0];
+        userName = local.charAt(0).toUpperCase() + local.slice(1);
+      }
+      login(response.token, response.refreshToken, userName || "Friend");
+      navigate("/dashboard", { replace: true });
+    },
+    [login, navigate]
+  );
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setNotice("");
+    setUnverifiedEmail("");
     setLoading(true);
     try {
       const response = await loginUser({ email, password });
-      // Decode token to extract user name
-      const decoded = jwtDecode<{ name?: string; fullName?: string; sub?: string; email?: string }>(response.data.token);
-      // Use first name, full name, or email (first part before @) as fallback
-      let userName = response.data.fullName || decoded.name || decoded.fullName;
-      if (!userName && email) {
-        userName = email.split("@")[0].charAt(0).toUpperCase() + email.split("@")[0].slice(1);
+      completeLogin(response.data, email);
+    } catch (err) {
+      const parsed = parseApiError(err, "That email or password doesn't match our records.");
+      if (parsed.code === "email_not_confirmed") {
+        setUnverifiedEmail(email);
+        setError("Please verify your email before signing in. Check your inbox.");
+      } else if (parsed.message === "Invalid credentials") {
+        setError("That email or password doesn't match our records.");
+      } else {
+        setError(parsed.message);
       }
-      userName = userName || "User";
-      login(response.data.token, response.data.refreshToken, userName);
-      navigate("/dashboard");
-    } catch {
-      setError("That email or password doesn't match our records.");
     } finally {
       setLoading(false);
     }
@@ -62,181 +190,335 @@ export default function AuthPage() {
 
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
+    if (!isPasswordValid) return;
     setError("");
     setLoading(true);
     try {
-      await registerUser({ email, password, fullName });
-      setNotice("Account created. Sign in to continue.");
-      setTab("login");
+      await registerUser({ email: email.trim(), password, fullName: fullName.trim() });
+      setUnverifiedEmail(email.trim());
       setPassword("");
-    } catch (err: unknown) {
-      // Extract error details from API response
-      if (err && typeof err === "object" && "response" in err) {
-        const response = (err as any).response;
-        if (response?.data && Array.isArray(response.data)) {
-          const errorDetails = response.data
-            .map((e: any) => e.description || e.code)
-            .join("; ");
-          
-          if(errorDetails.includes("is already taken")) {
-            setError("Specified Email is already registered. Try logging in or use a different email.");
-            return;
-          }
-          setError(errorDetails || "We couldn't create that account.");
-        } else if (response?.data?.message) {
-          setError(response.data.message);
-        } else {
-          setError("We couldn't create that account. Try a different emailxyz.");
-        }
-      } else {
-        setError("We couldn't create that account. Try a different emailabc.");
-      }
+      setIsCheckEmailView(true);
+      startCooldown();
+    } catch (err) {
+      setError(parseApiError(err, "We couldn't create that account. Please try again.").message);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleResend = async () => {
+    if (!unverifiedEmail || cooldown > 0) return;
+    setError("");
+    setLoading(true);
+    try {
+      await resendConfirmation(unverifiedEmail);
+      setNotice("A new confirmation link has been sent to your email.");
+      startCooldown();
+    } catch (err) {
+      setError(parseApiError(err, "We couldn't resend the email right now. Try again shortly.").message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogle = useCallback(
+    async (idToken: string) => {
+      setError("");
+      setNotice("");
+      setLoading(true);
+      try {
+        const response = await googleSignIn(idToken);
+        completeLogin(response.data);
+      } catch (err) {
+        setError(parseApiError(err, "Google sign-in couldn't be completed. Try again.").message);
+        setLoading(false);
+      }
+    },
+    [completeLogin]
+  );
+
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+
   return (
-    <div className="auth-page">
-      <div className="auth-brand">
-        <div className="auth-brand-pattern" aria-hidden="true" />
-        <div className="auth-brand-content">
-          <div className="auth-emblem">
-            <svg viewBox="0 0 100 100" width="56" height="56">
-              <path
-                fill="currentColor"
-                d="M50 2 61 30 90 30 66 48 76 78 50 60 24 78 34 48 10 30 39 30Z"
-                opacity="0"
-              />
-              <g fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M50 8 L50 92 M8 50 L92 50 M17 17 L83 83 M83 17 L17 83" opacity="0.5" />
-                <rect x="30" y="30" width="40" height="40" transform="rotate(45 50 50)" />
-                <rect x="30" y="30" width="40" height="40" />
-              </g>
-            </svg>
-          </div>
-          <h1>Islamic Companion</h1>
-          <p>Prayer times, Qur'an, and daily reflection — held in one place.</p>
-        </div>
-      </div>
+    <AuthLayout>
+      <div className="auth-flip-container">
+                <div className={`auth-flip-card ${isFlipped ? "is-flipped" : ""}`}>
+          
+          {/* FRONT FACE: LOGIN */}
+          <div ref={frontRef} className="auth-card-face auth-card-front">
 
-      <div className="auth-panel">
-        <div className="auth-card">
-          <div className="auth-tabs" role="tablist">
-            <span
-              className="auth-tabs-indicator"
-              style={{ transform: tab === "login" ? "translateX(0%)" : "translateX(100%)" }}
-            />
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === "login"}
-              className={`auth-tab ${tab === "login" ? "active" : ""}`}
-              onClick={() => switchTab("login")}
-            >
-              Log in
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={tab === "register"}
-              className={`auth-tab ${tab === "register" ? "active" : ""}`}
-              onClick={() => switchTab("register")}
-            >
-              Register
-            </button>
-          </div>
+            <header className="auth-header">
+              <div className="auth-header-pill">
+                <Sparkles size={13} />
+                <span>Welcome Back</span>
+              </div>
+              <h2 className="auth-title">Sign in to Companion</h2>
+              <p className="auth-subtitle">Enter your details to access your dashboard.</p>
+            </header>
 
-          {notice && <p className="auth-notice">{notice}</p>}
-          {error && <p className="auth-error">{error}</p>}
+            {notice && (
+              <div className="alert alert-success" role="status">
+                <CircleCheck /> <span>{notice}</span>
+              </div>
+            )}
 
-          {tab === "login" ? (
+            {error && (
+              <div className="alert alert-error" role="alert">
+                <CircleAlert />
+                <div className="alert-body">
+                  <span>{error}</span>
+                  {unverifiedEmail && (
+                    <button
+                      type="button"
+                      className="btn-link"
+                      onClick={handleResend}
+                      disabled={loading || cooldown > 0}
+                    >
+                      {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend verification email"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <form className="auth-form" onSubmit={handleLogin}>
-              <label>
-                Email
+              <Field label="Email Address" icon={<Mail />}>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="name@example.com"
+                  autoComplete="email"
                   required
+                  disabled={loading}
                 />
-              </label>
-              <label>
-                Password
+              </Field>
+
+              <Field
+                label="Password"
+                icon={<Lock />}
+                trailing={<PasswordToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
+              >
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   required
+                  disabled={loading}
                 />
-              </label>
-              <button type="submit" className="auth-submit" disabled={loading}>
-                {loading ? "Signing in…" : "Log in"}
+              </Field>
+
+              <button
+                type="submit"
+                className="btn btn-primary btn-block auth-submit-btn"
+                disabled={loading}
+              >
+                {loading ? <span className="spinner" /> : null}
+                {loading ? "Signing in…" : "Sign In"}
+                {!loading && <ArrowRight size={16} />}
               </button>
             </form>
-          ) : (
-            <form className="auth-form" onSubmit={handleRegister}>
-              <label>
-                Full name
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Your name"
-                  required
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  required
-                />
-              </label>
-              <label>
-                Password
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a strong password"
-                  required
-                />
-              </label>
-              
-              {tab === "register" && password && (
-                <div className="password-requirements">
-                  <div className={`requirement ${passwordRequirements.minLength ? "met" : ""}`}>
-                    {passwordRequirements.minLength ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                    <span>At least 8 characters</span>
-                  </div>
-                  <div className={`requirement ${passwordRequirements.hasUpperCase ? "met" : ""}`}>
-                    {passwordRequirements.hasUpperCase ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                    <span>One uppercase letter</span>
-                  </div>
-                  <div className={`requirement ${passwordRequirements.hasLowerCase ? "met" : ""}`}>
-                    {passwordRequirements.hasLowerCase ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                    <span>One lowercase letter</span>
-                  </div>
-                  <div className={`requirement ${passwordRequirements.hasNumber ? "met" : ""}`}>
-                    {passwordRequirements.hasNumber ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                    <span>One number</span>
-                  </div>
+
+            {isGoogleSignInConfigured && (
+              <>
+                <div className="auth-divider">
+                  <span>or continue with</span>
                 </div>
-              )}
-              
-              <button type="submit" className="auth-submit" disabled={loading || (tab === "register" && !isPasswordValid)}>
-                {loading ? "Creating account…" : "Create account"}
+                <div className="auth-google">
+<GoogleSignInButton
+                  onCredential={handleGoogle}
+                  text="signin_with"
+                  disabled={loading}
+                />
+</div>
+              </>
+            )}
+
+            <div className="auth-flip-footer">
+              <span>Don't have an account?</span>
+              <button
+                type="button"
+                className="auth-flip-trigger"
+                onClick={() => toggleFlip(true)}
+              >
+                Create Account <RefreshCw size={14} className="flip-icon" />
               </button>
-            </form>
-          )}
+            </div>
+          </div>
+
+          {/* BACK FACE: REGISTER OR CHECK EMAIL */}
+          <div ref={backRef} className="auth-card-face auth-card-back">
+
+            {isCheckEmailView ? (
+              <div className="auth-check-email-body">
+                <div className="auth-status-icon auth-status-icon--gold">
+                  <MailCheck size={32} />
+                </div>
+                <h2 className="auth-title">Verify your email</h2>
+                <p className="auth-subtitle">
+                  We've sent a link to <strong className="auth-email-pill">{unverifiedEmail}</strong>
+                </p>
+                <p className="auth-help">
+                  Click the link in your email to activate your account. Check your spam folder if you don't see it.
+                </p>
+
+                {notice && (
+                  <div className="alert alert-success" role="status">
+                    <CircleCheck /> <span>{notice}</span>
+                  </div>
+                )}
+                {error && (
+                  <div className="alert alert-error" role="alert">
+                    <CircleAlert /> <span>{error}</span>
+                  </div>
+                )}
+
+                <div className="auth-stack">
+                  <button
+                    type="button"
+                    className="btn btn-gold btn-block"
+                    onClick={() => toggleFlip(false)}
+                  >
+                    Back to Sign In <ArrowRight size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-block"
+                    onClick={handleResend}
+                    disabled={loading || cooldown > 0}
+                  >
+                    {loading ? <span className="spinner" /> : null}
+                    {cooldown > 0 ? `Resend email in ${cooldown}s` : "Resend email"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <header className="auth-header">
+                  <div className="auth-header-pill">
+                    <Sparkles size={13} />
+                    <span>Join Us Today</span>
+                  </div>
+                  <h2 className="auth-title">Create Account</h2>
+                  <p className="auth-subtitle">Begin your journey with Islamic Companion.</p>
+                </header>
+
+                {notice && (
+                  <div className="alert alert-success" role="status">
+                    <CircleCheck /> <span>{notice}</span>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="alert alert-error" role="alert">
+                    <CircleAlert /> <span>{error}</span>
+                  </div>
+                )}
+
+                <form className="auth-form" onSubmit={handleRegister}>
+                  <Field label="Full Name" icon={<User />}>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Your full name"
+                      autoComplete="name"
+                      required
+                      disabled={loading}
+                    />
+                  </Field>
+
+                  <Field label="Email Address" icon={<Mail />}>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      autoComplete="email"
+                      required
+                      disabled={loading}
+                    />
+                  </Field>
+
+                  <Field
+                    label="Password"
+                    icon={<Lock />}
+                    trailing={<PasswordToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
+                  >
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Create a strong password"
+                      autoComplete="new-password"
+                      required
+                      disabled={loading}
+                    />
+                  </Field>
+
+                  <div className="pw-strength" aria-live="polite">
+                    <div className="pw-row">
+                      <div className="pw-meter" data-strength={password ? strength : 0}>
+                        {requirements.map((r) => (
+                          <span key={r.label} />
+                        ))}
+                      </div>
+                      <span className="pw-label">{password ? strengthLabel : "—"}</span>
+                    </div>
+                    <ul className="pw-checks">
+                      {requirements.map((r) => (
+                        <li key={r.label} className={r.met ? "met" : ""}>
+                          <Check size={12} />
+                          {r.label}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn btn-gold btn-block auth-submit-btn"
+                    disabled={loading || !isPasswordValid}
+                  >
+                    {loading ? <span className="spinner" /> : null}
+                    {loading ? "Creating Account…" : "Create Account"}
+                    {!loading && <ArrowRight size={16} />}
+                  </button>
+                </form>
+
+                {isGoogleSignInConfigured && (
+                  <>
+                    <div className="auth-divider">
+                      <span>or continue with</span>
+                    </div>
+                    <div className="auth-google">
+<GoogleSignInButton
+                      onCredential={handleGoogle}
+                      text="signup_with"
+                      disabled={loading}
+                    />
+</div>
+                  </>
+                )}
+
+                <div className="auth-flip-footer">
+                  <span>Already have an account?</span>
+                  <button
+                    type="button"
+                    className="auth-flip-trigger"
+                    onClick={() => toggleFlip(false)}
+                  >
+                    Sign In <RefreshCw size={14} className="flip-icon" />
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
         </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }
