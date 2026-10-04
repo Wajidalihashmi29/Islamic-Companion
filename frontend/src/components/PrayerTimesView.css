@@ -47,6 +47,14 @@
   background: linear-gradient(120deg, #f6dc8c, #e0b84f 60%, #c99a2e);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
+.ptv-next-subtitle {
+  margin-top: 6px;
+  font-size: 1rem; font-weight: 600; color: rgba(243, 239, 226, 0.9);
+  display: flex; align-items: baseline; gap: 6px;
+}
+.ptv-next-subtitle strong {
+  font-family: var(--p-display); font-size: 1.3rem; color: var(--p-gold-soft);
+}
 
 .ptv-countdown { display: flex; flex-direction: column; gap: 14px; min-width: 280px; }
 .ptv-countdown-boxes { display: flex; align-items: center; gap: 8px; }
