@@ -177,4 +177,4 @@ VITE_API_BASE_URL
 
 ## License
 
-MIT
+This project is proprietary. All rights reserved. You may view and fork the code for personal review via GitHub, but no part of this software may be used, modified, or redistributed without prior written permission.
