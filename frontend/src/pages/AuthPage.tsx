@@ -4,6 +4,8 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import {
   ArrowRight,
+  ArrowLeft,
+  KeyRound,
   Check,
   CircleAlert,
   CircleCheck,
@@ -22,6 +24,7 @@ import {
   parseApiError,
   registerUser,
   resendConfirmation,
+  forgotPassword,
   type AuthResponse,
 } from "../api/authApi";
 import AuthLayout from "../components/AuthLayout";
@@ -84,6 +87,9 @@ export default function AuthPage() {
 
   const [isFlipped, setIsFlipped] = useState(initialIsRegister);
   const [isCheckEmailView, setIsCheckEmailView] = useState(false);
+  const [isForgotView, setIsForgotView] = useState(false);
+  const [forgotSuccess, setForgotSuccess] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -138,10 +144,31 @@ export default function AuthPage() {
     setIsFlipped(toRegister);
     // clear transient UI state
     setIsCheckEmailView(false);
+    setIsForgotView(false);
+    setForgotSuccess(false);
     setError("");
     setNotice("");
     setUnverifiedEmail("");
     setShowPassword(false);
+  };
+
+  const handleForgotPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setError("Please enter your registered email address.");
+      return;
+    }
+    setError("");
+    setNotice("");
+    setLoading(true);
+    try {
+      await forgotPassword(forgotEmail.trim());
+      navigate(`/reset-password?email=${encodeURIComponent(forgotEmail.trim())}`);
+    } catch (err) {
+      setError(parseApiError(err, "We couldn't process your password reset request. Please try again.").message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const completeLogin = useCallback(
@@ -159,7 +186,7 @@ export default function AuthPage() {
         userName = local.charAt(0).toUpperCase() + local.slice(1);
       }
       login(response.token, response.refreshToken, userName || "Friend");
-      navigate("/dashboard", { replace: true });
+      navigate("/", { replace: true });
     },
     [login, navigate]
   );
@@ -237,115 +264,232 @@ export default function AuthPage() {
     [completeLogin]
   );
 
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) return <Navigate to="/" replace />;
 
   return (
     <AuthLayout>
       <div className="auth-flip-container">
                 <div className={`auth-flip-card ${isFlipped ? "is-flipped" : ""}`}>
           
-          {/* FRONT FACE: LOGIN */}
+          {/* FRONT FACE: LOGIN OR FORGOT PASSWORD */}
           <div ref={frontRef} className="auth-card-face auth-card-front">
+            {isForgotView ? (
+              <>
+                <header className="auth-header">
+                  <div className="auth-header-pill">
+                    <KeyRound size={13} />
+                    <span>Account Recovery</span>
+                  </div>
+                  <h2 className="auth-title">Forgot Password</h2>
+                  <p className="auth-subtitle">
+                    Enter the email associated with your account and we'll send you instructions to reset your password.
+                  </p>
+                </header>
 
-            <header className="auth-header">
-              <div className="auth-header-pill">
-                <Sparkles size={13} />
-                <span>Welcome Back</span>
-              </div>
-              <h2 className="auth-title">Sign in to Companion</h2>
-              <p className="auth-subtitle">Enter your details to access your dashboard.</p>
-            </header>
+                {notice && (
+                  <div className="alert alert-success" role="status">
+                    <CircleCheck /> <span>{notice}</span>
+                  </div>
+                )}
 
-            {notice && (
-              <div className="alert alert-success" role="status">
-                <CircleCheck /> <span>{notice}</span>
-              </div>
-            )}
+                {error && (
+                  <div className="alert alert-error" role="alert">
+                    <CircleAlert /> <span>{error}</span>
+                  </div>
+                )}
 
-            {error && (
-              <div className="alert alert-error" role="alert">
-                <CircleAlert />
-                <div className="alert-body">
-                  <span>{error}</span>
-                  {unverifiedEmail && (
+                {forgotSuccess ? (
+                  <div className="auth-check-email-body" style={{ padding: "8px 0" }}>
+                    <div className="auth-status-icon auth-status-icon--gold">
+                      <MailCheck size={32} />
+                    </div>
+                    <p style={{ margin: "14px 0", color: "var(--ac-ink)", fontSize: "0.94rem", lineHeight: 1.55 }}>
+                      We've sent a password reset link to <strong>{forgotEmail}</strong>. Please check your inbox and click the link to choose a new password.
+                    </p>
+                    {cooldown > 0 ? (
+                      <p style={{ color: "var(--ac-muted)", fontSize: "0.85rem", margin: "6px 0 14px" }}>
+                        Can't find it? You can request another link in {cooldown}s.
+                      </p>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-block"
+                        onClick={handleForgotPassword}
+                        disabled={loading}
+                        style={{ marginBottom: 12 }}
+                      >
+                        Resend Reset Email
+                      </button>
+                    )}
                     <button
                       type="button"
-                      className="btn-link"
-                      onClick={handleResend}
-                      disabled={loading || cooldown > 0}
+                      className="auth-back-link"
+                      onClick={() => {
+                        setIsForgotView(false);
+                        setForgotSuccess(false);
+                        setError("");
+                        setNotice("");
+                      }}
                     >
-                      {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend verification email"}
+                      <ArrowLeft size={15} /> <span>Back to Sign In</span>
                     </button>
-                  )}
-                </div>
-              </div>
-            )}
+                  </div>
+                ) : (
+                  <form className="auth-form" onSubmit={handleForgotPassword}>
+                    <Field label="Registered Email Address" icon={<Mail />}>
+                      <input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="name@example.com"
+                        autoComplete="email"
+                        required
+                        disabled={loading}
+                      />
+                    </Field>
 
-            <form className="auth-form" onSubmit={handleLogin}>
-              <Field label="Email Address" icon={<Mail />}>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  autoComplete="email"
-                  required
-                  disabled={loading}
-                />
-              </Field>
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-block auth-submit-btn"
+                      disabled={loading}
+                    >
+                      {loading ? <span className="spinner" /> : null}
+                      {loading ? "Sending link…" : "Send Reset Link"}
+                      {!loading && <ArrowRight size={16} />}
+                    </button>
 
-              <Field
-                label="Password"
-                icon={<Lock />}
-                trailing={<PasswordToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
-              >
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  required
-                  disabled={loading}
-                />
-              </Field>
-
-              <button
-                type="submit"
-                className="btn btn-primary btn-block auth-submit-btn"
-                disabled={loading}
-              >
-                {loading ? <span className="spinner" /> : null}
-                {loading ? "Signing in…" : "Sign In"}
-                {!loading && <ArrowRight size={16} />}
-              </button>
-            </form>
-
-            {isGoogleSignInConfigured && (
+                    <button
+                      type="button"
+                      className="auth-back-link"
+                      onClick={() => {
+                        setIsForgotView(false);
+                        setError("");
+                        setNotice("");
+                      }}
+                    >
+                      <ArrowLeft size={15} /> <span>Back to Sign In</span>
+                    </button>
+                  </form>
+                )}
+              </>
+            ) : (
               <>
-                <div className="auth-divider">
-                  <span>or continue with</span>
+                <header className="auth-header">
+                  <div className="auth-header-pill">
+                    <Sparkles size={13} />
+                    <span>Welcome Back</span>
+                  </div>
+                  <h2 className="auth-title">Sign in to Companion</h2>
+                  <p className="auth-subtitle">Enter your details to access your dashboard.</p>
+                </header>
+
+                {notice && (
+                  <div className="alert alert-success" role="status">
+                    <CircleCheck /> <span>{notice}</span>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="alert alert-error" role="alert">
+                    <CircleAlert />
+                    <div className="alert-body">
+                      <span>{error}</span>
+                      {unverifiedEmail && (
+                        <button
+                          type="button"
+                          className="btn-link"
+                          onClick={handleResend}
+                          disabled={loading || cooldown > 0}
+                        >
+                          {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend verification email"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <form className="auth-form" onSubmit={handleLogin}>
+                  <Field label="Email Address" icon={<Mail />}>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@example.com"
+                      autoComplete="email"
+                      required
+                      disabled={loading}
+                    />
+                  </Field>
+
+                  <div className="field">
+                    <div className="field-header-row">
+                      <span className="field-label">Password</span>
+                      <button
+                        type="button"
+                        className="auth-link-forgot"
+                        onClick={() => {
+                          setForgotEmail(email);
+                          setIsForgotView(true);
+                          setError("");
+                          setNotice("");
+                        }}
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <span className="field-control">
+                      <span className="field-icon" aria-hidden="true"><Lock /></span>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                        required
+                        disabled={loading}
+                      />
+                      <PasswordToggle visible={showPassword} onToggle={() => setShowPassword((v) => !v)} />
+                    </span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-block auth-submit-btn"
+                    disabled={loading}
+                  >
+                    {loading ? <span className="spinner" /> : null}
+                    {loading ? "Signing in…" : "Sign In"}
+                    {!loading && <ArrowRight size={16} />}
+                  </button>
+                </form>
+
+                {isGoogleSignInConfigured && (
+                  <>
+                    <div className="auth-divider">
+                      <span>or continue with</span>
+                    </div>
+                    <div className="auth-google">
+                      <GoogleSignInButton
+                        onCredential={handleGoogle}
+                        text="signin_with"
+                        disabled={loading}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="auth-flip-footer">
+                  <span>Don't have an account?</span>
+                  <button
+                    type="button"
+                    className="auth-flip-trigger"
+                    onClick={() => toggleFlip(true)}
+                  >
+                    Create Account <RefreshCw size={14} className="flip-icon" />
+                  </button>
                 </div>
-                <div className="auth-google">
-<GoogleSignInButton
-                  onCredential={handleGoogle}
-                  text="signin_with"
-                  disabled={loading}
-                />
-</div>
               </>
             )}
-
-            <div className="auth-flip-footer">
-              <span>Don't have an account?</span>
-              <button
-                type="button"
-                className="auth-flip-trigger"
-                onClick={() => toggleFlip(true)}
-              >
-                Create Account <RefreshCw size={14} className="flip-icon" />
-              </button>
-            </div>
           </div>
 
           {/* BACK FACE: REGISTER OR CHECK EMAIL */}

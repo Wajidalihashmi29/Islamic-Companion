@@ -91,6 +91,9 @@
 
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-display: "Amiri", Georgia, serif;
+  --font-quran-indopak: "IndopakNastaleeq", "AlQuran IndoPak by QuranWBW", serif;
+  --font-quran-uthmani: "Amiri Quran", "Amiri", serif;
+  --font-urdu: "Jameel Noori Nastaleeq Regular", "Jameel Noori Nastaleeq", "JameelNooriNastaliq", serif;
 
   /* ---------- Icons & Tiles (Fibonacci) ---------- */
   --icon-xs: 13px;
