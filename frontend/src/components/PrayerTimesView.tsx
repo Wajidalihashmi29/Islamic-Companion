@@ -4,6 +4,7 @@ import LocationSelector from "./LocationSelector";
 import type { ResolvedLocation } from "./LocationSelector";
 import { getPrayerTimesByCity, getPrayerTimesByCoords } from "../api/prayerTimesApi";
 import type { PrayerTimesResponse } from "../api/prayerTimesApi";
+import { loadSettings } from "../utils/settingsStorage";
 import GoldenSpiral from "./GoldenSpiral";
 import "./PrayerTimesView.css";
 
@@ -163,14 +164,46 @@ export default function PrayerTimesView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSelector, setShowSelector] = useState(true);
-  const [use12h, setUse12h] = useState(false);
+  const [settings, setSettings] = useState(() => loadSettings());
+  const [use12h, setUse12h] = useState(() => settings.prayer.timeFormat === "12h");
   const [school, setSchool] = useState<AsrSchool>(() => {
     try {
-      return localStorage.getItem(SCHOOL_KEY) === "hanafi" ? "hanafi" : "shafi";
+      return settings.prayer.asrSchool || (localStorage.getItem(SCHOOL_KEY) === "hanafi" ? "hanafi" : "shafi");
     } catch {
-      return "shafi";
+      return "hanafi";
     }
   });
+
+  useEffect(() => {
+    const handleSettingsUpdated = () => {
+      const fresh = loadSettings();
+      setSettings(fresh);
+      setUse12h(fresh.prayer.timeFormat === "12h");
+      if (fresh.prayer.asrSchool) {
+        setSchool(fresh.prayer.asrSchool);
+      }
+    };
+    window.addEventListener("ic:settingsUpdated", handleSettingsUpdated);
+    return () => {
+      window.removeEventListener("ic:settingsUpdated", handleSettingsUpdated);
+    };
+  }, []);
+
+  const getDisplayHijri = () => {
+    const offset = settings.general.hijriAdjustment || 0;
+    const target = new Date(Date.now() + offset * 86400000);
+    try {
+      return (
+        new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(target) + " AH"
+      );
+    } catch {
+      return `${data?.hijriDate || ""} AH`;
+    }
+  };
 
   const now = useNow(Boolean(data));
 
@@ -190,7 +223,8 @@ export default function PrayerTimesView() {
       setData(response.data);
       setPlace(resolved);
       setShowSelector(false);
-    } catch {
+    } catch (err) {
+      console.error("Failed to fetch prayer times:", err);
       setError("Couldn't fetch prayer times for that location. Please try again.");
     } finally {
       setLoading(false);
@@ -275,7 +309,7 @@ export default function PrayerTimesView() {
             <div className="ptv-result-header">
               <div className="ptv-dates">
                 <span className="ptv-gregorian">{data.date}</span>
-                <span className="ptv-hijri">{data.hijriDate} AH</span>
+                <span className="ptv-hijri">{getDisplayHijri()}</span>
               </div>
             </div>
 

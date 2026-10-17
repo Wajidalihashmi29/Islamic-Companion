@@ -1,16 +1,19 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { jwtDecode } from "jwt-decode";
 import { refreshTokenRequest } from "../api/authApi";
+import { loadSettings, syncCloudSettings } from "../utils/settingsStorage";
 
-interface AuthUser {
+export interface AuthUser {
+  id?: string;
   name: string;
   email?: string;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
   token: string | null;
   user: AuthUser | null;
+  userIdentifier: string | null;
   login: (token: string, refreshToken: string, userName?: string) => void;
   logout: () => void;
   refreshSession: () => Promise<boolean>;
@@ -32,6 +35,33 @@ function emailFromToken(token: string | null): string | undefined {
   }
 }
 
+function idFromToken(token: string | null): string | undefined {
+  if (!token) return undefined;
+  try {
+    const decoded = jwtDecode<Record<string, unknown>>(token);
+    const sub =
+      decoded.sub ??
+      decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] ??
+      decoded.nameid;
+    return typeof sub === "string" ? sub : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function nameFromToken(token: string | null): string | undefined {
+  if (!token) return undefined;
+  try {
+    const decoded = jwtDecode<Record<string, unknown>>(token);
+    const name =
+      decoded["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] ??
+      decoded.name;
+    return typeof name === "string" ? name : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [userName, setUserName] = useState<string | null>(localStorage.getItem("userName"));
@@ -39,12 +69,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback((newToken: string, newRefreshToken: string, name?: string) => {
     localStorage.setItem("token", newToken);
     localStorage.setItem("refreshToken", newRefreshToken);
-    if (name) {
-      localStorage.setItem("userName", name);
-      setUserName(name);
+    let resolvedName = name;
+    if (!resolvedName) {
+      resolvedName = nameFromToken(newToken);
+    }
+    if (resolvedName) {
+      localStorage.setItem("userName", resolvedName);
+      setUserName(resolvedName);
     }
     setToken(newToken);
+
+    // Warm up settings and synchronize from cloud database for this user
+    const email = emailFromToken(newToken);
+    const id = idFromToken(newToken);
+    const identifier = email || id || resolvedName || null;
+    loadSettings(identifier);
+    syncCloudSettings(identifier);
   }, []);
+
+  useEffect(() => {
+    if (token) {
+      syncCloudSettings();
+    }
+  }, [token]);
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
@@ -54,6 +101,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserName(null);
     // Prevent Google One Tap from silently signing the user straight back in.
     window.google?.accounts?.id?.disableAutoSelect?.();
+
+    // Broadcast update so views switch to guest settings
+    window.dispatchEvent(
+      new CustomEvent("ic:settingsUpdated", {
+        detail: {
+          settings: loadSettings(null),
+          userIdentifier: null,
+          key: "ic.appSettings_guest",
+        },
+      })
+    );
   }, []);
 
   const refreshSession = useCallback(async (): Promise<boolean> => {
@@ -70,14 +128,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const user = useMemo<AuthUser | null>(
-    () => (userName ? { name: userName, email: emailFromToken(token) } : null),
-    [userName, token]
+  const user = useMemo<AuthUser | null>(() => {
+    if (!token && !userName) return null;
+    const email = emailFromToken(token);
+    const id = idFromToken(token);
+    const resolvedName =
+      userName || nameFromToken(token) || (email ? email.split("@")[0] : "Member");
+    return {
+      id,
+      name: resolvedName,
+      email,
+    };
+  }, [userName, token]);
+
+  const userIdentifier = useMemo<string | null>(
+    () => user?.email?.toLowerCase() || user?.id || user?.name?.toLowerCase() || null,
+    [user]
   );
 
   const value = useMemo(
-    () => ({ token, user, login, logout, refreshSession, isAuthenticated: !!token }),
-    [token, user, login, logout, refreshSession]
+    () => ({
+      token,
+      user,
+      userIdentifier,
+      login,
+      logout,
+      refreshSession,
+      isAuthenticated: !!token,
+    }),
+    [token, user, userIdentifier, login, logout, refreshSession]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

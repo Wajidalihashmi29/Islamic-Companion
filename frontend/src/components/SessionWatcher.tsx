@@ -68,7 +68,7 @@ export default function SessionWatcher() {
       if (secs <= 0) {
         setShowModal(false);
         logout();
-        navigate("/");
+        navigate("/login");
       }
     };
 
