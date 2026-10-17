@@ -1014,18 +1014,18 @@ export default function SettingsPage() {
                               }`}
                               style={{ fontSize: `${settings.quran.arabicFontSize}px` }}
                             >
-                              <span>
+                              <span className="mushaf-arabic-content">
                                 {settings.quran.arabicScript === "indopak"
                                   ? cleanIndoPakScript(lineItem.indopak)
                                   : lineItem.uthmani}
+                                {lineItem.ayahNumber && (
+                                  <AyahMedallion
+                                    number={lineItem.ayahNumber}
+                                    isIndoPak={settings.quran.arabicScript === "indopak"}
+                                    size={Math.max(38, Math.round(settings.quran.arabicFontSize * 1.25))}
+                                  />
+                                )}
                               </span>
-                              {lineItem.ayahNumber && (
-                                <AyahMedallion
-                                  number={lineItem.ayahNumber}
-                                  isIndoPak={settings.quran.arabicScript === "indopak"}
-                                  size={Math.max(48, Math.round(settings.quran.arabicFontSize * 1.35))}
-                                />
-                              )}
                             </div>
 
                             {/* Interlinear Translation directly under this line */}
@@ -1035,7 +1035,7 @@ export default function SettingsPage() {
                                 style={{
                                   fontSize: `${
                                     selectedLang === "urdu"
-                                      ? Math.round(settings.quran.translationFontSize * 1.05)
+                                      ? Math.round(settings.quran.translationFontSize * 1.1)
                                       : settings.quran.translationFontSize
                                   }px`,
                                 }}
