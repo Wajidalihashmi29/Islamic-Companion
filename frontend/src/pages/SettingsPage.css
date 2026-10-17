@@ -846,11 +846,15 @@ input:checked + .slider:before {
   text-align: center;
   width: 100%;
   padding: 6px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: block;
+  font-size: var(--arabic-font-size, 30px);
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+.mushaf-arabic-content {
+  display: inline;
+  line-height: inherit;
 }
 
 .font-indopak {
@@ -1645,6 +1649,363 @@ input:checked + .slider:before {
 .btn-reset:hover {
   background: #fee2e2;
   border-color: #b91c1c;
+}
+
+/* ==========================================================================
+   Responsive Mobile Optimization for Settings Page & Mushaf Preview
+   ========================================================================== */
+
+@media (max-width: 900px) {
+  .settings-container {
+    padding: 24px 16px 70px;
+    gap: 20px;
+  }
+
+  .settings-hero {
+    padding: 24px 20px;
+    border-radius: 22px;
+  }
+
+  .selection-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-container {
+    padding: 14px 10px 60px;
+    gap: 14px;
+  }
+
+  /* Hero Banner */
+  .settings-hero {
+    padding: 18px 14px;
+    border-radius: 18px;
+  }
+
+  .settings-hero-spiral {
+    display: none;
+  }
+
+  .settings-hero-top-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .settings-back-btn {
+    padding: 6px 12px;
+    font-size: 0.82rem;
+  }
+
+  .settings-autosave-badge {
+    max-width: 100%;
+    font-size: 0.74rem;
+    padding: 4px 10px;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .settings-hero h1 {
+    font-size: 1.6rem;
+  }
+
+  .settings-hero-subtitle {
+    font-size: 0.84rem;
+    line-height: 1.45;
+  }
+
+  /* Tabs Bar */
+  .settings-tabs-scroll-container {
+    padding: 2px 0 6px;
+    margin: 0 -4px;
+  }
+
+  .settings-tabs {
+    padding: 3px;
+    gap: 4px;
+  }
+
+  .settings-tab {
+    min-height: 38px;
+    padding: 0 14px;
+    font-size: 0.82rem;
+    gap: 6px;
+  }
+
+  .settings-tab svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Settings Cards */
+  .settings-card {
+    padding: 16px 12px;
+    border-radius: 18px;
+    gap: 16px;
+  }
+
+  .settings-card-header {
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+
+  .settings-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+  }
+
+  .settings-card-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .settings-card-header h2 {
+    font-size: 1.15rem;
+  }
+
+  .settings-card-header p {
+    font-size: 0.8rem;
+  }
+
+  /* Selection Cards (Full width on mobile) */
+  .selection-card-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .selection-option-card {
+    padding: 12px 14px;
+    gap: 10px;
+    border-radius: 14px;
+  }
+
+  .selection-card-title {
+    font-size: 0.88rem;
+  }
+
+  .selection-card-desc {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  /* Steppers & Typography Toolbar */
+  .card-typography-toolbar,
+  .preview-typography-toolbar {
+    grid-template-columns: 1fr;
+    padding: 12px 10px;
+    gap: 10px;
+    border-radius: 12px;
+  }
+
+  .stepper-controls-row {
+    padding: 4px 8px;
+    gap: 8px;
+  }
+
+  .btn-stepper-step {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+  }
+
+  /* Button Choices Group */
+  .settings-button-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .btn-choice {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* ==========================================
+     MUSHAF PREVIEW FRAME - MOBILE OPTIMIZATION
+     ========================================== */
+  .settings-preview-card {
+    padding: 14px 10px;
+  }
+
+  .settings-preview-box {
+    padding: 12px 8px;
+    border-radius: 16px;
+    gap: 12px;
+  }
+
+  .preview-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .preview-badge {
+    justify-content: center;
+    width: 100%;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+  }
+
+  .preview-verse-chips {
+    display: flex;
+    width: 100%;
+    gap: 6px;
+  }
+
+  .preview-chip {
+    flex: 1;
+    text-align: center;
+    padding: 7px 8px;
+    font-size: 0.74rem;
+    white-space: nowrap;
+    border-radius: 8px;
+  }
+
+  .preview-font-tags {
+    gap: 6px;
+    padding-bottom: 8px;
+  }
+
+  .preview-font-tag {
+    font-size: 0.72rem;
+    padding: 3px 8px;
+  }
+
+  .mushaf-page-frame {
+    padding: 14px 8px;
+    border-radius: 14px;
+    border-width: 1.5px;
+  }
+
+  .mushaf-frame-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+
+  .mushaf-frame-title {
+    font-size: 0.92rem;
+    text-align: center;
+  }
+
+  .mushaf-frame-badge {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .mushaf-lines-wrapper {
+    gap: 10px;
+  }
+
+  .mushaf-line-row {
+    padding-bottom: 2px;
+  }
+
+  /* Responsive Arabic Quran text scaling on mobile */
+  .mushaf-arabic-line {
+    line-height: 2.1;
+    padding: 4px 0;
+  }
+
+  .mushaf-arabic-line .ayah-marker-wrapper {
+    margin: 0 0.25em;
+    width: clamp(34px, 9vw, 46px);
+    height: clamp(34px, 9vw, 46px);
+  }
+
+  /* Responsive Translation Container on mobile */
+  .mushaf-trans-line {
+    width: 100%;
+    max-width: 100%;
+    padding: 6px 10px;
+    margin-top: 2px;
+    border-radius: 10px;
+    box-sizing: border-box;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .mushaf-trans-line.urdu {
+    line-height: 2.2;
+    letter-spacing: 0.01em;
+    word-spacing: 0.12em;
+    padding: 6px 10px;
+  }
+
+  .mushaf-trans-line.hindi,
+  .mushaf-trans-line.english {
+    line-height: 1.5;
+    padding: 6px 10px;
+  }
+
+  .mushaf-interlinear-divider {
+    width: 90%;
+    margin: 12px auto 8px auto;
+  }
+
+  .mushaf-divider-symbol {
+    font-size: 0.75rem;
+    padding: 0 8px;
+  }
+
+  /* Account Card on mobile */
+  .account-profile-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .account-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-action-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .account-action-buttons button,
+  .account-action-buttons a {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .settings-reset-block {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px 12px;
+  }
+
+  .btn-reset {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 380px) {
+  .preview-verse-chips {
+    flex-direction: column;
+  }
+
+  .settings-button-group {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-chip {
+    width: 100%;
+  }
 }
 
 
