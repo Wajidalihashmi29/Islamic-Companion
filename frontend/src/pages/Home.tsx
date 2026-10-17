@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowDown, ArrowLeft, ArrowRight, Calendar, Clock, Moon, Sparkles } from "lucide-react";
 import { features, getFeature } from "../config/features";
 import { useAuth } from "../context/AuthContext";
+import { loadSettings } from "../utils/settingsStorage";
 import TopNav from "../components/TopNav";
 import PrayerTimesView from "../components/PrayerTimesView";
 import UnderConstructionModal from "../components/UnderConstructionModal";
@@ -11,7 +12,9 @@ import GoldenSpiral from "../components/GoldenSpiral";
 import "./Home.css";
 
 export default function Home() {
-  const [activeView, setActiveView] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialView = searchParams.get("view") || "dashboard";
+  const [activeView, setActiveView] = useState(initialView);
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
@@ -29,11 +32,36 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // Sync view with URL query param if present
+    const viewParam = searchParams.get("view");
+    if (viewParam === "prayer") {
+      setActiveView("prayer");
+    } else if (!viewParam || viewParam === "dashboard") {
+      setActiveView("dashboard");
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     // Always start at the top when rendering a new view or reloading the page
     window.scrollTo(0, 0);
   }, [activeView]);
 
+  const [settingsVersion, setSettingsVersion] = useState(0);
+
   useEffect(() => {
+    const handleSettingsUpdated = () => {
+      setSettingsVersion((v) => v + 1);
+    };
+    window.addEventListener("ic:settingsUpdated", handleSettingsUpdated);
+    return () => {
+      window.removeEventListener("ic:settingsUpdated", handleSettingsUpdated);
+    };
+  }, []);
+
+  useEffect(() => {
+    const settings = loadSettings();
+    const offset = settings.general.hijriAdjustment || 0;
+
     const now = new Date();
     const formatted = now.toLocaleDateString("en-US", {
       weekday: "long",
@@ -42,14 +70,31 @@ export default function Home() {
       day: "numeric",
     });
     setCurrentDateString(formatted);
+
+    // Apply Hijri adjustment
+    const hijriDate = new Date(now.getTime() + offset * 86400000);
     try {
       setHijriDateString(
-        new Intl.DateTimeFormat("en-u-ca-islamic", { day: "numeric", month: "long", year: "numeric" }).format(now)
+        new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }).format(hijriDate)
       );
     } catch {
-      /* Islamic calendar not supported by this browser — pill is simply hidden */
+      try {
+        setHijriDateString(
+          new Intl.DateTimeFormat("en-u-ca-islamic", {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }).format(hijriDate)
+        );
+      } catch {
+        /* Islamic calendar not supported by this browser — pill is simply hidden */
+      }
     }
-  }, []);
+  }, [searchParams, settingsVersion]);
 
   const activeCount = features.filter((f) => f.available).length;
   const soonCount = features.length - activeCount;
@@ -68,8 +113,12 @@ export default function Home() {
   };
 
   const handleNavChange = (viewId: string) => {
-    if (viewId === "dashboard" || viewId === "prayer") {
-      setActiveView(viewId);
+    if (viewId === "dashboard") {
+      setActiveView("dashboard");
+      setSearchParams({});
+    } else if (viewId === "prayer") {
+      setActiveView("prayer");
+      setSearchParams({ view: "prayer" });
     } else {
       const feat = getFeature(viewId);
       if (feat) {
@@ -85,7 +134,10 @@ export default function Home() {
           <header className="home-view-header">
             <button
               className="home-back-btn"
-              onClick={() => setActiveView("dashboard")}
+              onClick={() => {
+                setActiveView("dashboard");
+                setSearchParams({});
+              }}
               aria-label="Back to dashboard"
             >
               <ArrowLeft size={20} />
@@ -237,7 +289,7 @@ export default function Home() {
         activeView={activeView}
         onViewChange={handleNavChange}
         onLogout={handleLogout}
-        onSettingsClick={() => setActiveModal("Settings")}
+        onSettingsClick={() => navigate("/settings")}
       />
 
       <main className="home-content">{renderView()}</main>

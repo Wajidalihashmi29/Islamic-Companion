@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { LogOut, Menu, Settings, X, Ellipsis } from "lucide-react";
+import { LogIn, LogOut, Menu, Settings, X, Ellipsis } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import BrandMark from "./BrandMark";
 import { dashboardItem, features } from "../config/features";
 import { useAuth } from "../context/AuthContext";
@@ -21,7 +22,8 @@ export default function TopNav({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const nav = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -114,28 +116,50 @@ export default function TopNav({
           </div>
 
           <div className="top-nav-actions">
-            {/* User Profile Badge */}
-            <div className="top-nav-user-badge" title={user?.name || "User Profile"}>
-              <span className="top-nav-avatar">{userInitial}</span>
-              <span className="top-nav-user-name">{user?.name || "Member"}</span>
-            </div>
+            {isAuthenticated ? (
+              <>
+                {/* User Profile Badge */}
+                <div className="top-nav-user-badge" title={user?.name || "User Profile"}>
+                  <span className="top-nav-avatar">{userInitial}</span>
+                  <span className="top-nav-user-name">{user?.name || "Member"}</span>
+                </div>
 
-            <button
-              className="top-nav-icon-btn"
-              onClick={onSettingsClick}
-              title="Settings"
-              aria-label="Settings"
-            >
-              <Settings size={18} />
-            </button>
-            <button
-              className="top-nav-icon-btn logout"
-              onClick={onLogout}
-              title="Logout"
-              aria-label="Logout"
-            >
-              <LogOut size={18} />
-            </button>
+                <button
+                  className="top-nav-icon-btn"
+                  onClick={onSettingsClick}
+                  title="Settings"
+                  aria-label="Settings"
+                >
+                  <Settings size={18} />
+                </button>
+                <button
+                  className="top-nav-icon-btn logout"
+                  onClick={onLogout}
+                  title="Logout"
+                  aria-label="Logout"
+                >
+                  <LogOut size={18} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="top-nav-icon-btn"
+                  onClick={onSettingsClick}
+                  title="Settings"
+                  aria-label="Settings"
+                >
+                  <Settings size={18} />
+                </button>
+                <button
+                  className="top-nav-sign-in-btn"
+                  onClick={() => nav("/login")}
+                >
+                  <LogIn size={16} />
+                  <span>Sign In</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -154,13 +178,23 @@ export default function TopNav({
       {mobileMenuOpen && (
         <div className="top-nav-mobile">
           <div className="top-nav-mobile-header">
-            <div className="top-nav-user-badge">
-              <span className="top-nav-avatar">{userInitial}</span>
-              <div className="top-nav-user-info">
-                <strong>{user?.name || "Member"}</strong>
-                <small>{user?.email || "Account Active"}</small>
+            {isAuthenticated ? (
+              <div className="top-nav-user-badge">
+                <span className="top-nav-avatar">{userInitial}</span>
+                <div className="top-nav-user-info">
+                  <strong>{user?.name || "Member"}</strong>
+                  <small>{user?.email || "Account Active"}</small>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="top-nav-user-badge">
+                <span className="top-nav-avatar">G</span>
+                <div className="top-nav-user-info">
+                  <strong>Guest</strong>
+                  <small>Sign in to save your preferences</small>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="top-nav-mobile-links">
@@ -198,16 +232,29 @@ export default function TopNav({
               <span>Settings</span>
             </button>
 
-            <button
-              className="top-nav-mobile-link logout"
-              onClick={() => {
-                onLogout();
-                setMobileMenuOpen(false);
-              }}
-            >
-              <LogOut size={18} />
-              <span>Log Out</span>
-            </button>
+            {isAuthenticated ? (
+              <button
+                className="top-nav-mobile-link logout"
+                onClick={() => {
+                  onLogout();
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <LogOut size={18} />
+                <span>Log Out</span>
+              </button>
+            ) : (
+              <button
+                className="top-nav-mobile-link"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  nav("/login");
+                }}
+              >
+                <LogIn size={18} />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
         </div>
       )}
