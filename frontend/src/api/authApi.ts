@@ -40,6 +40,20 @@ export const resendConfirmation = (email: string) =>
 export const googleSignIn = (idToken: string) =>
   axiosClient.post<AuthResponse>("/auth/google", { idToken });
 
+export const forgotPassword = (email: string) =>
+  axiosClient.post<MessageResponse>("/auth/forgot-password", { email });
+
+export const resetPassword = (data: {
+  email?: string;
+  otp?: string;
+  userId?: string;
+  token?: string;
+  newPassword: string;
+}) => axiosClient.post<MessageResponse>("/auth/reset-password", data);
+
+export const changePassword = (data: { currentPassword: string; newPassword: string }) =>
+  axiosClient.post<MessageResponse>("/auth/change-password", data);
+
 /** Normalises the API's error shapes (Identity error arrays, { message, code }, 429s) into one message. */
 export function parseApiError(err: unknown, fallback: string): { message: string; code?: string } {
   if (err && typeof err === "object" && "response" in err) {

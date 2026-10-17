@@ -1,8 +1,9 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import AuthPage from "./pages/AuthPage";
 import VerifyEmailPage from "./pages/VerifyEmailPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import Home from "./pages/Home";
-import ProtectedRoute from "./components/ProtectedRoute";
+import SettingsPage from "./pages/SettingsPage";
 import SessionWatcher from "./components/SessionWatcher";
 
 function App() {
@@ -10,17 +11,12 @@ function App() {
     <>
       <SessionWatcher />
       <Routes>
-        <Route path="/" element={<AuthPage />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/login" element={<AuthPage />} />
         <Route path="/register" element={<AuthPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

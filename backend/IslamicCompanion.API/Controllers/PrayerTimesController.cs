@@ -6,7 +6,7 @@ namespace IslamicCompanion.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[AllowAnonymous]
 public class PrayerTimesController : ControllerBase
 {
     private readonly IPrayerTimesService _service;

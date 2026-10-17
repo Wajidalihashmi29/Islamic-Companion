@@ -329,6 +329,27 @@
   border-top: 1px solid rgba(250, 246, 236, 0.1);
 }
 
+/* ---------- Sign In Button (guest) ---------- */
+.top-nav-sign-in-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #2a5a56, #1a3c39);
+  color: #faf6ec;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.top-nav-sign-in-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
 /* ---------- Responsive Breakpoints ---------- */
 @media (max-width: 960px) {
   .top-nav-desktop {

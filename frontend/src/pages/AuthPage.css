@@ -149,6 +149,52 @@
 .auth-form { display: flex; flex-direction: column; gap: calc(12 * var(--u)); }
 .field { display: flex; flex-direction: column; gap: 6px; }
 
+.field-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.auth-link-forgot {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ac-gold-soft);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.auth-link-forgot:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  color: var(--ac-muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.auth-back-link:hover {
+  color: var(--ac-ink);
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .field-label {
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -496,3 +542,189 @@ html.auth-no-scroll body { height: 100%; overflow: hidden; }
   color: #b59231;
   text-decoration: underline;
 }
+
+/* ---------- Real-time Password Reset Feedback ---------- */
+.field-control.is-valid input {
+  border-color: #34d399 !important;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2) !important;
+}
+
+.field-control.is-invalid input {
+  border-color: #f87171 !important;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2) !important;
+}
+
+.field-status-icon {
+  position: absolute;
+  right: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.field-status-icon.is-match {
+  color: #34d399;
+}
+
+.field-status-icon.is-mismatch {
+  color: #f87171;
+}
+
+.field-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+.field-badge.is-match {
+  color: #7ee2b8;
+  background: rgba(52, 211, 153, 0.15);
+}
+
+.field-badge.is-mismatch {
+  color: #fca5a5;
+  background: rgba(248, 113, 113, 0.15);
+}
+
+.realtime-feedback {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.realtime-feedback.is-match {
+  color: #7ee2b8;
+}
+
+.realtime-feedback.is-mismatch {
+  color: #fca5a5;
+}
+
+.auth-rules {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 8px 12px !important;
+  padding: 10px 14px !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--ac-line) !important;
+  margin-top: 4px;
+}
+
+.auth-rules .rule {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.73rem !important;
+  color: var(--ac-muted) !important;
+  transition: all 0.2s ease !important;
+  white-space: nowrap !important;
+}
+
+.auth-rules .rule.met {
+  color: #7ee2b8 !important;
+  font-weight: 600 !important;
+}
+
+.auth-rules .rule.unmet-mismatch {
+  color: #fca5a5 !important;
+  font-weight: 600 !important;
+}
+
+/* ---------- OTP & Email banner styles in Reset Password ---------- */
+.auth-email-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(224, 184, 79, 0.08);
+  border: 1px solid rgba(224, 184, 79, 0.25);
+  font-size: 0.82rem;
+  color: var(--ac-ink);
+}
+
+.auth-email-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-email-banner-info strong {
+  color: var(--ac-gold);
+}
+
+.btn-edit-email {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  color: var(--ac-gold);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn-edit-email:hover {
+  color: #fff;
+}
+
+.otp-field-input {
+  letter-spacing: 0.22em !important;
+  font-weight: 700 !important;
+  font-size: 1.05rem !important;
+  font-family: Consolas, SFMono-Regular, Menlo, Monaco, monospace !important;
+}
+
+.auth-reset-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  gap: 12px;
+}
+
+.btn-resend-otp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  color: var(--ac-gold-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-resend-otp:hover:not(:disabled) {
+  color: #fff;
+}
+
+.btn-resend-otp:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+

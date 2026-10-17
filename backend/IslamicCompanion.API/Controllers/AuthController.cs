@@ -2,6 +2,7 @@ using IslamicCompanion.Application.Interfaces;
 using IslamicCompanion.Application.Services;
 using IslamicCompanion.Domain.Entities;
 using IslamicCompanion.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -20,6 +21,9 @@ public record LoginRequest(string Email, string Password);
 public record RefreshRequest(string RefreshToken);
 public record ConfirmEmailRequest(string UserId, string Token);
 public record ResendConfirmationRequest(string Email);
+public record ForgotPasswordRequest(string Email);
+public record ResetPasswordRequest(string? Email, string? Otp, string? UserId, string? Token, string NewPassword);
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
 public record GoogleSignInRequest(string IdToken);
 public record AuthResponse(string Token, string RefreshToken, DateTime ExpiresAt, string FullName);
 
@@ -135,6 +139,109 @@ public class AuthController : ControllerBase
         return Ok(new { message = "If an unverified account exists for that email, a new link is on its way." });
     }
 
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request)
+    {
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            var user = await _userManager.FindByEmailAsync(request.Email.Trim());
+            if (user != null)
+            {
+                await SendPasswordResetEmailAsync(user);
+            }
+        }
+
+        // Return same response to prevent account enumeration
+        return Ok(new { message = "If an account exists with that email, password reset instructions have been sent." });
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
+            return BadRequest(new { message = "New password is required." });
+
+        ApplicationUser? user = null;
+
+        // 1. OTP-based reset (Primary flow)
+        if (!string.IsNullOrWhiteSpace(request.Email) && !string.IsNullOrWhiteSpace(request.Otp))
+        {
+            user = await _userManager.FindByEmailAsync(request.Email.Trim());
+            if (user == null)
+                return BadRequest(new { message = "Invalid reset request or email not found." });
+
+            var trimmedOtp = request.Otp.Trim();
+            var expiry = user.PasswordResetOtpExpiresAt ?? user.PasswordResetCodeExpires;
+            if (expiry == null || expiry < DateTime.UtcNow)
+                return BadRequest(new { message = "This verification code has expired. Please request a new code." });
+
+            var expectedHash = HashOtp(user.Id, trimmedOtp);
+            var isHashValid = user.PasswordResetOtpHash == expectedHash;
+            var isCodeValid = !string.IsNullOrEmpty(user.PasswordResetCode) && user.PasswordResetCode == trimmedOtp;
+
+            if (!isHashValid && !isCodeValid)
+                return BadRequest(new { message = "Invalid verification code. Please check your email and try again." });
+
+            // Clear OTP once verified
+            user.PasswordResetOtpHash = null;
+            user.PasswordResetOtpExpiresAt = null;
+            user.PasswordResetCode = null;
+            user.PasswordResetCodeExpires = null;
+            await _userManager.UpdateAsync(user);
+
+            var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+            var result = await _userManager.ResetPasswordAsync(user, resetToken, request.NewPassword);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            await _userManager.UpdateSecurityStampAsync(user);
+            return Ok(new { message = "Your password has been successfully reset. You can now sign in." });
+        }
+
+        // 2. Token-link fallback
+        if (!string.IsNullOrWhiteSpace(request.UserId) && !string.IsNullOrWhiteSpace(request.Token))
+        {
+            user = await _userManager.FindByIdAsync(request.UserId);
+            if (user == null)
+                return BadRequest(new { message = "This reset link is invalid or has expired." });
+
+            var decodedToken = DecodeToken(request.Token);
+            if (decodedToken == null)
+                return BadRequest(new { message = "This reset link is invalid or has expired." });
+
+            var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            await _userManager.UpdateSecurityStampAsync(user);
+            return Ok(new { message = "Your password has been successfully reset. You can now sign in." });
+        }
+
+        return BadRequest(new { message = "Please enter your email and the 6-digit verification code." });
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+            return BadRequest(new { message = "Both current and new passwords are required." });
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+            return NotFound(new { message = "User not found" });
+
+        var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors);
+
+        return Ok(new { message = "Your password has been changed successfully." });
+    }
+
     [HttpPost("google")]
     public async Task<IActionResult> GoogleSignIn(GoogleSignInRequest request)
     {
@@ -221,6 +328,35 @@ public class AuthController : ControllerBase
             // Don't fail registration if the mail server hiccups — the user can resend.
             _logger.LogError(ex, "Failed to send confirmation email to {Email}", user.Email);
         }
+    }
+
+    private async Task SendPasswordResetEmailAsync(ApplicationUser user)
+    {
+        var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        var expiry = DateTime.UtcNow.AddMinutes(15);
+        user.PasswordResetOtpHash = HashOtp(user.Id, otp);
+        user.PasswordResetOtpExpiresAt = expiry;
+        user.PasswordResetCode = otp;
+        user.PasswordResetCodeExpires = expiry;
+        await _userManager.UpdateAsync(user);
+
+        var body = EmailTemplates.BuildPasswordResetOtpEmail(user.FullName, otp);
+
+        try
+        {
+            await _emailSender.SendAsync(user.Email!, "Your Islamic Companion Password Reset Code", body);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send password reset OTP email to {Email}", user.Email);
+        }
+    }
+
+    private static string HashOtp(string userId, string otp)
+    {
+        var combined = $"{userId}:{otp.Trim()}";
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(combined));
+        return Convert.ToHexString(bytes);
     }
 
     private static string? DecodeToken(string token)
