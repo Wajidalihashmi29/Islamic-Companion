@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowDown, ArrowLeft, ArrowRight, Calendar, Clock, Moon, Sparkles } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Calendar, Clock, Moon } from "lucide-react";
 import { features, getFeature } from "../config/features";
 import { useAuth } from "../context/AuthContext";
 import { loadSettings } from "../utils/settingsStorage";
+import { formatHijriDate } from "../utils/hijriDate";
 import TopNav from "../components/TopNav";
 import PrayerTimesView from "../components/PrayerTimesView";
 import UnderConstructionModal from "../components/UnderConstructionModal";
@@ -71,29 +72,7 @@ export default function Home() {
     });
     setCurrentDateString(formatted);
 
-    // Apply Hijri adjustment
-    const hijriDate = new Date(now.getTime() + offset * 86400000);
-    try {
-      setHijriDateString(
-        new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        }).format(hijriDate)
-      );
-    } catch {
-      try {
-        setHijriDateString(
-          new Intl.DateTimeFormat("en-u-ca-islamic", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }).format(hijriDate)
-        );
-      } catch {
-        /* Islamic calendar not supported by this browser — pill is simply hidden */
-      }
-    }
+    setHijriDateString(formatHijriDate(now, offset));
   }, [searchParams, settingsVersion]);
 
   const activeCount = features.filter((f) => f.available).length;
@@ -113,7 +92,9 @@ export default function Home() {
   };
 
   const handleNavChange = (viewId: string) => {
-    if (viewId === "dashboard") {
+    if (viewId === "quran") {
+      navigate("/quran");
+    } else if (viewId === "dashboard") {
       setActiveView("dashboard");
       setSearchParams({});
     } else if (viewId === "prayer") {
@@ -158,56 +139,56 @@ export default function Home() {
         <header className="home-hero">
           <GoldenSpiral className="home-hero-spiral" showGrid={false} />
 
-          <div className="home-hero-content">
-            <div className="home-hero-header-line">
-              <span className="home-eyebrow">
-                Assalamu Alaikum{user?.name ? `, ${user.name}` : ""}
-              </span>              
-            </div>
+          <div className="home-hero-header-line">
+            <span className="home-eyebrow">
+              Assalamu Alaikum{user?.name ? `, ${user.name}` : ""}
+            </span>
             <div className="home-date-group">
-                {currentDateString && (
-                  <span className="home-date-pill">
-                    <Calendar size={13} aria-hidden="true" />
-                    <span>{currentDateString}</span>
-                  </span>
-                )}
-                {hijriDateString && (
-                  <span className="home-date-pill home-date-pill--gold">
-                    <Moon size={13} aria-hidden="true" />
-                    <span>{hijriDateString}</span>
-                  </span>
-                )}
-            </div>
-            <h1>
-              Your Daily <em>Faith Hub</em>
-            </h1>
-            <p className="home-hero-quote">
-              “Verily, prayer prevents indecency and wrongdoing, and the remembrance of Allah is greater.”
-            </p>
-
-            <div className="home-hero-actions">
-              <button type="button" className="home-btn home-btn--gold" onClick={() => setActiveView("prayer")}>
-                <Clock size={17} aria-hidden="true" /> Today's prayer times
-              </button>
-              <button type="button" className="home-btn home-btn--glass" onClick={scrollToFeatures}>
-                Explore features <ArrowDown size={16} aria-hidden="true" />
-              </button>
+              {currentDateString && (
+                <span className="home-date-pill">
+                  <Calendar size={13} aria-hidden="true" />
+                  <span>{currentDateString}</span>
+                </span>
+              )}
+              {hijriDateString && (
+                <span className="home-date-pill home-date-pill--gold">
+                  <Moon size={13} aria-hidden="true" />
+                  <span>{hijriDateString}</span>
+                </span>
+              )}
             </div>
           </div>
 
-          <button type="button" className="home-hero-featured" onClick={() => setActiveView("prayer")}>
-            <span className="home-hero-featured-icon" aria-hidden="true">
-              <Clock size={26} />
-            </span>
-            <span className="home-hero-featured-tag">
-              <Sparkles size={13} aria-hidden="true" /> Active feature
-            </span>
-            <h2>Prayer Times Schedule</h2>
-            <p>Find exact prayer timings for your location with auto-detection.</p>
-            <span className="home-hero-featured-link">
-              View today's schedule <ArrowRight size={16} aria-hidden="true" />
-            </span>
-          </button>
+          <div className="home-hero-content">
+            <h1>
+              Your Daily <em>Faith Hub</em>
+            </h1>
+            <p className="home-hero-summary">
+              A daily space for Qur'an, prayer, and reflection.
+            </p>
+            <button type="button" className="home-hero-explore" onClick={scrollToFeatures}>
+              Explore features <ArrowDown size={16} aria-hidden="true" />
+            </button>
+          </div>
+
+          <nav className="home-hero-actions" aria-label="Daily worship">
+            <Link className="home-hero-featured home-hero-featured--quran" to="/quran">
+              <span className="home-hero-featured-icon" aria-hidden="true"><BookOpen size={22} /></span>
+              <span className="home-hero-featured-copy">
+                <strong>Read Qur'an</strong>
+                <span>Arabic, translations &amp; recitation</span>
+              </span>
+              <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+            <Link className="home-hero-featured" to="/?view=prayer">
+              <span className="home-hero-featured-icon" aria-hidden="true"><Clock size={22} /></span>
+              <span className="home-hero-featured-copy">
+                <strong>Prayer Times</strong>
+                <span>Today's schedule for your location</span>
+              </span>
+              <ArrowRight size={18} aria-hidden="true" />
+            </Link>
+          </nav>
         </header>
 
         {/* Feature grid */}
@@ -248,7 +229,9 @@ export default function Home() {
                   style={{ "--i": i } as CSSProperties}
                   aria-label={`${label}${available ? "" : " (coming soon)"}`}
                   onClick={() => {
-                    if (id === "prayer") {
+                    if (id === "quran") {
+                      navigate("/quran");
+                    } else if (id === "prayer") {
                       setActiveView("prayer");
                     } else {
                       setActiveModal(label);

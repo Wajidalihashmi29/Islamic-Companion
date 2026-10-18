@@ -1,0 +1,2 @@
+# Bundled Quran sources must retain their exact bytes for SHA-256 verification.
+backend/IslamicCompanion.Infrastructure/Data/Quran/* -text

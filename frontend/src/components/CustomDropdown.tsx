@@ -2,32 +2,34 @@ import React, { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check, Star } from "lucide-react";
 import "./CustomDropdown.css";
 
-export interface DropdownOption {
-  id: string | number;
+export interface DropdownOption<T extends string | number = string | number> {
+  id: T;
   name: string;
   sub?: string;
   lang?: string;
   recommended?: boolean;
+  disabled?: boolean;
 }
 
-interface CustomDropdownProps {
+interface CustomDropdownProps<T extends string | number> {
   id?: string;
   label?: string;
-  value: string | number;
-  options: DropdownOption[];
-  onChange: (val: any) => void;
+  value: T;
+  options: DropdownOption<T>[];
+  onChange: (val: T) => void;
   icon?: React.ComponentType<{ size?: number; className?: string }>;
   placeholder?: string;
 }
 
-export default function CustomDropdown({
+export default function CustomDropdown<T extends string | number>({
   id,
+  label,
   value,
   options,
   onChange,
   icon: Icon,
   placeholder = "Select an option",
-}: CustomDropdownProps) {
+}: CustomDropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +65,7 @@ export default function CustomDropdown({
     };
   }, [isOpen]);
 
-  const handleSelect = (optionId: string | number) => {
+  const handleSelect = (optionId: T) => {
     onChange(optionId);
     setIsOpen(false);
   };
@@ -76,6 +78,7 @@ export default function CustomDropdown({
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-label={label}
       >
         <div className="c-dropdown-trigger-content">
           {Icon && (
@@ -124,6 +127,7 @@ export default function CustomDropdown({
                   type="button"
                   role="option"
                   aria-selected={isSelected}
+                  disabled={option.disabled}
                   className={`c-dropdown-item ${isSelected ? "is-selected" : ""}`}
                   onClick={() => handleSelect(option.id)}
                 >

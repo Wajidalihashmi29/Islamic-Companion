@@ -5,6 +5,7 @@ import type { ResolvedLocation } from "./LocationSelector";
 import { getPrayerTimesByCity, getPrayerTimesByCoords } from "../api/prayerTimesApi";
 import type { PrayerTimesResponse } from "../api/prayerTimesApi";
 import { loadSettings } from "../utils/settingsStorage";
+import { formatHijriDate } from "../utils/hijriDate";
 import GoldenSpiral from "./GoldenSpiral";
 import "./PrayerTimesView.css";
 
@@ -189,22 +190,6 @@ export default function PrayerTimesView() {
     };
   }, []);
 
-  const getDisplayHijri = () => {
-    const offset = settings.general.hijriAdjustment || 0;
-    const target = new Date(Date.now() + offset * 86400000);
-    try {
-      return (
-        new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        }).format(target) + " AH"
-      );
-    } catch {
-      return `${data?.hijriDate || ""} AH`;
-    }
-  };
-
   const now = useNow(Boolean(data));
 
   const handleResolve = async (location: ResolvedLocation, currentSchool = school) => {
@@ -309,7 +294,7 @@ export default function PrayerTimesView() {
             <div className="ptv-result-header">
               <div className="ptv-dates">
                 <span className="ptv-gregorian">{data.date}</span>
-                <span className="ptv-hijri">{getDisplayHijri()}</span>
+                <span className="ptv-hijri">{formatHijriDate(now, settings.general.hijriAdjustment || 0)}</span>
               </div>
             </div>
 

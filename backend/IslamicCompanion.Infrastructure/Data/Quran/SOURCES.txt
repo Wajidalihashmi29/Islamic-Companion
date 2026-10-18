@@ -1,0 +1,41 @@
+Bundled Quran reading data
+
+Use of the bundled translations is NON-COMMERCIAL ONLY.
+Commercial use requires permission from the translator/publisher.
+The application's proprietary source-code license does not replace these terms.
+
+Translations: Tanzil Project, https://tanzil.net/trans/
+Exact editions: ur.kanzuliman, en.ahmedraza, ur.qadri.
+Translation names, edition identifiers, and update dates are retained in the
+unmodified text download notices. No translation is generated or substituted.
+Tanzil requests a link to its translations page when using more than three
+editions; the application includes this link even though it bundles only three.
+
+Uthmani Quran text: Tanzil Project, https://tanzil.net/download/
+Text license: https://tanzil.net/docs/Text_License
+Creative Commons Attribution 3.0, with the source's verbatim-copy requirement.
+The complete original copyright notice is retained in uthmani.xml.
+
+Page, Ruku, Manzil, Sajdah and Surah metadata:
+https://tanzil.net/docs/Quran_Metadata
+https://tanzil.net/res/text/metadata/quran-data.xml
+The original metadata XML declares license="cc-by".
+
+Indo-Pak Quran text and chapter names: Quran.com API v4.
+https://api.quran.com/api/v4/quran/verses/indopak
+https://api.quran.com/api/v4/chapters
+Indo-Pak script project credits: Ayman Siddiqui and R. Siddiqua,
+QuranWBW.com and Quran.com, for Sadaqa-e-Jaria purposes.
+https://github.com/marwan/indopak-quran-text
+Source notice: "DO NOT SELL, MANIPULATE, DISTRIBUTE WITHOUT CREDITS OR TAMPER
+IN ANY FORM OR MANNER." The downloaded source text is retained unchanged.
+The existing reader performs presentation-only line breaking, font glyph
+adaptation, and separate rendering of recitation markers.
+
+manifest.json records every download URL, retrieval date and SHA-256 checksum.
+Data files are embedded into the backend assembly, not downloaded at startup.
+To intentionally refresh, run scripts\Import-QuranData.ps1, review source terms
+and differences, then run the exhaustive local dataset tests before deploying.
+
+Kanzul Iman Hindi and Khazain-ul-Irfan are NOT bundled: an authorized,
+verified, Ayah-indexed dataset has not been established.
