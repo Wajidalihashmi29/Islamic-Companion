@@ -32,21 +32,14 @@ export interface AppSettings {
 }
 
 export const TRANSLATION_OPTIONS = [
-  { id: "kanzul-iman-ur", name: "Kanzul Iman — Ala Hazrat Imam Ahmad Raza Khan Barelvi", lang: "Urdu", recommended: true },
-  { id: "irfan-ul-quran-ur", name: "Irfan-ul-Quran — Shaykh-ul-Islam Dr. Muhammad Tahir-ul-Qadri", lang: "Urdu" },
-  { id: "jalandhari-ur", name: "Fateh Muhammad Jalandhari", lang: "Urdu" },
-  { id: "kanzul-iman-en", name: "The Treasure of Faith (Kanzul Iman English) — Prof. Shah Farid-ul-Haque", lang: "English" },
-  { id: "glorious-quran-en", name: "The Glorious Quran — Dr. Muhammad Tahir-ul-Qadri", lang: "English" },
-  { id: "clear-quran-en", name: "The Clear Quran — Dr. Mustafa Khattab", lang: "English" },
-  { id: "kanzul-iman-hi", name: "Kanzul Iman (Hindi Devanagari) — Imam Ahmad Raza Khan", lang: "Hindi" },
-  { id: "farooq-khan-hi", name: "Farooq Khan & Muhammad Ahmad", lang: "Hindi" },
+  { id: "kanzul-iman-ur", name: "Kanzul Iman — Ala Hazrat Imam Ahmad Raza Khan Barelvi", lang: "Urdu", recommended: true, disabled: false },
+  { id: "kanzul-iman-en", name: "The Treasure of Faith (Kanzul Iman English) — Prof. Shah Farid-ul-Haque", lang: "English", disabled: false },
+  { id: "irfan-ul-quran-ur", name: "Irfan-ul-Quran — Shaykh-ul-Islam Dr. Muhammad Tahir-ul-Qadri", lang: "Urdu", disabled: false },
+  { id: "kanzul-iman-hi", name: "Kanzul Iman (Hindi Devanagari) — Imam Ahmad Raza Khan", lang: "Hindi", disabled: true, sub: "Unavailable: authorized, verified dataset pending" },
 ];
 
 export const TAFSEER_OPTIONS = [
-  { id: "khazain-ul-irfan", name: "Khazain-ul-Irfan — Sadr-ul-Afadhil Mawlana Naeemuddin Muradabadi", lang: "Urdu", recommended: true },
-  { id: "noor-ul-irfan", name: "Noor-ul-Irfan — Hakim-ul-Ummat Mufti Ahmad Yar Khan Naeemi", lang: "Urdu" },
-  { id: "zia-ul-quran", name: "Tafseer Zia-ul-Quran — Justice Pir Muhammad Karam Shah al-Azhari", lang: "Urdu" },
-  { id: "ibn-kathir", name: "Tafseer Ibn Kathir (Abridged)", lang: "Urdu / English" },
+  { id: "khazain-ul-irfan", name: "Khazain-ul-Irfan — Sadr-ul-Afadhil Mawlana Naeemuddin Muradabadi", lang: "Urdu", disabled: true, sub: "Unavailable: authorized, verified dataset pending" },
 ];
 
 export const RECITERS_OPTIONS = [
@@ -199,9 +192,7 @@ export function loadSettings(userIdentifier?: string | null): AppSettings {
 
     const parsed = JSON.parse(raw);
     const quran = { ...DEFAULT_SETTINGS.quran, ...(parsed.quran || {}) };
-    if (quran.translationFontSize && quran.translationFontSize < 20) {
-      quran.translationFontSize = 22;
-    }
+    quran.translationFontSize = Math.max(12, Math.min(28, quran.translationFontSize));
 
     return {
       quran,

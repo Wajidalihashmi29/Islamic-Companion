@@ -1,0 +1,58 @@
+[
+  {
+    "file": "indopak.json",
+    "url": "https://api.quran.com/api/v4/quran/verses/indopak",
+    "source": "Quran.com / QuranWBW",
+    "terms": "Non-commercial use with source credits; see SOURCES.txt",
+    "retrievedUtc": "2026-10-18T14:05:38.7218842Z",
+    "sha256": "d6002981e4a55393dd65ac2ea45904bb43d652819a7d6096651b0446444a04a6"
+  },
+  {
+    "file": "uthmani.xml",
+    "url": "https://tanzil.net/pub/download/index.php?quranType=uthmani&outType=xml&marks=true&sajdah=true&rub=true&alef=true&tatweel=true&agree=true",
+    "source": "Tanzil Project",
+    "terms": "CC BY 3.0; verbatim text only; embedded copyright notice retained",
+    "retrievedUtc": "2026-10-18T14:05:39.9096744Z",
+    "sha256": "c5052534d63d3856ce25413ff464d0b609f90169a202a1615aa8707efec81244"
+  },
+  {
+    "file": "metadata.xml",
+    "url": "https://tanzil.net/res/text/metadata/quran-data.xml",
+    "source": "Tanzil Project",
+    "terms": "CC BY; source attribution required",
+    "retrievedUtc": "2026-10-18T14:05:40.6490698Z",
+    "sha256": "8867c1d88191472adec9db694b3cd9f135b1a2ef580574d32cf888dcb22c5c7a"
+  },
+  {
+    "file": "chapters.json",
+    "url": "https://api.quran.com/api/v4/chapters",
+    "source": "Quran.com",
+    "terms": "Chapter metadata; source attribution",
+    "retrievedUtc": "2026-10-18T14:05:40.7589213Z",
+    "sha256": "ff6ef5aadcc7710271179c0f9c1519c89ae613b11c8ba3265873c6c4fc6aed0b"
+  },
+  {
+    "file": "ur.kanzuliman.txt",
+    "url": "https://tanzil.net/trans/ur.kanzuliman?type=txt-2",
+    "source": "Tanzil / Ahmed Raza Khan",
+    "terms": "Non-commercial use only: https://tanzil.net/trans/",
+    "retrievedUtc": "2026-10-18T14:05:41.9328278Z",
+    "sha256": "b946a4072c9dd2ca2e302283b78b8c3e47a7ff98a90c8da6ff663a33703af801"
+  },
+  {
+    "file": "en.ahmedraza.txt",
+    "url": "https://tanzil.net/trans/en.ahmedraza?type=txt-2",
+    "source": "Tanzil / Ahmed Raza Khan (English edition)",
+    "terms": "Non-commercial use only: https://tanzil.net/trans/",
+    "retrievedUtc": "2026-10-18T14:05:43.0949806Z",
+    "sha256": "6295368b5ef5783985856d41672413eab963d1c5255abc20ab829236ea5bb65f"
+  },
+  {
+    "file": "ur.qadri.txt",
+    "url": "https://tanzil.net/trans/ur.qadri?type=txt-2",
+    "source": "Tanzil / Tahir ul Qadri",
+    "terms": "Non-commercial use only: https://tanzil.net/trans/",
+    "retrievedUtc": "2026-10-18T14:05:44.4423115Z",
+    "sha256": "5ab8526180f616a0391739296b1519f76d2436a765d8e4d7067eaa92375425a8"
+  }
+]
