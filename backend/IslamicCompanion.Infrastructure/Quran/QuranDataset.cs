@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -18,6 +19,7 @@ public sealed class QuranDataset
     private readonly Dictionary<int, Verse[]> pages;
     private readonly Dictionary<string, Translation> translations;
     private readonly IReadOnlyDictionary<int, QuranSurah> surahs;
+    private readonly Lazy<Dictionary<string, string>> tafseer;
     private readonly HashSet<string> juzStarts = QuranPagination.Juzs.Select(juz => juz.VerseKey).ToHashSet();
     public QuranDirectory Directory { get; }
 
@@ -139,6 +141,35 @@ public sealed class QuranDataset
             ["kanzul-iman-en"] = new("en", Text("en.ahmedraza.txt")),
             ["irfan-ul-quran-ur"] = new("ur", Text("ur.qadri.txt"))
         };
+        tafseer = new(LoadTafseer);
+    }
+
+    private Dictionary<string, string> LoadTafseer()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var manifest = JsonSerializer.Deserialize<SourceFile>(ReadResource("manifest.json", "TafseerData."), options)
+            ?? throw new InvalidDataException("The bundled Tafseer manifest is empty.");
+        Require(manifest.File == "sirat-ul-jinan.json.gz", "Unexpected bundled Tafseer edition.");
+        var bytes = ReadResource(manifest.File, "TafseerData.");
+        Require(Convert.ToHexStringLower(SHA256.HashData(bytes)) == manifest.Sha256,
+            "The bundled Tafseer failed its SHA-256 check.");
+        using var compressed = new MemoryStream(bytes);
+        using var gzip = new GZipStream(compressed, CompressionMode.Decompress);
+        var entries = JsonSerializer.Deserialize<Dictionary<string, string>>(gzip, options)
+            ?? throw new InvalidDataException("The bundled Tafseer is empty.");
+        Require(entries.Count == verses.Count && verses.Keys.All(key =>
+            entries.TryGetValue(key, out var text) && !string.IsNullOrWhiteSpace(text)),
+            "The bundled Tafseer must cover every canonical Ayah.");
+        return entries;
+    }
+
+    public QuranTafseer GetTafseer(int surah, int ayah, string edition)
+    {
+        ValidateVerse(surah, ayah);
+        if (edition != "sirat-ul-jinan")
+            throw new QuranOptionException("Choose Sirat-ul-Jinan by Mufti Muhammad Qasim Attari in Settings. Other Tafseers are not offered.");
+        return new QuranTafseer($"{surah}:{ayah}", "Sirat-ul-Jinan", "ur", tafseer.Value[$"{surah}:{ayah}"],
+            "Mufti Muhammad Qasim Attari", SiratUlJinan.SourceUrl(surah, ayah));
     }
 
     public void ValidateVerse(int surah, int ayah)
@@ -170,10 +201,10 @@ public sealed class QuranDataset
             selected.Text["1:1"], QuranPageLayout.Build(segments, surahs, juzStarts, lines));
     }
 
-    private static byte[] ReadResource(string name)
+    private static byte[] ReadResource(string name, string prefix = "QuranData.")
     {
-        using var stream = typeof(QuranDataset).Assembly.GetManifestResourceStream("QuranData." + name)
-            ?? throw new InvalidDataException($"Bundled Quran data is missing: {name}.");
+        using var stream = typeof(QuranDataset).Assembly.GetManifestResourceStream(prefix + name)
+            ?? throw new InvalidDataException($"Bundled reading data is missing: {name}.");
         using var buffer = new MemoryStream();
         stream.CopyTo(buffer);
         return buffer.ToArray();

@@ -12,6 +12,6 @@ public sealed record QuranLine(int LineNumber, string TextIndoPak, string Transl
 public sealed record QuranPage(int PageNumber, int JuzNumber, string JuzNameArabic, int ManzilNumber,
     string TranslationLanguage, string BismillahTranslation, IReadOnlyList<QuranLine> Lines);
 public sealed record QuranAudio(string VerseKey, string Url);
-public sealed record QuranTafseer(string VerseKey, string Name, string Language, string Text);
+public sealed record QuranTafseer(string VerseKey, string Name, string Language, string Text, string Author, string SourceUrl);
 
 public sealed class QuranOptionException(string message) : Exception(message);

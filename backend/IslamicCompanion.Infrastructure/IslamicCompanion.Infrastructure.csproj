@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Data\Quran\*" LogicalName="QuranData.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Data\Tafseer\*" LogicalName="TafseerData.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

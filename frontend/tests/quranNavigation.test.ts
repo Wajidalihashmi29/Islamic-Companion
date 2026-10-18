@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test } from "node:test";
-import { loadQuranReaderView, loadQuranReadingPage, normalizeQuranSearch, parseAyahReference,
-  saveQuranReaderView, saveQuranReadingPage } from "../src/utils/quranNavigation.ts";
+import { loadQuranFavoriteSurahs, loadQuranReaderView, loadQuranReadingPage, normalizeQuranSearch, parseAyahReference,
+  saveQuranFavoriteSurahs, saveQuranReaderView, saveQuranReadingPage } from "../src/utils/quranNavigation.ts";
 
 const originalStorage = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
 let values: Map<string, string>;
@@ -48,6 +48,39 @@ test("Corrupt saved progress and out-of-range pages are rejected rather than res
   }
   for (const page of [0, 605, 1.5, NaN, Infinity])
     assert.throws(() => saveQuranReadingPage(profile, page));
+});
+
+test("favourite Surahs persist per profile without changing general reading progress or view", () => {
+  saveQuranReadingPage("guest", 53);
+  saveQuranReaderView("guest", { mode: "fit", position: null });
+  assert.deepEqual(loadQuranFavoriteSurahs("guest"), []);
+  saveQuranFavoriteSurahs("guest", [114, 36, 1, 36]);
+  saveQuranFavoriteSurahs("account", [55]);
+  assert.deepEqual(loadQuranFavoriteSurahs("guest"), [1, 36, 114]);
+  assert.deepEqual(loadQuranFavoriteSurahs("account"), [55]);
+  assert.equal(loadQuranReadingPage("guest"), 53);
+  assert.deepEqual(loadQuranReaderView("guest"), { mode: "fit", position: null });
+  saveQuranFavoriteSurahs("guest", []);
+  assert.deepEqual(loadQuranFavoriteSurahs("guest"), []);
+  assert.deepEqual(loadQuranFavoriteSurahs("account"), [55]);
+});
+
+test("invalid favourite lists and blocked storage are reported without overwriting saved favourites", () => {
+  for (const raw of ["bad-json", "null", "{}", "[0]", "[115]", "[1.5]", '["36"]', "[36,null]"]) {
+    values.set("guest:quran-favorite-surahs", raw);
+    assert.throws(() => loadQuranFavoriteSurahs("guest"));
+  }
+  saveQuranFavoriteSurahs("guest", [36]);
+  for (const invalid of [[0], [115], [1.5], [NaN], [Infinity]]) {
+    assert.throws(() => saveQuranFavoriteSurahs("guest", invalid));
+    assert.deepEqual(loadQuranFavoriteSurahs("guest"), [36]);
+  }
+  Object.defineProperty(globalThis, "localStorage", { configurable: true, value: {
+    getItem: () => { throw new Error("Storage blocked"); },
+    setItem: () => { throw new Error("Storage blocked"); },
+  } });
+  assert.throws(() => loadQuranFavoriteSurahs("guest"), /Storage blocked/);
+  assert.throws(() => saveQuranFavoriteSurahs("guest", [36]), /Storage blocked/);
 });
 
 test("Unavailable browser storage is surfaced to the reader", () => {

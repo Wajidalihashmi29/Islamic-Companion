@@ -6,6 +6,14 @@ export interface QuranReadingPosition {
 
 export const QURAN_PAGE_ASPECT_RATIO = 210 / 297;
 
+export type QuranReaderPageNumber = number | "dua";
+
+export function getAdjacentQuranReaderPage(page: QuranReaderPageNumber, direction: -1 | 1): QuranReaderPageNumber {
+  if (page === "dua") return direction === 1 ? 1 : 604;
+  if ((page === 604 && direction === 1) || (page === 1 && direction === -1)) return "dua";
+  return page + direction;
+}
+
 export function getAdjacentQuranPage(page: number, direction: -1 | 1): number {
   return (page - 1 + direction + 604) % 604 + 1;
 }

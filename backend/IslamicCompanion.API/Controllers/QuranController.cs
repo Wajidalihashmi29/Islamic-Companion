@@ -31,7 +31,7 @@ public sealed class QuranController(IQuranService service, ILogger<QuranControll
         Execute(() => service.GetAudioAsync(surah, ayah, reciter, token));
 
     [HttpGet("tafseer/{surah:int}/{ayah:int}")]
-    public Task<IActionResult> Tafseer(int surah, int ayah, CancellationToken token, [FromQuery] string tafseer = "khazain-ul-irfan") =>
+    public Task<IActionResult> Tafseer(int surah, int ayah, CancellationToken token, [FromQuery] string tafseer = "sirat-ul-jinan") =>
         Execute(() => service.GetTafseerAsync(surah, ayah, tafseer, token));
 
     private async Task<IActionResult> Execute<T>(Func<Task<T>> action)
@@ -39,6 +39,11 @@ public sealed class QuranController(IQuranService service, ILogger<QuranControll
         try { return Ok(await action()); }
         catch (QuranOptionException error) { return UnprocessableEntity(new { message = error.Message }); }
         catch (ArgumentOutOfRangeException error) { return BadRequest(new { message = error.Message }); }
+        catch (InvalidDataException error)
+        {
+            logger.LogError(error, "Bundled Quran or Tafseer data could not be read");
+            return StatusCode(500, new { message = "The bundled reading data could not be loaded. Please contact support." });
+        }
         catch (Exception error) when (error is HttpRequestException or System.Text.Json.JsonException or
             InvalidOperationException or KeyNotFoundException or TaskCanceledException)
         {

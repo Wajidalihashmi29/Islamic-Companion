@@ -34,14 +34,14 @@ export interface AppSettings {
 }
 
 export const TRANSLATION_OPTIONS = [
-  { id: "kanzul-iman-ur", name: "Kanzul Iman — Ala Hazrat Imam Ahmad Raza Khan Barelvi", lang: "Urdu", recommended: true, disabled: false },
+  { id: "kanzul-iman-ur", name: "Kanzul Iman — Ala Hazrat Imam Ahmad Raza Khan", urduName: "رحمۃ اللہ علیہ", lang: "Urdu", recommended: true, disabled: false },
   { id: "kanzul-iman-en", name: "The Treasure of Faith (Kanzul Iman English) — Prof. Shah Farid-ul-Haque", lang: "English", disabled: false },
-  { id: "irfan-ul-quran-ur", name: "Irfan-ul-Quran — Shaykh-ul-Islam Dr. Muhammad Tahir-ul-Qadri", lang: "Urdu", disabled: false },
+  { id: "irfan-ul-quran-ur", name: "Irfan-ul-Quran — Dr. Muhammad Tahir-ul-Qadri", lang: "Urdu", disabled: false },
   { id: "kanzul-iman-hi", name: "Kanzul Iman (Hindi Devanagari) — Imam Ahmad Raza Khan", lang: "Hindi", disabled: true, sub: "Unavailable: authorized, verified dataset pending" },
 ];
 
 export const TAFSEER_OPTIONS = [
-  { id: "khazain-ul-irfan", name: "Khazain-ul-Irfan — Sadr-ul-Afadhil Mawlana Naeemuddin Muradabadi", lang: "Urdu", disabled: true, sub: "Unavailable: authorized, verified dataset pending" },
+  { id: "sirat-ul-jinan", name: "Sirat-ul-Jinan — Mufti Muhammad Qasim Attari", lang: "Urdu", disabled: false },
 ];
 
 export const RECITERS_OPTIONS = [
@@ -63,9 +63,9 @@ export const CALCULATION_METHODS = [
 export const DEFAULT_SETTINGS: AppSettings = {
   quran: {
     mushafLines: 16,
-    showTranslation: true,
+    showTranslation: false,
     preferredTranslation: "kanzul-iman-ur",
-    preferredTafseer: "khazain-ul-irfan",
+    preferredTafseer: "sirat-ul-jinan",
     arabicScript: "indopak",
     ...DEFAULT_QURAN_TYPOGRAPHY,
     reciter: "alafasy",
@@ -193,6 +193,7 @@ export function loadSettings(userIdentifier?: string | null): AppSettings {
 
     const parsed = JSON.parse(raw);
     const quran = { ...DEFAULT_SETTINGS.quran, ...(parsed.quran || {}), ...normalizeQuranTypography(parsed.quran || {}) };
+    if (quran.preferredTafseer === "khazain-ul-irfan") quran.preferredTafseer = DEFAULT_SETTINGS.quran.preferredTafseer;
 
     return {
       quran,
@@ -317,6 +318,8 @@ export async function syncCloudSettings(userIdentifier?: string | null): Promise
         prayer: { ...DEFAULT_SETTINGS.prayer, ...(cloud.prayer || {}) },
         general: { ...DEFAULT_SETTINGS.general, ...(cloud.general || {}) },
       };
+      if (merged.quran.preferredTafseer === "khazain-ul-irfan")
+        merged.quran.preferredTafseer = DEFAULT_SETTINGS.quran.preferredTafseer;
       localStorage.setItem(key, JSON.stringify(merged));
       if (merged.prayer?.asrSchool) {
         localStorage.setItem("ic.asrSchool", merged.prayer.asrSchool);

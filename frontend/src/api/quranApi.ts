@@ -1,4 +1,5 @@
 import client from "./axiosClient";
+import { formatFatihahPage, getCanonicalQuranVerse } from "../utils/quranFatihah";
 
 export interface QuranSurah {
   number: number;
@@ -45,7 +46,9 @@ export interface QuranDirectory {
   surahs: QuranSurah[];
   juzs: { number: number; nameArabic: string; verseKey: string }[];
 }
-export interface QuranTafseer { verseKey: string; name: string; language: string; text: string }
+export interface QuranTafseer {
+  verseKey: string; name: string; language: string; text: string; author: string; sourceUrl: string;
+}
 
 const pageCache = new Map<string, QuranPage>();
 const pageRequests = new Map<string, {
@@ -69,10 +72,11 @@ export async function getQuranPage(page: number, translation: string, lines: num
       params: { translation, lines }, signal: controller.signal,
     }).then(response => {
       controller.signal.throwIfAborted();
-      pageCache.set(key, response.data);
+      const page = formatFatihahPage(response.data, translation);
+      pageCache.set(key, page);
       const oldest = pageCache.keys().next().value;
       if (pageCache.size > 8 && oldest !== undefined) pageCache.delete(oldest);
-      return response.data;
+      return page;
     }).finally(() => {
       if (pageRequests.get(key)?.controller === controller) pageRequests.delete(key);
     });
@@ -102,7 +106,7 @@ export async function getQuranDirectory(signal: AbortSignal) {
   return (await client.get<QuranDirectory>("/quran/directory", { signal })).data;
 }
 export async function getVersePage(key: string, signal?: AbortSignal) {
-  const [surah, ayah] = key.split(":");
+  const [surah, ayah] = getCanonicalQuranVerse(key).split(":");
   return (await client.get<{ pageNumber: number }>(`/quran/verse/${surah}/${ayah}/page`, { signal })).data.pageNumber;
 }
 export async function getQuranAudio(key: string, reciter: string, signal: AbortSignal) {
@@ -110,6 +114,7 @@ export async function getQuranAudio(key: string, reciter: string, signal: AbortS
   return (await client.get<{ verseKey: string; url: string }>(`/quran/audio/${surah}/${ayah}`, { params: { reciter }, signal })).data;
 }
 export async function getQuranTafseer(key: string, tafseer: string, signal: AbortSignal) {
-  const [surah, ayah] = key.split(":");
-  return (await client.get<QuranTafseer>(`/quran/tafseer/${surah}/${ayah}`, { params: { tafseer }, signal })).data;
+  const [surah, ayah] = getCanonicalQuranVerse(key).split(":");
+  const result = (await client.get<QuranTafseer>(`/quran/tafseer/${surah}/${ayah}`, { params: { tafseer }, signal })).data;
+  return { ...result, verseKey: key };
 }

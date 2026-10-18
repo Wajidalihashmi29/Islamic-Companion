@@ -144,7 +144,7 @@ public sealed class QuranDatasetTests(QuranDatasetFixture fixture) : IClassFixtu
     }
 
     [Fact]
-    public async Task TafseerUnavailabilityAndAudioOutagesDoNotBlockLocalReading()
+    public async Task TafseerAndQuranRemainLocalDuringAudioProviderOutages()
     {
         var handler = new OfflineHandler();
         using var http = new HttpClient(handler);
@@ -155,6 +155,7 @@ public sealed class QuranDatasetTests(QuranDatasetFixture fixture) : IClassFixtu
         await Assert.ThrowsAsync<QuranOptionException>(() =>
             service.GetTafseerAsync(1, 1, "ibn-kathir", CancellationToken.None));
         Assert.Equal(0, handler.Requests);
+        Assert.NotEmpty((await service.GetTafseerAsync(1, 1, "sirat-ul-jinan", CancellationToken.None)).Text);
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             service.GetAudioAsync(1, 1, "alafasy", CancellationToken.None));
         Assert.Equal(1, handler.Requests);
