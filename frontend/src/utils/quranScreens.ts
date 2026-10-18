@@ -6,13 +6,17 @@ export interface QuranReadingPosition {
 
 export const QURAN_PAGE_ASPECT_RATIO = 210 / 297;
 
+export function getAdjacentQuranPage(page: number, direction: -1 | 1): number {
+  return (page - 1 + direction + 604) % 604 + 1;
+}
+
 export function getQuranPageScale(width: number, height: number, availableWidth: number, availableHeight: number): number {
   if (width <= 0 || height <= 0 || availableWidth <= 0 || availableHeight <= 0) return 0;
   return Math.min(1, availableWidth / width, availableHeight / height);
 }
 
-export function getQuranPageWidth(width: number, contentHeight: number): number {
-  const balanced = Math.sqrt(width * contentHeight * QURAN_PAGE_ASPECT_RATIO);
+export function getQuranPageWidth(width: number, contentHeight: number, aspectRatio = QURAN_PAGE_ASPECT_RATIO): number {
+  const balanced = Math.sqrt(width * contentHeight * aspectRatio);
   return Math.max(480, Math.min(3200, Math.ceil(balanced / 8) * 8));
 }
 

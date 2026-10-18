@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useId, useRef, useState } from "react";
+import { Fragment, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode, TouchEvent } from "react";
 import axios from "axios";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -14,12 +14,14 @@ import { getQuranAudio, getQuranDirectory, getQuranPage, getQuranTafseer, getVer
 import type { QuranDirectory, QuranPage, QuranSurah, QuranTafseer } from "../api/quranApi";
 import { layoutQuranLines } from "../utils/quranLayout";
 import type { QuranReadingLine, QuranReadingSegment } from "../utils/quranLayout";
-import { getQuranTextRuns, getQuranTranslationFontSize } from "../utils/quranTypography";
+import { getQuranTextRuns } from "../utils/quranTypography";
 import { getStorageKeyForUser, loadSettings, saveSettings, RECITERS_OPTIONS, TRANSLATION_OPTIONS, TAFSEER_OPTIONS } from "../utils/settingsStorage";
 import { loadQuranReaderView, loadQuranReadingPage, normalizeQuranSearch, parseAyahReference,
   saveQuranReaderView, saveQuranReadingPage } from "../utils/quranNavigation";
-import { getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, QURAN_PAGE_ASPECT_RATIO } from "../utils/quranScreens";
+import { getAdjacentQuranPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, QURAN_PAGE_ASPECT_RATIO } from "../utils/quranScreens";
+import { getAdjacentQuranVerse, QuranAudioPlayer } from "../utils/quranAudio";
 import type { AppSettings } from "../utils/settingsStorage";
+import type { RecitationState } from "../utils/quranAudio";
 import "./Home.css";
 import "./QuranReaderPage.css";
 
@@ -37,11 +39,29 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+function captureReadingPage(sheet: HTMLElement, viewport: HTMLElement) {
+  const bounds = viewport.getBoundingClientRect(), position = sheet.getBoundingClientRect();
+  const copy = sheet.cloneNode(true);
+  if (!(copy instanceof HTMLElement)) throw new Error("Unable to retain the Quran reading page.");
+  Object.assign(copy.style, { position: "absolute", left: `${position.left - bounds.left}px`,
+    top: `${position.top - bounds.top}px`, width: `${sheet.offsetWidth}px`, height: `${sheet.offsetHeight}px`,
+    transform: getComputedStyle(sheet).transform, visibility: "visible" });
+  return { copy, bounds: { left: `${bounds.left}px`, top: `${bounds.top}px`,
+    width: `${bounds.width}px`, height: `${bounds.height}px` } };
+}
+
+function showReadingPage(surface: HTMLElement, snapshot: ReturnType<typeof captureReadingPage>) {
+  Object.assign(surface.style, snapshot.bounds);
+  surface.replaceChildren(snapshot.copy.cloneNode(true));
+  surface.classList.add("is-visible");
+}
+
 function QuranGlyph({ text, script, className, label, alignment = "xMidYMax meet" }: {
   text: string; script: string; className: string; label: string; alignment?: string;
 }) {
   const ref = useRef<SVGTextElement>(null);
-  const [viewBox, setViewBox] = useState("");
+  const [measurement, setMeasurement] = useState({ text: "", script: "", viewBox: "" });
+  const viewBox = measurement.text === text && measurement.script === script ? measurement.viewBox : "";
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
@@ -49,13 +69,14 @@ function QuranGlyph({ text, script, className, label, alignment = "xMidYMax meet
     if (!context) throw new Error("Unable to measure Quran glyphs.");
     let disposed = false;
     const fit = () => {
-      if (disposed || !element.isConnected) return;
+      if (disposed || !element.isConnected || document.fonts.status === "loading") return;
       const style = getComputedStyle(element);
       context.font = `${style.fontSize} ${style.fontFamily}`;
       context.direction = "ltr";
       const { actualBoundingBoxLeft: left, actualBoundingBoxRight: right,
         actualBoundingBoxAscent: ascent, actualBoundingBoxDescent: descent } = context.measureText(text);
-      setViewBox(`${-left - 1} ${-ascent - 1} ${left + right + 2} ${ascent + descent + 2}`);
+      setMeasurement({ text, script,
+        viewBox: `${-left - 1} ${-ascent - 1} ${left + right + 2} ${ascent + descent + 2}` });
     };
     const frame = requestAnimationFrame(fit);
     void document.fonts.ready.then(fit);
@@ -68,7 +89,8 @@ function QuranGlyph({ text, script, className, label, alignment = "xMidYMax meet
   }, [text, script]);
   return (
     <svg className={className} viewBox={viewBox || undefined} preserveAspectRatio={alignment}
-      role="img" aria-label={label} style={{ visibility: viewBox ? "visible" : "hidden" }}>
+      role="img" aria-label={label} data-quran-glyph-ready={!!viewBox}
+      style={{ visibility: viewBox ? "visible" : "hidden" }}>
       <text ref={ref} x="0" y="0" fill="currentColor" fontSize="32" direction="ltr"
         style={{ direction: "ltr", letterSpacing: "normal" }}>{text}</text>
     </svg>
@@ -185,7 +207,7 @@ function SurahBanner({ surah, page, settings }: { surah: QuranSurah; page: Quran
             <span aria-hidden="true">❊</span>
           </p>
           {settings.showTranslation && <p lang={page.translationLanguage}
-            style={{ fontSize: getQuranTranslationFontSize(settings.translationFontSize, page.translationLanguage) }}>{page.bismillahTranslation}</p>}
+            style={{ fontSize: settings.translationFontSize }}>{page.bismillahTranslation}</p>}
         </div>
       )}
     </>
@@ -210,14 +232,15 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [params, setParams] = useSearchParams();
+  const [mobileReader, setMobileReader] = useState(() => window.matchMedia("(max-width: 900px)").matches);
   const [resume] = useState(() => {
     let page = 1;
     try {
       page = loadQuranReadingPage(profileKey) ?? 1;
-      return { page, view: loadQuranReaderView(profileKey), error: "" };
+      return { page, view: loadQuranReaderView(profileKey, mobileReader ? "fit" : "scroll"), error: "" };
     } catch (error) {
       console.warn("Unable to load Quran reading progress.", error);
-      return { page, view: { mode: "scroll", position: null }, error: "Reading progress could not be restored from this browser." };
+      return { page, view: { mode: mobileReader ? "fit" : "scroll", position: null }, error: "Reading progress could not be restored from this browser." };
     }
   });
   const [readingError, setReadingError] = useState(resume.error);
@@ -227,16 +250,24 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const preferences = settings.quran;
   const [page, setPage] = useState<QuranPage | null>(null);
   const [directory, setDirectory] = useState<QuranDirectory | null>(null);
+  const directoryReady = directory !== null;
   const [lineLayout, setLineLayout] = useState<{
     lines: QuranReadingLine[]; width: number; page: QuranPage | null; script: string; fontSize: number;
   }>({ lines: [], width: 0, page: null, script: "", fontSize: 0 });
   const lines = lineLayout.lines;
+  const [glyphLayout, setGlyphLayout] = useState<{
+    page: QuranPage | null; lines: QuranReadingLine[] | null; fontKey: string;
+  }>({ page: null, lines: null, fontKey: "" });
   const [loadedKey, setLoadedKey] = useState("");
   const [error, setError] = useState("");
+  const [fonts, setFonts] = useState({ key: "", error: "" });
   const [directoryError, setDirectoryError] = useState("");
   const [retry, setRetry] = useState(0);
   const requestKey = `${pageNumber}:${preferences.preferredTranslation}:${preferences.mushafLines}:${retry}`;
   const loading = loadedKey !== requestKey;
+  const fontKey = `${preferences.arabicScript}:${preferences.preferredTranslation}:${retry}`;
+  const fontsReady = fonts.key === fontKey && !fonts.error;
+  const pageError = error || (fonts.key === fontKey ? fonts.error : "");
   const [drawer, setDrawer] = useState<"index" | "listen" | "options" | "more" | "tafseer" | null>(null);
   const [modal, setModal] = useState<string | null>(null);
   const [jump, setJump] = useState(String(pageNumber));
@@ -253,14 +284,31 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const [navigationPending, setNavigationPending] = useState(false);
   const [verseTarget, setVerseTarget] = useState<{ key: string; page: number } | null>(null);
   const [fitMode, setFitMode] = useState(resume.view.mode === "fit");
+  const immersive = fitMode && mobileReader;
+  const [controlsVisible, setControlsVisible] = useState(false);
+  const controlsShown = !immersive || controlsVisible || !!drawer || !!modal ||
+    !!pageError || !!readingError || !!audioError || !!navigationError;
+  const controlsId = useId();
+  const controlsToggle = useRef<HTMLButtonElement>(null);
   const [fitWidth, setFitWidth] = useState(720);
+  const [fitAspectRatio, setFitAspectRatio] = useState(QURAN_PAGE_ASPECT_RATIO);
   const [pageZoom, setPageZoom] = useState(1);
   const [browserZoomed, setBrowserZoomed] = useState(false);
+  const fittingPreferences = `${preferences.arabicScript}:${preferences.arabicFontSize}:${preferences.translationFontSize}:${preferences.showTranslation}`;
   const [pageFit, setPageFit] = useState<{
-    page: QuranPage | null; lines: QuranReadingLine[] | null; width: number; height: number; scale: number;
-  }>({ page: null, lines: null, width: 0, height: 0, scale: 0 });
+    page: QuranPage | null; lines: QuranReadingLine[] | null; width: number; height: number; scale: number; aspectRatio: number; preferences: string;
+  }>({ page: null, lines: null, width: 0, height: 0, scale: 0, aspectRatio: 0, preferences: "" });
   const probe = useRef<HTMLDivElement>(null);
   const audio = useRef<HTMLAudioElement>(null);
+  const bufferedAudio = useRef<HTMLAudioElement>(null);
+  const lookaheadAudio = useRef<HTMLAudioElement>(null);
+  const recitation = useRef<QuranAudioPlayer | null>(null);
+  const playbackIntent = useRef(false);
+  const pageTransition = useRef<HTMLDivElement>(null);
+  const transitionTimeout = useRef(0);
+  const retainedPage = useRef<ReturnType<typeof captureReadingPage> | null>(null);
+  const pagePrefetch = useRef<AbortController | null>(null);
+  const [hasPresentedPage, setHasPresentedPage] = useState(false);
   const frame = useRef<HTMLElement>(null);
   const navigationRequest = useRef<AbortController | null>(null);
   const directoryResults = useRef<HTMLDivElement>(null);
@@ -269,9 +317,38 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const paper = useRef<HTMLElement>(null);
   const fitSizing = useRef({ key: "", attempts: 0, fittingWidth: 0 });
   const gesture = useRef<{ x: number; y: number; time: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const pinch = useRef<{ distance: number; zoom: number; x: number; y: number } | null>(null);
+  const zoomAnimation = useRef(0);
   const suppressClickUntil = useRef(0);
-  const fitReady = pageFit.page === page && pageFit.lines === lines && pageFit.width === fitWidth && pageFit.scale > 0;
+  const layoutReady = fontsReady && (directoryReady || !!directoryError) &&
+    lineLayout.page === page && lineLayout.script === preferences.arabicScript &&
+    lineLayout.fontSize === preferences.arabicFontSize && lines.length > 0;
+  const fitReady = pageFit.page === page && pageFit.lines === lines && pageFit.width === fitWidth &&
+    pageFit.aspectRatio === fitAspectRatio && pageFit.preferences === fittingPreferences && pageFit.scale > 0;
+  const glyphsReady = glyphLayout.page === page && glyphLayout.lines === lines && glyphLayout.fontKey === fontKey;
+  const pageReady = !loading && !pageError && layoutReady && glyphsReady && (!fitMode || fitReady);
   const firstReadingVerse = page?.lines[0]?.segments[0]?.verseKey;
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 900px)");
+    const sync = () => setMobileReader(media.matches);
+    media.addEventListener("change", sync);
+    return () => {
+      media.removeEventListener("change", sync);
+      cancelAnimationFrame(zoomAnimation.current);
+      clearTimeout(transitionTimeout.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!immersive || !controlsVisible || drawer || modal) return;
+    const timeout = window.setTimeout(() => {
+      if (frame.current?.querySelector(".home-view-header :focus-visible, .quran-controls :focus-visible")) return;
+      setControlsVisible(false);
+    }, 3500);
+    return () => window.clearTimeout(timeout);
+  }, [immersive, controlsVisible, drawer, modal]);
 
   useEffect(() => {
     if (!params.has("page")) setParams({ page: String(pageNumber) }, { replace: true });
@@ -284,6 +361,21 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     const animation = requestAnimationFrame(sync);
     viewport.addEventListener("resize", sync);
     return () => { cancelAnimationFrame(animation); viewport.removeEventListener("resize", sync); };
+  }, []);
+
+  const rememberReadingPosition = useEffectEvent(() => {
+    const snapshot = retainedPage.current, sheet = paper.current, viewport = readingViewport.current;
+    if (!pageReady || !snapshot || !sheet || !viewport) return;
+    const bounds = viewport.getBoundingClientRect(), position = sheet.getBoundingClientRect();
+    Object.assign(snapshot.bounds, { left: `${bounds.left}px`, top: `${bounds.top}px`,
+      width: `${bounds.width}px`, height: `${bounds.height}px` });
+    Object.assign(snapshot.copy.style, { left: `${position.left - bounds.left}px`,
+      top: `${position.top - bounds.top}px` });
+  });
+  useEffect(() => {
+    const sync = () => rememberReadingPosition();
+    window.addEventListener("scroll", sync, { capture: true, passive: true });
+    return () => window.removeEventListener("scroll", sync, true);
   }, []);
 
   useEffect(() => {
@@ -315,6 +407,24 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   }, [retry]);
 
   useEffect(() => {
+    let disposed = false;
+    const families = [
+      preferences.arabicScript === "indopak" ? "Digital Khatt IndoPak" : "Amiri Quran",
+      ...(preferences.arabicScript === "indopak" ? ["IndopakNastaleeq"] : []),
+      preferences.preferredTranslation.endsWith("-ur") ? "Jameel Noori Nastaleeq Regular" : "Inter",
+      "Surah Name Color V4", "Juz Name", "Surah Name V2", "QPC V2 Bismillah",
+    ];
+    void Promise.all(families.map(family => document.fonts.load(`32px "${family}"`)))
+      .then(() => document.fonts.ready)
+      .then(() => { if (!disposed) setFonts({ key: fontKey, error: "" }); })
+      .catch(error => {
+        if (!disposed) setFonts({ key: fontKey,
+          error: errorMessage(error, "Unable to load the Quran fonts. Please try again.") });
+      });
+    return () => { disposed = true; };
+  }, [fontKey, preferences.arabicScript, preferences.preferredTranslation]);
+
+  useEffect(() => {
     const controller = new AbortController();
     getQuranPage(pageNumber, preferences.preferredTranslation, preferences.mushafLines, controller.signal)
       .then(data => {
@@ -339,12 +449,81 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   }, [pageNumber, preferences.preferredTranslation, preferences.mushafLines, requestKey, profileKey]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    pagePrefetch.current = controller;
+    return () => controller.abort();
+  }, [preferences.preferredTranslation, preferences.mushafLines, profileKey]);
+
+  useEffect(() => {
+    const controller = pagePrefetch.current;
+    if (loading || pageError || !page || !controller || controller.signal.aborted) return;
+    for (const direction of [-1, 1] as const) {
+      const adjacent = getAdjacentQuranPage(pageNumber, direction);
+      for (const number of [adjacent, getAdjacentQuranPage(adjacent, direction)]) {
+        void getQuranPage(number, preferences.preferredTranslation,
+        preferences.mushafLines, controller.signal).catch(error => {
+          if (!controller.signal.aborted) console.warn("Unable to preload a nearby Quran page.", error);
+        });
+      }
+    }
+  }, [pageNumber, page, loading, pageError, preferences.preferredTranslation, preferences.mushafLines]);
+
+  useLayoutEffect(() => {
+    const surface = pageTransition.current;
+    if (!surface) return;
+    clearTimeout(transitionTimeout.current);
+    if (pageError && !loading) {
+      retainedPage.current = null;
+      surface.classList.remove("is-visible");
+      surface.replaceChildren();
+      return;
+    }
+    if (!pageReady) {
+      if (retainedPage.current) showReadingPage(surface, retainedPage.current);
+      return;
+    }
+    let revealFrame = 0;
+    const captureFrame = requestAnimationFrame(() => {
+      // Paint the complete incoming paper before fading the retained page.
+      revealFrame = requestAnimationFrame(() => {
+        if (paper.current && readingViewport.current)
+          retainedPage.current = captureReadingPage(paper.current, readingViewport.current);
+        surface.classList.remove("is-visible");
+        transitionTimeout.current = window.setTimeout(() => surface.replaceChildren(), 240);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(captureFrame);
+      cancelAnimationFrame(revealFrame);
+      clearTimeout(transitionTimeout.current);
+    };
+  }, [pageReady, pageError, loading, page, fitMode, fittingPreferences, fitWidth, lines, pageZoom]);
+
+  useEffect(() => {
+    const sheet = paper.current;
+    if (!sheet || !layoutReady) return;
+    const check = () => {
+      if (sheet.querySelector('[data-quran-glyph-ready="false"]')) {
+        setGlyphLayout(previous => previous.page === page && previous.lines === lines
+          ? { page: null, lines: null, fontKey: "" } : previous);
+        return;
+      }
+      setGlyphLayout(previous => previous.page === page && previous.lines === lines && previous.fontKey === fontKey
+        ? previous : { page, lines, fontKey });
+    };
+    const observer = new MutationObserver(check);
+    observer.observe(sheet, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-quran-glyph-ready"] });
+    const animation = requestAnimationFrame(check);
+    return () => { observer.disconnect(); cancelAnimationFrame(animation); };
+  }, [layoutReady, page, lines, fontKey]);
+
+  useEffect(() => {
     const element = probe.current;
-    if (!element || !page || loading) return;
+    if (!element || !page || loading || !fontsReady) return;
     let disposed = false;
     let animation = 0;
     const calculate = () => {
-      if (disposed || !element.isConnected || element.clientWidth <= 0) return;
+      if (disposed || !element.isConnected || element.clientWidth <= 0 || document.fonts.status === "loading") return;
       const style = getComputedStyle(element);
       const width = element.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
       const span = document.createElement("span");
@@ -379,23 +558,28 @@ function QuranReader({ profileKey }: { profileKey: string }) {
       observer.disconnect();
       document.fonts.removeEventListener("loadingdone", schedule);
     };
-  }, [page, loading, preferences.arabicScript, preferences.arabicFontSize]);
+  }, [page, loading, fontsReady, preferences.arabicScript, preferences.arabicFontSize]);
 
   useEffect(() => {
     const viewport = readingViewport.current, sheet = paper.current;
-    if (!fitMode || loading || !lineLayout.lines.length || !viewport || !sheet) return;
+    if (!fitMode || loading || !fontsReady || !glyphsReady || !lineLayout.lines.length || !viewport || !sheet) return;
     let disposed = false;
     let animation = 0;
     const calculate = () => {
-      if (disposed || viewport.offsetHeight <= 2 || viewport.offsetWidth <= 2 ||
+      if (disposed || document.fonts.status === "loading" || viewport.offsetHeight <= 2 || viewport.offsetWidth <= 2 ||
         lineLayout.page !== page || lineLayout.script !== preferences.arabicScript ||
         lineLayout.fontSize !== preferences.arabicFontSize ||
         Math.abs((probe.current?.clientWidth ?? 0) - lineLayout.width) > 1) return;
       const width = sheet.offsetWidth, height = sheet.offsetHeight;
       const availableWidth = viewport.offsetWidth - 2, availableHeight = viewport.offsetHeight - 2;
-      const key = `${requestKey}:${availableWidth}:${availableHeight}:${preferences.arabicScript}:${preferences.arabicFontSize}:${preferences.translationFontSize}:${preferences.showTranslation}:${document.fonts.status}`;
+      const aspectRatio = immersive ? Math.min(QURAN_PAGE_ASPECT_RATIO, availableWidth / availableHeight) : QURAN_PAGE_ASPECT_RATIO;
+      if (Math.abs(aspectRatio - fitAspectRatio) > .0001) {
+        setFitAspectRatio(aspectRatio);
+        return;
+      }
+      const key = `${requestKey}:${availableWidth}:${availableHeight}:${aspectRatio}:${preferences.arabicScript}:${preferences.arabicFontSize}:${preferences.translationFontSize}:${preferences.showTranslation}:${document.fonts.status}`;
       if (fitSizing.current.key !== key) fitSizing.current = { key, attempts: 0, fittingWidth: 0 };
-      const fitsPortrait = height <= width / QURAN_PAGE_ASPECT_RATIO + 1;
+      const fitsPortrait = height <= width / aspectRatio + 1;
       if (fitsPortrait && (!fitSizing.current.fittingWidth || width < fitSizing.current.fittingWidth))
         fitSizing.current.fittingWidth = width;
       const style = getComputedStyle(sheet);
@@ -404,9 +588,9 @@ function QuranReader({ profileKey }: { profileKey: string }) {
         .reduce((total, child) => total + child.offsetHeight, 0) +
         parseFloat(style.paddingTop) + parseFloat(style.paddingBottom) + sheet.offsetHeight - sheet.clientHeight;
       // Row breaks can oscillate between widths; finish at a width that actually fits the portrait paper.
-      const balancedWidth = fitSizing.current.attempts < 6 ? getQuranPageWidth(width, contentHeight)
+      const balancedWidth = fitSizing.current.attempts < 6 ? getQuranPageWidth(width, contentHeight, aspectRatio)
         : fitsPortrait ? width : fitSizing.current.fittingWidth ||
-          Math.min(3200, Math.ceil(contentHeight * QURAN_PAGE_ASPECT_RATIO / 8) * 8);
+          Math.min(3200, Math.ceil(contentHeight * aspectRatio / 8) * 8);
       if (balancedWidth !== width) {
         fitSizing.current.attempts++;
         setFitWidth(balancedWidth);
@@ -414,8 +598,9 @@ function QuranReader({ profileKey }: { profileKey: string }) {
       }
       const scale = getQuranPageScale(width, height, availableWidth, availableHeight);
       setPageFit(previous => previous.page === page && previous.lines === lineLayout.lines && previous.width === width &&
-        previous.height === height && previous.scale === scale ? previous : {
-          page, lines: lineLayout.lines, width, height, scale,
+        previous.height === height && previous.scale === scale && previous.aspectRatio === aspectRatio &&
+        previous.preferences === fittingPreferences ? previous : {
+          page, lines: lineLayout.lines, width, height, scale, aspectRatio, preferences: fittingPreferences,
         });
     };
     const schedule = () => { cancelAnimationFrame(animation); animation = requestAnimationFrame(calculate); };
@@ -428,7 +613,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
       disposed = true; cancelAnimationFrame(animation); observer.disconnect();
       document.fonts.removeEventListener("loadingdone", schedule);
     };
-  }, [fitMode, fitWidth, lineLayout, page, requestKey, loading, preferences.arabicScript, preferences.arabicFontSize,
+  }, [fitMode, immersive, fitAspectRatio, fittingPreferences, fitWidth, lineLayout, page, requestKey, loading, fontsReady, glyphsReady, preferences.arabicScript, preferences.arabicFontSize,
     preferences.showTranslation, preferences.translationFontSize]);
 
   useEffect(() => {
@@ -443,14 +628,14 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   }, [fitMode, page, pageNumber, loading, error, profileKey]);
 
   useEffect(() => {
-    if (!verseTarget || verseTarget.page !== pageNumber || loading || scrolledTarget.current === verseTarget) return;
+    if (!verseTarget || verseTarget.page !== pageNumber || loading || !layoutReady || scrolledTarget.current === verseTarget) return;
     if (fitMode && !fitReady) return;
     let disposed = false;
     let animation = 0;
     void document.fonts.ready.then(() => {
       animation = requestAnimationFrame(() => {
         if (disposed) return;
-        const element = Array.from(frame.current?.querySelectorAll<HTMLElement>(".quran-verse") ?? [])
+        const element = Array.from(paper.current?.querySelectorAll<HTMLElement>(".quran-verse") ?? [])
           .find(verse => verse.dataset.verseKey === verseTarget.key);
         if (!element) return;
         if (!fitMode || pageZoom > 1)
@@ -459,25 +644,40 @@ function QuranReader({ profileKey }: { profileKey: string }) {
       });
     });
     return () => { disposed = true; cancelAnimationFrame(animation); };
-  }, [verseTarget, pageNumber, loading, lines, fitMode, fitReady, pageZoom]);
+  }, [verseTarget, pageNumber, loading, layoutReady, lines, fitMode, fitReady, pageZoom]);
+
+  const followRecitation = useEffectEvent((key: string) => {
+    if (!page?.lines.some(line => line.segments.some(segment => segment.verseKey === key))) void goToVerse(key, true);
+    else if (fitMode) setVerseTarget({ key, page: pageNumber });
+  });
+  const nextRecitationVerse = useEffectEvent((key: string) =>
+    directory ? getAdjacentQuranVerse(key, 1, directory.surahs) : null);
+  const updateRecitationState = useEffectEvent((state: RecitationState) => {
+    setActiveVerse(state.verseKey); setPlaying(state.playing);
+    setAudioLoading(state.loading); setAudioError(state.error);
+    if (immersive && state.playing && !playbackIntent.current) {
+      setControlsVisible(false);
+      setDrawer(null);
+    }
+    playbackIntent.current = state.playing;
+  });
 
   useEffect(() => {
-    if (!activeVerse || !audio.current) return;
-    const controller = new AbortController();
-    const element = audio.current;
-    getQuranAudio(activeVerse, preferences.reciter, controller.signal).then(async result => {
-      if (controller.signal.aborted) return;
-      element.src = result.url;
-      await element.play();
-    }).catch(error => {
-      if (!controller.signal.aborted) {
-        setAudioError(errorMessage(error, "Unable to play this recitation."));
-        setPlaying(false);
-        setActiveVerse(null);
-      }
-    }).finally(() => { if (!controller.signal.aborted) setAudioLoading(false); });
-    return () => { controller.abort(); element.pause(); element.removeAttribute("src"); element.load(); };
-  }, [activeVerse, preferences.reciter]);
+    if (!directoryReady || !audio.current || !bufferedAudio.current || !lookaheadAudio.current) return;
+    const player = new QuranAudioPlayer([audio.current, bufferedAudio.current, lookaheadAudio.current], {
+      source: async (key, reciter, signal) => {
+        try { return await getQuranAudio(key, reciter, signal); }
+        catch (error) { throw new Error(errorMessage(error, "Unable to load this recitation."), { cause: error }); }
+      },
+      next: key => nextRecitationVerse(key),
+      onState: state => updateRecitationState(state),
+      onVerse: key => followRecitation(key),
+    });
+    recitation.current = player;
+    return () => { player.dispose(); recitation.current = null; };
+  }, [directoryReady]);
+
+  useEffect(() => { recitation.current?.setReciter(preferences.reciter); }, [preferences.reciter, directoryReady]);
 
   useEffect(() => {
     if (drawer !== "tafseer" || !tafseerKey) return;
@@ -489,57 +689,126 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   }, [drawer, tafseerKey, preferences.preferredTafseer]);
 
   function updatePreferences(update: Partial<AppSettings["quran"]>) {
+    if ((["arabicScript", "arabicFontSize", "translationFontSize", "showTranslation", "preferredTranslation", "mushafLines"] as const)
+      .some(key => update[key] !== undefined && update[key] !== preferences[key])) preservePageForTransition();
     const next = { ...settings, quran: { ...settings.quran, ...update } };
     if (update.preferredTranslation || update.mushafLines) setError("");
-    if (update.reciter && activeVerse) { setAudioLoading(true); setAudioError(""); }
     setSettings(next);
     saveSettings(next);
   }
-  function changePage(number: number, keepAudio = false) {
+  function preservePageForTransition(direction = 0) {
+    const surface = pageTransition.current, sheet = paper.current, viewport = readingViewport.current;
+    if (!surface || !sheet || !viewport || !pageReady) return;
+    clearTimeout(transitionTimeout.current);
+    retainedPage.current = captureReadingPage(sheet, viewport);
+    showReadingPage(surface, retainedPage.current);
+    setHasPresentedPage(true);
+    frame.current?.style.setProperty("--quran-page-shift", `${direction * 16}px`);
+  }
+  function changePage(number: number, keepAudio = false, direction = number > pageNumber ? 1 : -1) {
     if (number < 1 || number > 604 || number === pageNumber) return;
-    if (!keepAudio) { setActiveVerse(null); setPlaying(false); }
-    setError(""); setLineLayout(previous => ({ ...previous, lines: [] })); setVerseTarget(null);
-    setPageZoom(1);
+    preservePageForTransition(direction);
+    if (!keepAudio) {
+      navigationRequest.current?.abort(); setNavigationPending(false);
+      recitation.current?.stop();
+    }
+    setError(""); setVerseTarget(null);
+    gesture.current = null; drag.current = null; pinch.current = null;
+    cancelAnimationFrame(zoomAnimation.current);
     setDrawer(null);
     readingViewport.current?.scrollTo({ top: 0, left: 0, behavior: "instant" });
     setJump(String(number));
     setParams({ page: String(number) });
     window.scrollTo({ top: 0, behavior: "instant" });
   }
-  function turnPage(delta: number) {
+  function turnPage(delta: -1 | 1) {
     if (!fitMode || !fitReady || loading || error || drawer || modal) return;
-    changePage(pageNumber + delta);
+    changePage(getAdjacentQuranPage(pageNumber, delta), false, delta);
   }
   function changeReadingMode(enabled: boolean) {
     scrolledTarget.current = null;
     setPageZoom(1);
+    setControlsVisible(true);
     setFitMode(enabled);
   }
-  function zoomPage(zoom: number) {
+  function zoomPage(zoom: number, focal?: { x: number; y: number; clientX: number; clientY: number }) {
     const viewport = readingViewport.current;
     if (!viewport || !fitReady) return;
-    const next = Math.max(1, Math.min(4, zoom));
+    const next = Math.max(.5, Math.min(4, zoom));
     const oldMargin = Math.max(0, (viewport.clientWidth - pageFit.width * pageFit.scale * pageZoom) / 2);
     const newMargin = Math.max(0, (viewport.clientWidth - pageFit.width * pageFit.scale * next) / 2);
     const oldVerticalMargin = Math.max(0, (viewport.clientHeight - pageFit.height * pageFit.scale * pageZoom) / 2);
     const newVerticalMargin = Math.max(0, (viewport.clientHeight - pageFit.height * pageFit.scale * next) / 2);
-    const x = (viewport.scrollLeft + viewport.clientWidth / 2 - oldMargin) / pageZoom;
-    const y = (viewport.scrollTop + viewport.clientHeight / 2 - oldVerticalMargin) / pageZoom;
+    const x = focal?.x ?? (viewport.scrollLeft + viewport.clientWidth / 2 - oldMargin) / pageZoom;
+    const y = focal?.y ?? (viewport.scrollTop + viewport.clientHeight / 2 - oldVerticalMargin) / pageZoom;
     setPageZoom(next);
-    requestAnimationFrame(() => viewport.scrollTo({
-      left: next === 1 ? 0 : x * next + newMargin - viewport.clientWidth / 2,
-      top: next === 1 ? 0 : y * next + newVerticalMargin - viewport.clientHeight / 2, behavior: "instant",
+    cancelAnimationFrame(zoomAnimation.current);
+    zoomAnimation.current = requestAnimationFrame(() => viewport.scrollTo({
+      left: next === 1 ? 0 : x * next + newMargin - (focal?.clientX ?? viewport.clientWidth / 2),
+      top: next === 1 ? 0 : y * next + newVerticalMargin - (focal?.clientY ?? viewport.clientHeight / 2), behavior: "instant",
     }));
   }
   function startSwipe(event: TouchEvent<HTMLDivElement>) {
-    gesture.current = null;
-    if (!fitMode || pageZoom > 1 || (window.visualViewport?.scale ?? 1) > 1.02 || event.touches.length !== 1 ||
-      (event.target instanceof Element && event.target.closest("button, input, a, select, textarea"))) return;
-    const touch = event.touches[0], bounds = event.currentTarget.getBoundingClientRect();
+    gesture.current = null; drag.current = null; pinch.current = null;
+    if (!fitMode || !fitReady || (window.visualViewport?.scale ?? 1) > 1.02 ||
+      (event.target instanceof Element && event.target.closest("input, a, select, textarea"))) return;
+    const viewport = event.currentTarget, bounds = viewport.getBoundingClientRect();
+    if (event.touches.length === 2) {
+      const first = event.touches[0], second = event.touches[1];
+      const x = (first.clientX + second.clientX) / 2 - bounds.left;
+      const y = (first.clientY + second.clientY) / 2 - bounds.top;
+      pinch.current = {
+        distance: Math.max(1, Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY)), zoom: pageZoom,
+        x: (viewport.scrollLeft + x - Math.max(0, (viewport.clientWidth - pageFit.width * pageFit.scale * pageZoom) / 2)) / pageZoom,
+        y: (viewport.scrollTop + y - Math.max(0, (viewport.clientHeight - pageFit.height * pageFit.scale * pageZoom) / 2)) / pageZoom,
+      };
+      suppressClickUntil.current = Date.now() + 400;
+      return;
+    }
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    if (pageZoom > 1) {
+      drag.current = { x: touch.clientX, y: touch.clientY, left: viewport.scrollLeft, top: viewport.scrollTop };
+      return;
+    }
     if (touch.clientX < bounds.left + 16 || touch.clientX > bounds.right - 16) return;
     gesture.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
   }
+  function moveSwipe(event: TouchEvent<HTMLDivElement>) {
+    if (pinch.current && event.touches.length === 2) {
+      const first = event.touches[0], second = event.touches[1], bounds = event.currentTarget.getBoundingClientRect();
+      const distance = Math.hypot(first.clientX - second.clientX, first.clientY - second.clientY);
+      zoomPage(pinch.current.zoom * distance / pinch.current.distance, {
+        x: pinch.current.x, y: pinch.current.y,
+        clientX: (first.clientX + second.clientX) / 2 - bounds.left,
+        clientY: (first.clientY + second.clientY) / 2 - bounds.top,
+      });
+      suppressClickUntil.current = Date.now() + 400;
+    } else if (event.touches.length === 1) {
+      const touch = event.touches[0], start = drag.current ?? gesture.current;
+      if (start && Math.hypot(touch.clientX - start.x, touch.clientY - start.y) > 6)
+        suppressClickUntil.current = Date.now() + 400;
+      if (drag.current) event.currentTarget.scrollTo({
+        left: drag.current.left - (touch.clientX - drag.current.x),
+        top: drag.current.top - (touch.clientY - drag.current.y), behavior: "instant",
+      });
+    } else {
+      gesture.current = null; drag.current = null; pinch.current = null;
+    }
+  }
   function endSwipe(event: TouchEvent<HTMLDivElement>) {
+    if (pinch.current || drag.current) {
+      const touch = event.changedTouches[0];
+      if (pinch.current || (drag.current && touch &&
+        Math.hypot(touch.clientX - drag.current.x, touch.clientY - drag.current.y) > 6))
+        suppressClickUntil.current = Date.now() + 400;
+      gesture.current = null; pinch.current = null; drag.current = null;
+      if (event.touches.length === 1 && pageZoom > 1) {
+        const touch = event.touches[0];
+        drag.current = { x: touch.clientX, y: touch.clientY, left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop };
+      }
+      return;
+    }
     const start = gesture.current;
     gesture.current = null;
     if (!start || pageZoom > 1 || (window.visualViewport?.scale ?? 1) > 1.02 ||
@@ -579,6 +848,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
       setNavigationPending(false);
     }
     setDrawer(null);
+    setControlsVisible(true);
   }
   function searchAyah() {
     const key = parseAyahReference(search);
@@ -594,30 +864,18 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     void goToVerse(key);
   }
   function recite(key: string) {
-    setAudioError("");
-    if (activeVerse === key && audio.current?.src) {
-      if (audio.current.paused) void audio.current.play().catch(error => setAudioError(errorMessage(error, "Unable to resume audio.")));
-      else audio.current.pause();
-      return;
-    }
-    setAudioLoading(true); setActiveVerse(key);
+    recitation.current?.toggle(key);
   }
   function toggleRecitation() {
     const key = activeVerse ?? firstReadingVerse;
     if (key) recite(key);
   }
-  function adjacentVerse(delta: number) {
+  function adjacentVerse(delta: -1 | 1) {
     const key = activeVerse ?? firstReadingVerse;
     if (!key || !directory) return;
-    let [surah, ayah] = key.split(":").map(Number);
-    ayah += delta;
-    if (ayah > directory.surahs[surah - 1].ayahCount) { surah++; ayah = 1; }
-    if (ayah < 1) { surah--; ayah = directory.surahs[surah - 1]?.ayahCount ?? 0; }
-    if (surah < 1 || surah > 114) { setActiveVerse(null); setPlaying(false); return; }
-    const next = `${surah}:${ayah}`;
-    setAudioError(""); setAudioLoading(true); setActiveVerse(next);
-    if (!page?.lines.some(line => line.segments.some(segment => segment.verseKey === next))) void goToVerse(next, true);
-    else if (fitMode) setVerseTarget({ key: next, page: pageNumber });
+    const next = getAdjacentQuranVerse(key, delta, directory.surahs);
+    if (next) recitation.current?.play(next);
+    else recitation.current?.stop();
   }
   function openTafseer(key: string) {
     setTafseerKey(key); setTafseer(null); setTafseerError(""); setDrawer("tafseer");
@@ -642,8 +900,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const matchingJuzs = directory?.juzs.filter(juz => matchesDirectorySearch(juz.number,
     `${juz.nameArabic} Juz ${juz.number} Para ${juz.number}`)) ?? [];
   const directoryCount = directorySection === "surahs" ? matchingSurahs.length : matchingJuzs.length;
-  const translationLanguage = TRANSLATION_OPTIONS.find(option => option.id === preferences.preferredTranslation)?.lang ?? "";
-  const translationFontSize = getQuranTranslationFontSize(preferences.translationFontSize, translationLanguage);
+  const translationFontSize = preferences.translationFontSize;
   const readerError = (drawer !== "index" && navigationError) || (drawer !== "listen" && audioError);
   const drawerDetails = drawer && {
     index: { title: "Browse Quran", description: "Find a Surah, Para or specific Ayah.", icon: <BookOpen size={20} /> },
@@ -660,27 +917,40 @@ function QuranReader({ profileKey }: { profileKey: string }) {
         if (view === "dashboard" || view === "prayer") navigate(view === "prayer" ? "/?view=prayer" : "/");
         else setModal(view);
       }} onLogout={() => { logout(); navigate("/"); }} onSettingsClick={() => navigate("/settings")} />}
-      <main className={`quran-reader ${fitMode ? "quran-reader--fit" : ""}`} ref={frame}>
-        <header className="home-view-header">
+      <main className={`quran-reader ${fitMode ? "quran-reader--fit" : ""}${immersive ? " quran-reader--immersive" : ""}${!controlsShown ? " quran-reader--controls-hidden" : ""}`} ref={frame}>
+        <header className="home-view-header" inert={!controlsShown}>
           <Link className="home-back-btn" to="/" aria-label="Back to dashboard"><ArrowLeft size={20} /></Link>
           <div><span className="home-eyebrow">Read & reflect</span><h1>Qur&apos;an Reader</h1></div>
           <span className="quran-reader-location">Page <strong>{pageNumber}</strong> / 604</span>
+          {immersive && <button type="button" className="quran-icon-button" aria-label="Hide reader controls"
+            disabled={!!pageError || !!readingError || !!audioError || !!navigationError}
+            onClick={() => {
+              setControlsVisible(false);
+              requestAnimationFrame(() => controlsToggle.current?.focus({ preventScroll: true }));
+            }}><X size={18} /></button>}
         </header>
         {readerError && <p className="quran-error" role="alert">{readerError}</p>}
         {readingError && <p className="quran-error" role="alert">{readingError}</p>}
-        {loading ? <p className="quran-status" role="status"><LoaderCircle className="quran-spinner" /> Loading Quran page…</p>
-          : error ? <div className="quran-error" role="alert">{error} <button type="button" onClick={() => {
+        {pageError && !loading ? <div className="quran-error" role="alert">{pageError} <button type="button" onClick={() => {
             setRetry(value => value + 1);
           }}>Try again</button> <Link to="/settings">Settings</Link></div>
-          : page && (
+          : (
             <div className="quran-reading-viewport" ref={readingViewport} tabIndex={fitMode ? 0 : undefined}
                 role={fitMode ? "region" : undefined} aria-label={fitMode ? "Whole Quran page" : undefined}
-                style={fitMode ? { touchAction: pageZoom > 1 || browserZoomed ? "pan-x pan-y pinch-zoom" : "pan-y pinch-zoom" } : undefined}
+                aria-busy={!pageReady}
+                style={fitMode ? { touchAction: browserZoomed ? "pan-x pan-y pinch-zoom" : "none" } : undefined}
                 onTouchStart={startSwipe} onTouchEnd={endSwipe}
-                onTouchMove={event => { if (event.touches.length !== 1) gesture.current = null; }}
-                onTouchCancel={() => { gesture.current = null; }}
+                onTouchMove={moveSwipe}
+                onTouchCancel={() => { gesture.current = null; drag.current = null; pinch.current = null; }}
                 onClickCapture={event => {
                   if (Date.now() < suppressClickUntil.current) { event.preventDefault(); event.stopPropagation(); }
+                  else if (immersive && !controlsShown) {
+                    event.preventDefault(); event.stopPropagation(); setControlsVisible(true);
+                  }
+                }}
+                onClick={event => {
+                  if (immersive && !(event.target instanceof Element && event.target.closest("button, a, [role='button']")))
+                    setControlsVisible(false);
                 }}
                 onKeyDown={event => {
                   if (!fitMode || pageZoom > 1 || (window.visualViewport?.scale ?? 1) > 1.02 ||
@@ -689,16 +959,20 @@ function QuranReader({ profileKey }: { profileKey: string }) {
                     event.preventDefault(); turnPage(event.key === "ArrowRight" ? 1 : -1);
                   }
                 }}>
-              {fitMode && !fitReady && <span className="quran-fit-status" role="status">Fitting whole page…</span>}
-              <div className="quran-page-stage" style={fitMode ? {
+              {!pageReady && <span className="quran-loading-announcement" role="status">Preparing Quran page</span>}
+              <div className={`quran-page-stage${hasPresentedPage ? "" : " quran-page-stage--opening"}`}
+                onAnimationEnd={event => {
+                  if (event.target === event.currentTarget && event.animationName === "quran-page-open")
+                    setHasPresentedPage(true);
+                }} style={fitMode ? {
                 width: pageFit.width * pageFit.scale * pageZoom,
                 height: pageFit.height * pageFit.scale * pageZoom,
               } : undefined}>
-              <article ref={paper} className={`quran-page ${arabicClass} ${pageNumber <= 2 ? "quran-page--opening" : ""}`}
-                style={{ fontSize: `${preferences.arabicFontSize}px`, ...(fitMode ? {
-                  width: fitWidth, minHeight: fitWidth / QURAN_PAGE_ASPECT_RATIO,
+              {page && <article ref={paper} className={`quran-page ${arabicClass} ${pageNumber <= 2 ? "quran-page--opening" : ""}`}
+                inert={!pageReady}
+                style={{ fontSize: `${preferences.arabicFontSize}px`, visibility: !pageReady ? "hidden" : undefined, ...(fitMode ? {
+                  width: fitWidth, minHeight: fitWidth / fitAspectRatio,
                   transform: `scale(${fitReady ? pageFit.scale * pageZoom : 1})`,
-                  visibility: fitReady ? undefined : "hidden",
                 } : {}) }}>
               <header className="quran-page-margin" dir="rtl" lang="ar">
                 <span className="quran-margin-label">{currentSurah && <>
@@ -751,16 +1025,24 @@ function QuranReader({ profileKey }: { profileKey: string }) {
               ))}
               </div>
               <footer className="quran-page-footer" lang="ar">مَنْزِل <QuranNumber value={page.manzilNumber} script={preferences.arabicScript} /></footer>
-              </article>
+              </article>}
               </div>
               </div>
           )}
-        <div className="quran-controls">
+        <div ref={pageTransition} className="quran-page-transition" aria-hidden="true" inert />
+        {immersive && !controlsShown && <button ref={controlsToggle} type="button" className="quran-controls-toggle"
+          aria-label="Show reader controls" aria-expanded={false} aria-controls={controlsId}
+          onClick={event => {
+            setControlsVisible(true);
+            if (event.detail === 0) requestAnimationFrame(() =>
+              frame.current?.querySelector<HTMLButtonElement>(".quran-controls button:not(:disabled)")?.focus());
+          }}><MoreHorizontal size={22} /></button>}
+        <div id={controlsId} className="quran-controls" inert={!controlsShown}>
           <nav className="quran-page-navigation" aria-label="Page navigation and zoom">
-            <button type="button" aria-label="Previous page" disabled={loading || !!error || (fitMode && !fitReady) || pageNumber === 1}
-              onClick={() => changePage(pageNumber - 1)}><ChevronLeft size={20} /></button>
+            <button type="button" aria-label="Previous page" disabled={loading || !layoutReady || !!error || (fitMode && !fitReady)}
+              onClick={() => changePage(getAdjacentQuranPage(pageNumber, -1), false, -1)}><ChevronLeft size={20} /></button>
             {fitMode ? <div className="quran-page-zoom">
-              <button type="button" aria-label="Zoom out" disabled={!fitReady || pageZoom <= 1}
+              <button type="button" aria-label="Zoom out" disabled={!fitReady || pageZoom <= .5}
                 onClick={() => zoomPage(pageZoom - .5)}><ZoomOut size={20} /></button>
               <button type="button" className="quran-fit-reset" aria-label="Fit whole page" disabled={!fitReady}
                 onClick={() => zoomPage(1)}>{pageZoom === 1 ? "Fit page" : `${Math.round(pageZoom * 100)}%`}</button>
@@ -770,15 +1052,15 @@ function QuranReader({ profileKey }: { profileKey: string }) {
               <strong>Page {pageNumber} <span>/ 604</span></strong>
               <small>{currentSurah ? `${currentSurah.name} · Para ${page?.juzNumber}` : "Quran reader"}</small>
             </div>}
-            <button type="button" aria-label="Next page" disabled={loading || !!error || (fitMode && !fitReady) || pageNumber === 604}
-              onClick={() => changePage(pageNumber + 1)}><ChevronRight size={20} /></button>
+            <button type="button" aria-label="Next page" disabled={loading || !layoutReady || !!error || (fitMode && !fitReady)}
+              onClick={() => changePage(getAdjacentQuranPage(pageNumber, 1), false, 1)}><ChevronRight size={20} /></button>
           </nav>
           <nav className={`quran-toolbar${activeVerse ? " quran-toolbar--reciting" : ""}`} aria-label="Reader controls">
             {activeVerse && <button type="button" className="quran-playback-toggle"
               aria-label={playing ? "Pause recitation" : "Play recitation"} title={`Ayah ${activeVerse}`}
-              disabled={audioLoading || loading || !page || !!error} onClick={toggleRecitation}>
+              disabled={!directory || (!activeVerse && (loading || !page || !!error))} onClick={toggleRecitation}>
               {audioLoading ? <LoaderCircle className="quran-spinner" size={19} /> : playing ? <Pause size={19} /> : <Play size={19} />}
-              <span>{audioLoading ? "Loading" : playing ? "Pause" : "Resume"}</span>
+              <span>{playing ? "Pause" : audioLoading ? "Loading" : "Resume"}</span>
             </button>}
             <button type="button" aria-label="Surah and Juz directory" aria-haspopup="dialog" aria-expanded={drawer === "index"} onClick={() => {
               updateDirectorySearch(""); setDrawer("index");
@@ -792,13 +1074,11 @@ function QuranReader({ profileKey }: { profileKey: string }) {
               onClick={() => setDrawer("more")}><MoreHorizontal size={19} /><span>More</span></button>
           </nav>
           {fitMode && <p className="quran-dock-hint">{browserZoomed ? "Drag to read · Pinch back to zoom out" : pageZoom > 1
-            ? "Drag to read · Fit page to restore the whole page" : "Pinch or + to read larger · Swipe right for next"}</p>}
+            ? "Drag with one finger · Fit page to zoom out" : "Pinch to zoom · Swipe right for next · Tap for controls"}</p>}
         </div>
-        <audio ref={audio} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
-          onEnded={() => adjacentVerse(1)} onError={() => {
-            setAudioError("The recitation could not be loaded. Please try another reciter.");
-            setPlaying(false); setAudioLoading(false); setActiveVerse(null);
-          }} />
+        <audio ref={audio} preload="auto" />
+        <audio ref={bufferedAudio} preload="auto" />
+        <audio ref={lookaheadAudio} preload="auto" />
       {drawer && drawerDetails && <ReaderDrawer {...drawerDetails}
         className={drawer === "index" ? "quran-directory-drawer" : ""} onClose={closeDrawer}>
         {drawer === "index" && <>
@@ -865,7 +1145,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
               <button className="quran-icon-button" type="button" aria-label="Previous Ayah" disabled={!directory || loading || !page || !!error}
                 onClick={() => adjacentVerse(-1)}><SkipBack size={20} /></button>
               <button className="quran-icon-button quran-play" type="button" aria-label={playing ? "Pause recitation" : "Play recitation"}
-                disabled={audioLoading || loading || !page || !!error} onClick={toggleRecitation}>
+                disabled={!directory || (!activeVerse && (loading || !page || !!error))} onClick={toggleRecitation}>
                 {audioLoading ? <LoaderCircle className="quran-spinner" size={22} /> : playing ? <Pause size={22} /> : <Play size={22} />}</button>
               <button className="quran-icon-button" type="button" aria-label="Next Ayah" disabled={!directory || loading || !page || !!error}
                 onClick={() => adjacentVerse(1)}><SkipForward size={20} /></button>
@@ -922,7 +1202,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
           <h3>Text size</h3>
           {(["arabicFontSize", "translationFontSize"] as const).map(key => {
             const arabic = key === "arabicFontSize";
-            const min = arabic ? 24 : 12, max = arabic ? 52 : 28;
+            const min = arabic ? 24 : 12, max = arabic ? 52 : 48;
             const label = arabic ? "Arabic" : "Translation";
             const displayedSize = arabic ? preferences[key] : translationFontSize;
             return <div key={key}><div className="quran-section-heading"><label htmlFor={`quran-${key}`}>{label} text</label>
@@ -937,6 +1217,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
               </div>
             </div>;
           })}
+          {fitMode && <p className="quran-menu-note">Text sizes apply to every page. Fit page scales the complete layout to your screen; use zoom to read larger without changing your saved text sizes.</p>}
           </section>
           <section className="quran-menu-section">
             <h3>Explanation</h3>

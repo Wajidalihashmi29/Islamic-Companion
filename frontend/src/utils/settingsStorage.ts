@@ -1,5 +1,6 @@
 import { jwtDecode } from "jwt-decode";
 import { fetchCloudSettings, saveCloudSettings } from "../api/userSettingsApi";
+import { DEFAULT_QURAN_TYPOGRAPHY, normalizeQuranTypography } from "./quranTypography";
 
 export interface QuranPreferences {
   mushafLines: 16 | 15;
@@ -9,6 +10,7 @@ export interface QuranPreferences {
   arabicScript: "indopak" | "uthmani";
   arabicFontSize: number;
   translationFontSize: number;
+  typographyVersion?: number;
   reciter: string;
 }
 
@@ -65,8 +67,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     preferredTranslation: "kanzul-iman-ur",
     preferredTafseer: "khazain-ul-irfan",
     arabicScript: "indopak",
-    arabicFontSize: 34,
-    translationFontSize: 28,
+    ...DEFAULT_QURAN_TYPOGRAPHY,
     reciter: "alafasy",
   },
   prayer: {
@@ -191,8 +192,7 @@ export function loadSettings(userIdentifier?: string | null): AppSettings {
     }
 
     const parsed = JSON.parse(raw);
-    const quran = { ...DEFAULT_SETTINGS.quran, ...(parsed.quran || {}) };
-    quran.translationFontSize = Math.max(12, Math.min(28, quran.translationFontSize));
+    const quran = { ...DEFAULT_SETTINGS.quran, ...(parsed.quran || {}), ...normalizeQuranTypography(parsed.quran || {}) };
 
     return {
       quran,
@@ -313,13 +313,10 @@ export async function syncCloudSettings(userIdentifier?: string | null): Promise
 
     if (cloud) {
       const merged: AppSettings = {
-        quran: { ...DEFAULT_SETTINGS.quran, ...(cloud.quran || {}) },
+        quran: { ...DEFAULT_SETTINGS.quran, ...(cloud.quran || {}), ...normalizeQuranTypography(cloud.quran || {}) },
         prayer: { ...DEFAULT_SETTINGS.prayer, ...(cloud.prayer || {}) },
         general: { ...DEFAULT_SETTINGS.general, ...(cloud.general || {}) },
       };
-      if (merged.quran.translationFontSize && merged.quran.translationFontSize < 20) {
-        merged.quran.translationFontSize = 22;
-      }
       localStorage.setItem(key, JSON.stringify(merged));
       if (merged.prayer?.asrSchool) {
         localStorage.setItem("ic.asrSchool", merged.prayer.asrSchool);

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getQuranTextRuns, getQuranTranslationFontSize } from "../src/utils/quranTypography.ts";
+import { getQuranTextRuns, normalizeQuranTypography } from "../src/utils/quranTypography.ts";
 
 test("Indo-Pak maddah and sukun use supported marks without stripping vowels or changing Uthmani", () => {
   const source = "لَا\u06E4 اِلٰهَ ال\u06E1قَيُّو\u06E1مُ";
@@ -20,14 +20,21 @@ test("unsupported Indo-Pak letters and internal pause signs use whole-word fallb
   assert.deepEqual(getQuranTextRuns(source, "uthmani"), [{ text: source, fallback: false }]);
 });
 
-test("Urdu is optically enlarged consistently for API and Settings languages while other sizes stay unchanged", () => {
-  for (const language of ["ur", "urdu", "Urdu"]) {
-    assert.equal(getQuranTranslationFontSize(28, language), 35);
-    assert.equal(getQuranTranslationFontSize(20, language), 25);
-    assert.equal(getQuranTranslationFontSize(12, language), 15);
-  }
-  for (const language of ["en", "English", "hi"]) {
-    assert.equal(getQuranTranslationFontSize(28, language), 28);
-    assert.equal(getQuranTranslationFontSize(20, language), 20);
-  }
+test("previous defaults migrate to 44px Arabic and actual 32px Urdu without enlarging them again on reload", () => {
+  const migrated = normalizeQuranTypography({ arabicFontSize: 34, translationFontSize: 28 });
+  assert.deepEqual(migrated, { arabicFontSize: 44, translationFontSize: 32, typographyVersion: 2 });
+  assert.deepEqual(normalizeQuranTypography(migrated), migrated);
+  assert.deepEqual(normalizeQuranTypography({}), migrated);
+});
+
+test("custom text sizes survive migration and small user-selected sizes are retained on subsequent loads", () => {
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 52, translationFontSize: 20, preferredTranslation: "irfan-ul-quran-ur" }),
+    { arabicFontSize: 52, translationFontSize: 25, typographyVersion: 2 });
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 32, translationFontSize: 18, preferredTranslation: "kanzul-iman-en" }),
+    { arabicFontSize: 32, translationFontSize: 18, typographyVersion: 2 });
+  const custom = { arabicFontSize: 34, translationFontSize: 12, typographyVersion: 2 };
+  assert.deepEqual(normalizeQuranTypography(custom), custom);
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 100, translationFontSize: 100, typographyVersion: 2 }),
+    { arabicFontSize: 52, translationFontSize: 48, typographyVersion: 2 });
+  assert.throws(() => normalizeQuranTypography({ translationFontSize: NaN }), /finite/);
 });

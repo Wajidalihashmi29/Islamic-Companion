@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection } from "../src/utils/quranScreens.ts";
+import { getAdjacentQuranPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection } from "../src/utils/quranScreens.ts";
+
+test("page turns wrap in both directions without changing ordinary navigation", () => {
+  assert.equal(getAdjacentQuranPage(604, 1), 1);
+  assert.equal(getAdjacentQuranPage(1, -1), 604);
+  assert.equal(getAdjacentQuranPage(603, 1), 604);
+  assert.equal(getAdjacentQuranPage(2, -1), 1);
+});
 
 test("whole-page fitting includes the full paper within portrait and landscape viewports without enlarging it", () => {
   for (const [width, height] of [[720, 1600], [480, 700], [1600, 800]]) {
@@ -33,4 +40,17 @@ test("right swipes advance, left swipes go back, and vertical, short and long-pr
   assert.equal(getQuranSwipeDirection(-100, 10, 300), -1);
   for (const [dx, dy, duration] of [[20, 0, 100], [70, 90, 100], [100, 0, 1000], [0, 100, 100]])
     assert.equal(getQuranSwipeDirection(dx, dy, duration), 0);
+});
+
+test("tall mobile paper uses the screen's portrait proportions for larger fitted text", () => {
+  const aspectRatio = 386 / 840;
+  const width = getQuranPageWidth(720, 1800, aspectRatio);
+  const height = 720 * 1800 / width;
+  assert(Math.abs(width / height - aspectRatio) < .02);
+  const mobileScale = getQuranPageScale(width, height, 386, 840);
+  const portraitWidth = getQuranPageWidth(720, 1800);
+  const portraitScale = getQuranPageScale(portraitWidth, 720 * 1800 / portraitWidth, 386, 840);
+  assert(mobileScale > portraitScale);
+  assert(width * mobileScale > 380);
+  assert(height * mobileScale > 820);
 });
