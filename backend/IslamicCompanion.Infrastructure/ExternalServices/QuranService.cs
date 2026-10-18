@@ -68,9 +68,6 @@ public sealed class QuranService(HttpClient http, IMemoryCache cache, QuranDatas
     public Task<QuranTafseer> GetTafseerAsync(int surah, int ayah, string tafseer, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        data.ValidateVerse(surah, ayah);
-        throw new QuranOptionException(tafseer == "khazain-ul-irfan"
-            ? "Khazain-ul-Irfan is unavailable until an authorized, verified dataset is supplied. Quran reading remains available."
-            : "Only Khazain-ul-Irfan is planned for this reader. Its authorized dataset is not yet available.");
+        return Task.FromResult(data.GetTafseer(surah, ayah, tafseer));
     }
 }

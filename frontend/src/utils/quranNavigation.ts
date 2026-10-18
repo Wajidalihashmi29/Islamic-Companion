@@ -30,6 +30,22 @@ export function saveQuranReadingPage(profileKey: string, page: number): void {
   localStorage.setItem(`${profileKey}:quran-page`, JSON.stringify(page));
 }
 
+function validateFavoriteSurahs(value: unknown): number[] {
+  if (!Array.isArray(value) || value.some(number =>
+    typeof number !== "number" || !Number.isInteger(number) || number < 1 || number > 114))
+    throw new Error("Favourite Surahs must be valid Surah numbers from 1 to 114.");
+  return [...new Set<number>(value)].sort((a, b) => a - b);
+}
+
+export function loadQuranFavoriteSurahs(profileKey: string): number[] {
+  const saved = localStorage.getItem(`${profileKey}:quran-favorite-surahs`);
+  return saved === null ? [] : validateFavoriteSurahs(JSON.parse(saved));
+}
+
+export function saveQuranFavoriteSurahs(profileKey: string, surahs: number[]): void {
+  localStorage.setItem(`${profileKey}:quran-favorite-surahs`, JSON.stringify(validateFavoriteSurahs(surahs)));
+}
+
 export interface QuranReaderView {
   mode: "scroll" | "fit";
   position: QuranReadingPosition | null;

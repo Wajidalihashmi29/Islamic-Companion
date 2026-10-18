@@ -1,6 +1,8 @@
 # .NET
 backend/**/bin/
 backend/**/obj/
+scripts/**/bin/
+scripts/**/obj/
 *.user
 
 # Node
@@ -15,3 +17,4 @@ frontend/.env.local
 
 #Documents
 TECHNICAL-DEEP-DIVE.md
+/README.local.md

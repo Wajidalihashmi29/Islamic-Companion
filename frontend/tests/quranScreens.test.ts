@@ -1,12 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getAdjacentQuranPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection } from "../src/utils/quranScreens.ts";
+import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection } from "../src/utils/quranScreens.ts";
 
 test("page turns wrap in both directions without changing ordinary navigation", () => {
   assert.equal(getAdjacentQuranPage(604, 1), 1);
   assert.equal(getAdjacentQuranPage(1, -1), 604);
   assert.equal(getAdjacentQuranPage(603, 1), 604);
   assert.equal(getAdjacentQuranPage(2, -1), 1);
+});
+
+test("reader navigation places completion duas after page 604 while Quran prefetch stays numeric", () => {
+  assert.equal(getAdjacentQuranReaderPage(604, 1), "dua");
+  assert.equal(getAdjacentQuranReaderPage("dua", 1), 1);
+  assert.equal(getAdjacentQuranReaderPage(1, -1), "dua");
+  assert.equal(getAdjacentQuranReaderPage("dua", -1), 604);
+  assert.equal(getAdjacentQuranReaderPage(53, 1), 54);
+  assert.equal(getAdjacentQuranReaderPage(53, -1), 52);
+  assert.equal(getAdjacentQuranPage(604, 1), 1);
 });
 
 test("whole-page fitting includes the full paper within portrait and landscape viewports without enlarging it", () => {

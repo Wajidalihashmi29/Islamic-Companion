@@ -5,6 +5,7 @@ import "./CustomDropdown.css";
 export interface DropdownOption<T extends string | number = string | number> {
   id: T;
   name: string;
+  urduName?: string;
   sub?: string;
   lang?: string;
   recommended?: boolean;
@@ -99,7 +100,12 @@ export default function CustomDropdown<T extends string | number>({
                   {selectedOption.lang && (
                     <span className="c-dropdown-lang-tag">[{selectedOption.lang}]</span>
                   )}
-                  <span className="c-dropdown-selected-name">{selectedOption.name}</span>
+                  <span className="c-dropdown-selected-name">
+                    {selectedOption.name}
+                    {selectedOption.urduName && (
+                      <> <span className="urdu-text" lang="ur" dir="rtl">{selectedOption.urduName}</span></>
+                    )}
+                  </span>
                 </div>
                 {selectedOption.sub && (
                   <span className="c-dropdown-selected-sub">{selectedOption.sub}</span>
@@ -142,7 +148,12 @@ export default function CustomDropdown<T extends string | number>({
                       {option.lang && (
                         <span className="c-dropdown-lang-tag">[{option.lang}]</span>
                       )}
-                      <span className="c-dropdown-item-name">{option.name}</span>
+                      <span className="c-dropdown-item-name">
+                        {option.name}
+                        {option.urduName && (
+                          <> <span className="urdu-text" lang="ur" dir="rtl">{option.urduName}</span></>
+                        )}
+                      </span>
                     </div>
                     {option.sub && (
                       <span className="c-dropdown-item-sub">{option.sub}</span>

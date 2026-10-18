@@ -15,6 +15,28 @@ const line = (segments: QuranSegment[], update: Partial<QuranLine> = {}): QuranL
 const measure = (text: string) => text.length;
 const layout = (lines: QuranLine[], width = 100) => layoutQuranLines(lines, "indopak", width, measure, 3);
 
+test("fitting complete source chunks avoids measuring every growing word prefix", () => {
+  const tokens = Array.from({ length: 120 }, () => "الف");
+  const source = Array.from({ length: 12 }, (_, index) => line([
+    segment(`2:${index + 1}`, tokens.slice(index * 10, index * 10 + 10).join(" "), "ترجمہ"),
+  ]));
+  let calls = 0;
+  const result = layoutQuranLines(source, "indopak", 85, text => { calls++; return measure(text); }, 3);
+  assert.equal(result.length, 6);
+  assert(result.every(row => row.segments.length === 2));
+  assert.equal(result.flatMap(row => row.segments.map(s => s.text)).join(" "), tokens.join(" "));
+  assert(calls < 40, `Expected fewer than 40 measurements, got ${calls}`);
+});
+
+test("row searches reserve final markers and keep oversized words instead of looping or dropping them", () => {
+  const result = layout([line([segment("2:1", "الف باء جيم", "ایک دو تین")]),
+    line([segment("2:2", "طويللللللللللللللل", "چار")])], 10);
+  assert.deepEqual(result.map(row => row.textIndoPak), ["الف باء", "جيم", "طويللللللللللللللل"]);
+  assert.equal(result[0].segments[0].endsAyah, false);
+  assert.equal(result[1].segments[0].endsAyah, true);
+  assert.equal(result[2].segments[0].endsAyah, true);
+});
+
 test("Ayahs flow across source rows rather than one Ayah per display row", () => {
   const result = layout([line([segment("2:1", "الم", "ایک")]), line([segment("2:2", "ذٰلِكَ الْكِتَابُ", "دو تین")])]);
   assert.equal(result.length, 1);

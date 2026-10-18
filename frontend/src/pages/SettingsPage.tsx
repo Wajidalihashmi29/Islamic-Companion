@@ -829,7 +829,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Card 2: Translations & Marginal Commentary */}
+            {/* Card 2: Translations & Tafseer */}
             <div className="settings-card">
               <div className="settings-card-header">
                 <div className="settings-card-icon">
@@ -837,7 +837,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h2>Sunni Scholar Translations & Commentary</h2>
-                  <p>Choose authentic Urdu and English translations with marginal exegesis (حاشیہ).</p>
+                  <p>Choose Urdu or English translations and read Sirat-ul-Jinan Tafseer (تفسیر).</p>
                 </div>
               </div>
 
@@ -890,7 +890,7 @@ export default function SettingsPage() {
               <div className="settings-field-group">
                 <label className="settings-label" htmlFor="preferred-tafseer-select">
                   <span>
-                    Preferred Tafseer (<span className="urdu-text">حاشیہ</span>)
+                    Preferred Tafseer (<span className="urdu-text">تفسیر</span>)
                   </span>
                 </label>
                 <CustomDropdown
@@ -904,7 +904,7 @@ export default function SettingsPage() {
                     }))
                   }
                 />
-                <p>Only Khazain-ul-Irfan is planned. It is unavailable pending an authorized, verified dataset.</p>
+                <p>Sirat-ul-Jinan by Mufti Muhammad Qasim Attari. Tap an Ayah marker in the reader to read its Urdu Tafseer.</p>
               </div>
 
               {/* Reciter */}
@@ -1668,8 +1668,8 @@ export default function SettingsPage() {
                   </strong>
                   <p>
                     {isAuthenticated && (user?.name || user?.email)
-                      ? `Reverts saved settings for ${user.name || user.email} to recommended defaults (Kanzul Iman translation, 16-line Indo-Pak Mushaf, Khazain-ul-Irfan, and Hanafi prayer timing).`
-                      : "Reverts all settings on this browser to default preferences (Kanzul Iman translation, 16-line Indo-Pak Mushaf, Khazain-ul-Irfan, and Hanafi prayer timing)."}
+                      ? `Reverts saved settings for ${user.name || user.email} to recommended defaults (Kanzul Iman translation hidden, 16-line Indo-Pak Mushaf, Sirat-ul-Jinan Tafseer, and Hanafi prayer timing).`
+                      : "Reverts all settings on this browser to default preferences (Kanzul Iman translation hidden, 16-line Indo-Pak Mushaf, Sirat-ul-Jinan Tafseer, and Hanafi prayer timing)."}
                   </p>
                 </div>
                 <button

@@ -78,26 +78,47 @@ export function layoutQuranLines(source: QuranLine[], script: "indopak" | "uthma
     if (line.isJuzStart) markersWidth += measure("\u06DE\u202F");
     for (const { segment, tokens, signs } of line.chunks) {
       const isSajdah = sajdahVerses.has(segment.verseKey);
-      for (let index = 0; index < tokens.length; index++) {
-        const last = index === tokens.length - 1;
-        const endsAyah = last && segment.endsAyah;
+      let index = 0;
+      while (index < tokens.length) {
+        const remaining = tokens.length - index;
+        const fits = (count: number) => {
+          const words = tokens.slice(index, index + count).join(" ");
+          const candidate = text ? `${text} ${words}` : words;
+          const extra = count === remaining && segment.endsAyah ? sealWidth + (isSajdah ? sealWidth : 0) : 0;
+          return measure(candidate) + markersWidth + extra <= width;
+        };
+        let count = remaining;
+        if (!fits(count)) {
+          let low = 0, high = remaining - 1;
+          while (low < high) {
+            const middle = Math.ceil((low + high) / 2);
+            if (fits(middle)) low = middle;
+            else high = middle - 1;
+          }
+          count = low;
+        }
+        if (!count && row.length) { flush(); continue; }
+        // An indivisible word must still render even if it is wider than the row.
+        count = Math.max(1, count);
+        const words = tokens.slice(index, index + count).join(" ");
+        index += count;
+        const endsAyah = index === tokens.length && segment.endsAyah;
         const extra = endsAyah ? sealWidth + (isSajdah ? sealWidth : 0) : 0;
-        const candidate = text ? `${text} ${tokens[index]}` : tokens[index];
-        if (row.length && measure(candidate) + markersWidth + extra > width) flush();
-        text = text ? `${text} ${tokens[index]}` : tokens[index];
+        text = text ? `${text} ${words}` : words;
         markersWidth += extra;
         const previous = row[row.length - 1];
         if (previous?.verseKey === segment.verseKey && !previous.endsAyah) {
-          previous.text += ` ${tokens[index]}`;
+          previous.text += ` ${words}`;
           previous.endsAyah = endsAyah;
           previous.isRukuEnd = endsAyah && segment.isRukuEnd;
           previous.ayahStopSigns = endsAyah ? signs : "";
         } else {
           row.push({
-            ...segment, text: tokens[index], endsAyah, isSajdah,
+            ...segment, text: words, endsAyah, isSajdah,
             isRukuEnd: endsAyah && segment.isRukuEnd, ayahStopSigns: endsAyah ? signs : "",
           });
         }
+        if (index < tokens.length) flush();
       }
     }
   }
