@@ -200,7 +200,12 @@
   transition: all 0.15s ease;
 }
 
-.c-dropdown-item:hover {
+.c-dropdown-item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.c-dropdown-item:not(:disabled):hover {
   background: #f4f8f7;
   color: #0f4d49;
 }

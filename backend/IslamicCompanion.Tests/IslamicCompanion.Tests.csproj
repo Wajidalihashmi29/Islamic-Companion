@@ -21,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\IslamicCompanion.Application\IslamicCompanion.Application.csproj" />
     <ProjectReference Include="..\IslamicCompanion.Domain\IslamicCompanion.Domain.csproj" />
+    <ProjectReference Include="..\IslamicCompanion.Infrastructure\IslamicCompanion.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

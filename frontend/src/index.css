@@ -1,3 +1,43 @@
+@font-face {
+  font-family: 'Digital Khatt IndoPak';
+  src: url('/fonts/digital-khatt-indopak.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Surah Name V2';
+  src: url('/fonts/surah-name-v2.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Surah Name Color V4';
+  src: url('/fonts/surah-name-color-v4.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'Juz Name';
+  src: url('/fonts/juz-name.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+@font-face {
+  font-family: 'QPC V2 Bismillah';
+  src: url('/fonts/qpc-v2-p1.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
 /* ==========================================================================
    Quranic Calligraphy Webfonts (Indo-Pak Nastaleeq & Uthmani Naskh)
    Resource: https://qul.tarteel.ai/resources/quran-script/59
@@ -53,6 +93,10 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+}
+
+.quran-indopak-fallback {
+  font-family: 'IndopakNastaleeq', 'AlQuran IndoPak by QuranWBW', serif;
 }
 
 /* Ensure Urdu characters anywhere inside Inter / sans-serif containers use Jameel Noori Nastaleeq */

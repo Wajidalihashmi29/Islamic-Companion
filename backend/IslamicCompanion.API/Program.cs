@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using IslamicCompanion.Application.Interfaces;
 using IslamicCompanion.Infrastructure.ExternalServices;
+using IslamicCompanion.Infrastructure.Quran;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRateLimiter(options =>
@@ -32,7 +33,9 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddControllers();
 
 builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<QuranDataset>();
 builder.Services.AddHttpClient<IPrayerTimesService, AladhanPrayerTimesService>();
+builder.Services.AddHttpClient<IQuranService, QuranService>(client => client.Timeout = TimeSpan.FromSeconds(45));
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddEndpointsApiExplorer();
@@ -101,6 +104,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+app.Services.GetRequiredService<QuranDataset>();
 
 app.UseStaticFiles();
 

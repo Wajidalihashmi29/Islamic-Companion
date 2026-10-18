@@ -46,7 +46,7 @@ export const features: Feature[] = [
     shortLabel: "Qur'an",
     description: "Read with translation and audio recitation",
     icon: BookOpen,
-    available: false,
+    available: true,
     primary: true,
   },
   {
