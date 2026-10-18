@@ -31,9 +31,12 @@ import {
 import TopNav from "../components/TopNav";
 import GoldenSpiral from "../components/GoldenSpiral";
 import AyahMedallion from "../components/AyahMedallion";
+import QuranText from "../components/QuranText";
 import CustomDropdown, { type DropdownOption } from "../components/CustomDropdown";
 import { useAuth } from "../context/AuthContext";
 import { changePassword, forgotPassword, parseApiError, resetPassword } from "../api/authApi";
+import { getQuranTranslationFontSize, normalizeIndoPakText } from "../utils/quranTypography";
+import { formatHijriDate } from "../utils/hijriDate";
 import {
   loadSettings,
   saveSettings,
@@ -82,8 +85,7 @@ interface PreviewItem {
 }
 
 export function cleanIndoPakScript(text: string): string {
-  if (!text) return "";
-  return text.replace(/\u06E1/g, "\u0652");
+  return normalizeIndoPakText(text);
 }
 
 const PREVIEW_VERSES: Record<"fatiha" | "kursi", PreviewItem> = {
@@ -441,26 +443,7 @@ export default function SettingsPage() {
     setTimeout(() => setSavedNotice(false), 2000);
   };
 
-  const getLiveHijri = (offset: number) => {
-    const target = new Date(Date.now() + offset * 86400000);
-    try {
-      return new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }).format(target);
-    } catch {
-      try {
-        return new Intl.DateTimeFormat("en-u-ca-islamic", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        }).format(target);
-      } catch {
-        return "Calculated Hijri Date";
-      }
-    }
-  };
+  const getLiveHijri = (offset: number) => formatHijriDate(new Date(), offset);
 
   const selectedLang =
     settings.quran.preferredTranslation.includes("-ur")
@@ -469,9 +452,11 @@ export default function SettingsPage() {
       ? "hindi"
       : "english";
 
-  const bismillahTranslation =
-    PREVIEW_VERSES.fatiha.lines[0].translations[settings.quran.preferredTranslation] ||
-    PREVIEW_VERSES.fatiha.lines[0].translations["kanzul-iman-ur"];
+  const translationAvailable = TRANSLATION_OPTIONS.some(
+    option => option.id === settings.quran.preferredTranslation && !option.disabled);
+  const bismillahTranslation = translationAvailable
+    ? PREVIEW_VERSES.fatiha.lines[0].translations[settings.quran.preferredTranslation]
+    : "Selected translation unavailable. Choose an available edition.";
 
   const handleResetDefaults = () => {
     const userLabel = isAuthenticated && (user?.name || user?.email)
@@ -497,6 +482,7 @@ export default function SettingsPage() {
         onViewChange={(view) => {
           if (view === "dashboard") navigate("/");
           else if (view === "prayer") navigate("/?view=prayer");
+          else if (view === "quran") navigate("/quran");
           else navigate(`/?view=${view}`);
         }}
         onLogout={handleLogout}
@@ -657,15 +643,13 @@ export default function SettingsPage() {
                           className="selection-script-preview font-indopak"
                           style={{ fontSize: `${settings.quran.arabicFontSize}px` }}
                         >
-                          بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِیْمِ
+                          <QuranText text="بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِیْمِ" script="indopak" />
                         </div>
                         <div
                           className={`selection-trans-preview ${selectedLang}`}
                           style={{
                             fontSize: `${
-                              selectedLang === "urdu"
-                                ? Math.round(settings.quran.translationFontSize * 1.08)
-                                : settings.quran.translationFontSize
+                              getQuranTranslationFontSize(settings.quran.translationFontSize, selectedLang)
                             }px`,
                           }}
                         >
@@ -701,9 +685,7 @@ export default function SettingsPage() {
                           className={`selection-trans-preview ${selectedLang}`}
                           style={{
                             fontSize: `${
-                              selectedLang === "urdu"
-                                ? Math.round(settings.quran.translationFontSize * 1.08)
-                                : settings.quran.translationFontSize
+                              getQuranTranslationFontSize(settings.quran.translationFontSize, selectedLang)
                             }px`,
                           }}
                         >
@@ -790,7 +772,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="stepper-meta-text">
                       <span className="stepper-title">Translation Text Size</span>
-                      <span className="stepper-val-pill">{settings.quran.translationFontSize}px</span>
+                      <span className="stepper-val-pill">{getQuranTranslationFontSize(settings.quran.translationFontSize, selectedLang)}px</span>
                     </div>
                   </div>
                   <div className="stepper-controls-row">
@@ -803,7 +785,7 @@ export default function SettingsPage() {
                           ...prev,
                           quran: {
                             ...prev.quran,
-                            translationFontSize: Math.max(20, prev.quran.translationFontSize - 2),
+                            translationFontSize: Math.max(12, prev.quran.translationFontSize - 2),
                           },
                         }));
                       }}
@@ -814,8 +796,8 @@ export default function SettingsPage() {
                     </button>
                     <input
                       type="range"
-                      min="20"
-                      max="46"
+                      min="12"
+                      max="28"
                       step="1"
                       value={settings.quran.translationFontSize}
                       onChange={(e) =>
@@ -826,6 +808,7 @@ export default function SettingsPage() {
                       }
                       className="stepper-range-slider"
                       aria-label="Translation Font Size"
+                      aria-valuetext={`${getQuranTranslationFontSize(settings.quran.translationFontSize, selectedLang)}px`}
                     />
                     <button
                       type="button"
@@ -836,7 +819,7 @@ export default function SettingsPage() {
                           ...prev,
                           quran: {
                             ...prev.quran,
-                            translationFontSize: Math.min(46, prev.quran.translationFontSize + 2),
+                            translationFontSize: Math.min(28, prev.quran.translationFontSize + 2),
                           },
                         }));
                       }}
@@ -904,6 +887,7 @@ export default function SettingsPage() {
                     }))
                   }
                 />
+                {!translationAvailable && <p role="alert">This translation is unavailable or no longer offered. Choose Kanzul Iman Urdu/English or Irfan-ul-Quran Urdu; translations are never substituted automatically.</p>}                
               </div>
 
               {/* Preferred Tafseer */}
@@ -924,6 +908,7 @@ export default function SettingsPage() {
                     }))
                   }
                 />
+                <p>Only Khazain-ul-Irfan is planned. It is unavailable pending an authorized, verified dataset.</p>
               </div>
 
               {/* Reciter */}
@@ -1001,9 +986,9 @@ export default function SettingsPage() {
 
                     <div className="mushaf-lines-wrapper">
                       {PREVIEW_VERSES[previewVerseKey].lines.map((lineItem, idx) => {
-                        const translationText =
-                          lineItem.translations[settings.quran.preferredTranslation] ||
-                          lineItem.translations["kanzul-iman-ur"];
+                        const translationText = translationAvailable
+                          ? lineItem.translations[settings.quran.preferredTranslation]
+                          : "Selected translation unavailable. Choose an available edition.";
 
                         return (
                           <div key={idx} className="mushaf-line-row">
@@ -1015,9 +1000,9 @@ export default function SettingsPage() {
                               style={{ fontSize: `${settings.quran.arabicFontSize}px` }}
                             >
                               <span className="mushaf-arabic-content">
-                                {settings.quran.arabicScript === "indopak"
+                                <QuranText text={settings.quran.arabicScript === "indopak"
                                   ? cleanIndoPakScript(lineItem.indopak)
-                                  : lineItem.uthmani}
+                                  : lineItem.uthmani} script={settings.quran.arabicScript} />
                                 {lineItem.ayahNumber && (
                                   <AyahMedallion
                                     number={lineItem.ayahNumber}
@@ -1034,9 +1019,7 @@ export default function SettingsPage() {
                                 className={`mushaf-trans-line ${selectedLang}`}
                                 style={{
                                   fontSize: `${
-                                    selectedLang === "urdu"
-                                      ? Math.round(settings.quran.translationFontSize * 1.1)
-                                      : settings.quran.translationFontSize
+                                    getQuranTranslationFontSize(settings.quran.translationFontSize, selectedLang)
                                   }px`,
                                 }}
                               >
