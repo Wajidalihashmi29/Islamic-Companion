@@ -28,9 +28,6 @@ export const registerUser = (data: RegisterPayload) =>
 export const loginUser = (data: LoginPayload) =>
   axiosClient.post<AuthResponse>("/auth/login", data);
 
-export const refreshTokenRequest = (refreshToken: string) =>
-  axiosClient.post<AuthResponse>("/auth/refresh", { refreshToken });
-
 export const confirmEmail = (data: { userId: string; token: string }) =>
   axiosClient.post<MessageResponse>("/auth/confirm-email", data);
 

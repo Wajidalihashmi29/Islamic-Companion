@@ -79,6 +79,17 @@ test("previous screen-by-screen readers migrate to whole-page mode without chang
   assert.deepEqual(loadQuranReaderView("guest"), { mode: "fit", position: null });
 });
 
+test("mobile readers default and migrate to fit without overriding an explicit new scrolling preference", () => {
+  assert.deepEqual(loadQuranReaderView("guest", "fit"), { mode: "fit", position: null });
+  values.set("guest:quran-view", JSON.stringify({ mode: "scroll", position: null }));
+  assert.deepEqual(loadQuranReaderView("guest", "fit"), { mode: "fit", position: null });
+  assert.deepEqual(loadQuranReaderView("guest"), { mode: "scroll", position: null });
+  saveQuranReaderView("guest", { mode: "scroll", position: null });
+  assert.deepEqual(loadQuranReaderView("guest", "fit"), { mode: "scroll", position: null });
+  saveQuranReadingPage("guest", 3);
+  assert.equal(loadQuranReadingPage("guest"), 3);
+});
+
 test("invalid saved screen positions are reported rather than silently used", () => {
   for (const raw of ["null", "{}", "{\"mode\":\"bad\",\"position\":null}",
     ...[{ page: 605, verseKey: "36:22", wordOffset: 0 }, { page: 442, verseKey: "0:22", wordOffset: 0 },

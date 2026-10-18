@@ -195,6 +195,7 @@ public class AuthController : ControllerBase
                 return BadRequest(result.Errors);
 
             await _userManager.UpdateSecurityStampAsync(user);
+            await RevokeUserSessionsAsync(user.Id);
             return Ok(new { message = "Your password has been successfully reset. You can now sign in." });
         }
 
@@ -214,6 +215,7 @@ public class AuthController : ControllerBase
                 return BadRequest(result.Errors);
 
             await _userManager.UpdateSecurityStampAsync(user);
+            await RevokeUserSessionsAsync(user.Id);
             return Ok(new { message = "Your password has been successfully reset. You can now sign in." });
         }
 
@@ -239,6 +241,7 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return BadRequest(result.Errors);
 
+        await RevokeUserSessionsAsync(user.Id);
         return Ok(new { message = "Your password has been changed successfully." });
     }
 
@@ -310,6 +313,18 @@ public class AuthController : ControllerBase
         var response = await IssueTokensAsync(existing.User!);
         return Ok(response);
     }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(RefreshRequest request)
+    {
+        await _db.RefreshTokens.Where(token => token.Token == request.RefreshToken && !token.IsRevoked)
+            .ExecuteUpdateAsync(update => update.SetProperty(token => token.IsRevoked, true));
+        return NoContent();
+    }
+
+    private Task<int> RevokeUserSessionsAsync(string userId) =>
+        _db.RefreshTokens.Where(token => token.UserId == userId && !token.IsRevoked)
+            .ExecuteUpdateAsync(update => update.SetProperty(token => token.IsRevoked, true));
 
     private async Task SendConfirmationEmailAsync(ApplicationUser user)
     {

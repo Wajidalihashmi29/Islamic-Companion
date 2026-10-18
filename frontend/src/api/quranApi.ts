@@ -47,8 +47,56 @@ export interface QuranDirectory {
 }
 export interface QuranTafseer { verseKey: string; name: string; language: string; text: string }
 
+const pageCache = new Map<string, QuranPage>();
+const pageRequests = new Map<string, {
+  controller: AbortController; promise: Promise<QuranPage>; consumers: Set<symbol>;
+}>();
+const pageCacheKey = (page: number, translation: string, lines: number) => `${page}:${translation}:${lines}`;
+
 export async function getQuranPage(page: number, translation: string, lines: number, signal: AbortSignal) {
-  return (await client.get<QuranPage>(`/quran/page/${page}`, { params: { translation, lines }, signal })).data;
+  signal.throwIfAborted();
+  const key = pageCacheKey(page, translation, lines);
+  const cached = pageCache.get(key);
+  if (cached) {
+    pageCache.delete(key);
+    pageCache.set(key, cached);
+    return cached;
+  }
+  let request = pageRequests.get(key);
+  if (!request) {
+    const controller = new AbortController();
+    const promise = client.get<QuranPage>(`/quran/page/${page}`, {
+      params: { translation, lines }, signal: controller.signal,
+    }).then(response => {
+      controller.signal.throwIfAborted();
+      pageCache.set(key, response.data);
+      const oldest = pageCache.keys().next().value;
+      if (pageCache.size > 8 && oldest !== undefined) pageCache.delete(oldest);
+      return response.data;
+    }).finally(() => {
+      if (pageRequests.get(key)?.controller === controller) pageRequests.delete(key);
+    });
+    request = { controller, promise, consumers: new Set() };
+    pageRequests.set(key, request);
+  }
+  const pending = request, consumer = Symbol();
+  pending.consumers.add(consumer);
+  return new Promise<QuranPage>((resolve, reject) => {
+    let finished = false;
+    const release = () => {
+      if (finished) return;
+      finished = true;
+      signal.removeEventListener("abort", abort);
+      pending.consumers.delete(consumer);
+      if (!pending.consumers.size) {
+        if (pageRequests.get(key) === pending) pageRequests.delete(key);
+        pending.controller.abort();
+      }
+    };
+    const abort = () => { release(); reject(signal.reason); };
+    signal.addEventListener("abort", abort, { once: true });
+    pending.promise.then(data => { release(); resolve(data); }, error => { release(); reject(error); });
+  });
 }
 export async function getQuranDirectory(signal: AbortSignal) {
   return (await client.get<QuranDirectory>("/quran/directory", { signal })).data;

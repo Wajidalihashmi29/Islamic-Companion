@@ -1,113 +1,55 @@
-import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getTokenExpiryMs } from "../utils/tokenUtils";
-import SessionExpiryModal from "./SessionExpiryModal";
-
-const WARNING_BEFORE_MS = 20_000; // Show modal 20s before expiry
+import "./SessionExpiryModal.css";
 
 export default function SessionWatcher() {
-  const { token, refreshSession, logout, isAuthenticated } = useAuth();
+  const { token, refreshSession, logout } = useAuth();
+  const [error, setError] = useState<{ token: string; message: string } | null>(null);
 
-  const [showModal, setShowModal] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(0);
-
-  const warningTimerRef = useRef<number | null>(null);
-  const navigate = useNavigate();
-
-  // Schedule warning whenever token changes
   useEffect(() => {
-    if (warningTimerRef.current) {
-      clearTimeout(warningTimerRef.current);
-    }
-
-    setShowModal(false);
-
-    if (!isAuthenticated || !token) {
-      return;
-    }
-
-    const expiry = getTokenExpiryMs(token);
-
-    if (!expiry) {
-      return;
-    }
-
-    const delay = Math.max(
-      expiry - WARNING_BEFORE_MS - Date.now(),
-      0
-    );
-
-    warningTimerRef.current = window.setTimeout(() => {
-      setShowModal(true);
-    }, delay);
-
+    if (!token) return;
+    let disposed = false;
+    let refreshing = false;
+    let timer = 0;
+    const check = async () => {
+      if (disposed || refreshing) return;
+      clearTimeout(timer);
+      const expiry = getTokenExpiryMs(localStorage.getItem("token") ?? "");
+      const delay = expiry ? expiry - Date.now() - 60_000 : 0;
+      if (delay > 0) {
+        timer = window.setTimeout(check, delay);
+        return;
+      }
+      refreshing = true;
+      try {
+        const renewed = await refreshSession();
+        if (disposed) return;
+        setError(null);
+        if (!renewed) { logout(); return; }
+        const nextExpiry = getTokenExpiryMs(localStorage.getItem("token") ?? "");
+        timer = window.setTimeout(check, Math.max(1000, (nextExpiry ?? Date.now()) - Date.now() - 60_000));
+      } catch (error) {
+        if (!disposed && localStorage.getItem("refreshToken")) {
+          console.warn("Session renewal will retry when the connection is restored.",
+            error instanceof Error ? error.message : "Network request failed.");
+          setError({ token, message: "Your session could not be renewed. Reconnecting automatically…" });
+          timer = window.setTimeout(check, 30_000);
+        }
+      } finally { refreshing = false; }
+    };
+    const visible = () => { if (document.visibilityState === "visible") void check(); };
+    void check();
+    window.addEventListener("online", check);
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", visible);
     return () => {
-      if (warningTimerRef.current) {
-        clearTimeout(warningTimerRef.current);
-      }
+      disposed = true; clearTimeout(timer);
+      window.removeEventListener("online", check);
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", visible);
     };
-  }, [token, isAuthenticated]);
+  }, [token, refreshSession, logout]);
 
-  // Countdown
-  useEffect(() => {
-    if (!showModal || !token) return;
-
-    const expiry = getTokenExpiryMs(token);
-
-    if (!expiry) return;
-
-    const updateCountdown = () => {
-      const secs = Math.max(
-        Math.ceil((expiry - Date.now()) / 1000),
-        0
-      );
-
-      setSecondsLeft(secs);
-
-      if (secs <= 0) {
-        setShowModal(false);
-        logout();
-        navigate("/login");
-      }
-    };
-
-    updateCountdown();
-
-    const interval = window.setInterval(
-      updateCountdown,
-      1000
-    );
-
-    return () => clearInterval(interval);
-  }, [showModal, token, logout, navigate]);
-
-  const handleStay = async () => {
-    setShowModal(false);
-
-    const success = await refreshSession();
-
-    if (!success) {
-      logout();
-      navigate("/");
-    }
-  };
-
-  const handleLogout = () => {
-    setShowModal(false);
-    logout();
-    navigate("/");
-  };
-
-  if (!showModal) {
-    return null;
-  }
-
-  return (
-    <SessionExpiryModal
-      secondsLeft={secondsLeft}
-      onStay={handleStay}
-      onLogout={handleLogout}
-    />
-  );
+  return token && token === error?.token ? <p className="session-connection-notice" role="status">{error.message}</p> : null;
 }

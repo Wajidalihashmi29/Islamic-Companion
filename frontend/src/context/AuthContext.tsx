@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { jwtDecode } from "jwt-decode";
-import { refreshTokenRequest } from "../api/authApi";
+import { clearStoredSession, refreshSessionToken, revokeSession, SESSION_UPDATED_EVENT } from "../api/session";
 import { loadSettings, syncCloudSettings } from "../utils/settingsStorage";
 
 export interface AuthUser {
@@ -93,10 +93,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token]);
 
+  useEffect(() => {
+    const sync = () => {
+      const storedToken = localStorage.getItem("token");
+      setToken(storedToken);
+      setUserName(localStorage.getItem("userName"));
+      if (!storedToken) window.dispatchEvent(new CustomEvent("ic:settingsUpdated", {
+        detail: { settings: loadSettings(null), userIdentifier: null, key: "ic.appSettings_guest" },
+      }));
+    };
+    const storageSync = (event: StorageEvent) => {
+      if (!event.key || ["token", "refreshToken", "userName"].includes(event.key)) sync();
+    };
+    window.addEventListener(SESSION_UPDATED_EVENT, sync);
+    window.addEventListener("storage", storageSync);
+    return () => {
+      window.removeEventListener(SESSION_UPDATED_EVENT, sync);
+      window.removeEventListener("storage", storageSync);
+    };
+  }, []);
+
   const logout = useCallback(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userName");
+    const refreshToken = localStorage.getItem("refreshToken");
+    clearStoredSession();
+    if (refreshToken) void revokeSession(refreshToken).catch(error => {
+      console.warn("Signed out locally, but the server session could not be revoked.",
+        error instanceof Error ? error.message : "Network request failed.");
+    });
     setToken(null);
     setUserName(null);
     // Prevent Google One Tap from silently signing the user straight back in.
@@ -115,17 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshSession = useCallback(async (): Promise<boolean> => {
-    const storedRefresh = localStorage.getItem("refreshToken");
-    if (!storedRefresh) return false;
-    try {
-      const response = await refreshTokenRequest(storedRefresh);
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("refreshToken", response.data.refreshToken);
-      setToken(response.data.token);
-      return true;
-    } catch {
-      return false;
-    }
+    return !!(await refreshSessionToken());
   }, []);
 
   const user = useMemo<AuthUser | null>(() => {
