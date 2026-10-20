@@ -1,13 +1,48 @@
-const SHELL_CACHE = "islamic-companion-shell-v1";
+const SHELL_CACHE = "islamic-companion-shell-v2";
 const QURAN_CACHE = "islamic-companion-quran-v1";
 const DEVELOPMENT_HOST = self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
+
+async function cacheResponse(cache, url, required) {
+  try {
+    const response = await fetch(new Request(url, { cache: "reload" }));
+    if (!response.ok) throw new Error(`Request failed with ${response.status}.`);
+    await cache.put(url, response.clone());
+    return response;
+  } catch (error) {
+    if (required) throw error;
+    console.warn(`Optional offline asset could not be cached: ${url}`, error);
+    return null;
+  }
+}
+
+async function precacheShell() {
+  const cache = await caches.open(SHELL_CACHE);
+  const indexResponse = await cacheResponse(cache, "/", true);
+  await cache.put("/index.html", indexResponse.clone());
+
+  const html = await indexResponse.text();
+  const localAssets = [...html.matchAll(/\b(?:src|href)=["']([^"']+)["']/gi)]
+    .map(match => new URL(match[1], self.location.origin))
+    .filter(url => url.origin === self.location.origin)
+    .map(url => `${url.pathname}${url.search}`);
+  const requiredAssets = [...new Set(localAssets.filter(url => url.startsWith("/assets/")))];
+  const optionalAssets = [...new Set([
+    ...localAssets.filter(url => !url.startsWith("/assets/")),
+    "/manifest.webmanifest",
+    "/icon-192.png",
+    "/icon-512.png",
+  ])];
+
+  await Promise.all(requiredAssets.map(url => cacheResponse(cache, url, true)));
+  await Promise.all(optionalAssets.map(url => cacheResponse(cache, url, false)));
+}
 
 self.addEventListener("install", event => {
   if (DEVELOPMENT_HOST) {
     self.skipWaiting();
     return;
   }
-  event.waitUntil(caches.open(SHELL_CACHE).then(cache => cache.add("/")));
+  event.waitUntil(precacheShell());
   self.skipWaiting();
 });
 
