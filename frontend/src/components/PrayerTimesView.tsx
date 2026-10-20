@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, CalendarDays, Check, ChevronLeft, ChevronRight, CloudSun, MapPin, Moon, Sparkles, Star, Sun, Sunrise, Sunset, Volume2, X } from "lucide-react";
+import { Bell, BellOff, CalendarDays, Check, ChevronLeft, ChevronRight, CloudSun, MapPin, Moon, Sparkles, Star, Sun, Sunrise, Sunset, Volume2, X } from "lucide-react";
 import LocationSelector from "./LocationSelector";
 import type { ResolvedLocation } from "./LocationSelector";
 import {
@@ -711,10 +711,28 @@ export default function PrayerTimesView() {
 
                 return (
                   <li key={name} className={`ptv-prayer-card is-${state}`}>
-                    {alertEnabled && <span className="ptv-prayer-alert" title="Notification enabled">
-                      <Bell size={12} fill="currentColor" aria-hidden="true" />
-                      <span>Alert on</span>
-                    </span>}
+                    {name !== "Sunrise" && (
+                      <button
+                        type="button"
+                        className={`ptv-prayer-alert ${alertEnabled ? "is-enabled" : "is-disabled"}`}
+                        title={alertEnabled ? `Turn off ${name} notification` : `Turn on ${name} notification`}
+                        aria-label={alertEnabled ? `Turn off ${name} notification` : `Turn on ${name} notification`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!settings.prayer.notificationsEnabled) {
+                            void enableAlertsForCurrentLocation([name as PrayerAlertName]);
+                          } else {
+                            togglePrayerAlert(name as PrayerAlertName);
+                          }
+                        }}
+                      >
+                        {alertEnabled ? (
+                          <Bell size={13} fill="currentColor" aria-hidden="true" />
+                        ) : (
+                          <BellOff size={13} aria-hidden="true" />
+                        )}
+                      </button>
+                    )}
                     <span className="ptv-prayer-icon" aria-hidden="true">
                       <Icon size={22} />
                     </span>

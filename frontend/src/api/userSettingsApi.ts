@@ -13,6 +13,7 @@ export interface CloudUserData extends Partial<AppSettings> {
   azkarFavorites?: string[];
   calendarReminders?: string[];
   tasbeeh?: unknown;
+  prayerTracker?: Record<string, string[]>;
   updatedAt?: string;
 }
 

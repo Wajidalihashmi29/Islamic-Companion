@@ -6,7 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { features, getFeature, getFeaturePath } from "../config/features";
 import { useAuth } from "../context/AuthContext";
-import { getStorageKeyForUser, loadSettings } from "../utils/settingsStorage";
+import { getStorageKeyForUser, loadSettings, queueCloudSave, syncCloudSettings } from "../utils/settingsStorage";
 import { loadQuranReadingPage } from "../utils/quranNavigation";
 import { formatHijriDate } from "../utils/hijriDate";
 import { getInterfaceLocale } from "../i18n/interfaceTranslations";
@@ -15,6 +15,7 @@ import { getQuranDirectory, getQuranPage } from "../api/quranApi";
 import { getPrayerSchedule, hasPrayerStarted } from "../utils/prayerSchedule";
 import { distanceBetweenCoordinates, getDateInTimeZone } from "../utils/locationTime";
 import TopNav from "../components/TopNav";
+import ConfettiEffect from "../components/ConfettiEffect";
 import "./Home.css";
 
 const PRAYERS = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"] as const;
@@ -120,6 +121,7 @@ export default function Home() {
   const [completedPrayers, setCompletedPrayers] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(trackerKey) || "[]") as string[]; } catch { return []; }
   });
+  const [showConfetti, setShowConfetti] = useState(false);
   const lastPage = useMemo(() => {
     try { return loadQuranReadingPage(profileKey) ?? 1; } catch { return 1; }
   }, [profileKey, settings]);
@@ -177,6 +179,24 @@ export default function Home() {
     window.addEventListener("ic:settingsUpdated", handleSettingsUpdated);
     return () => window.removeEventListener("ic:settingsUpdated", handleSettingsUpdated);
   }, []);
+
+  useEffect(() => {
+    if (userIdentifier && localStorage.getItem("token")) {
+      void syncCloudSettings(userIdentifier);
+    }
+  }, [userIdentifier]);
+
+  useEffect(() => {
+    const handleTrackerUpdated = () => {
+      try {
+        setCompletedPrayers(JSON.parse(localStorage.getItem(trackerKey) || "[]") as string[]);
+      } catch {
+        setCompletedPrayers([]);
+      }
+    };
+    window.addEventListener("ic:prayerTrackerUpdated", handleTrackerUpdated);
+    return () => window.removeEventListener("ic:prayerTrackerUpdated", handleTrackerUpdated);
+  }, [trackerKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -309,14 +329,33 @@ export default function Home() {
     PRAYERS.includes(prayer as (typeof PRAYERS)[number]) &&
     hasPrayerStarted(prayerSnapshot.timings, prayer as (typeof PRAYERS)[number], locationNow)
   );
+  const handleConfettiComplete = useCallback(() => {
+    setShowConfetti(false);
+  }, []);
+
   const togglePrayer = (prayer: string) => {
     if (!PRAYERS.includes(prayer as (typeof PRAYERS)[number]) ||
       !hasPrayerStarted(prayerSnapshot.timings, prayer as (typeof PRAYERS)[number], locationNow)) return;
-    const next = completedPrayers.includes(prayer)
-      ? completedPrayers.filter(item => item !== prayer)
-      : [...completedPrayers, prayer];
+
+    const isChecking = !completedPrayers.includes(prayer);
+    const next = isChecking
+      ? [...completedPrayers, prayer]
+      : completedPrayers.filter(item => item !== prayer);
+
     setCompletedPrayers(next);
     localStorage.setItem(trackerKey, JSON.stringify(next));
+    queueCloudSave(userIdentifier);
+
+    if (!isChecking) {
+      setShowConfetti(false);
+      return;
+    }
+
+    const isNowAllDone = PRAYERS.every(p => next.includes(p));
+    const wasAllDone = PRAYERS.every(p => completedPrayers.includes(p));
+    if (isNowAllDone && !wasAllDone) {
+      setShowConfetti(true);
+    }
   };
 
   return <div className="home-page">
@@ -409,5 +448,6 @@ export default function Home() {
         </div>
       </div>
     </main>
+    {showConfetti && <ConfettiEffect onComplete={handleConfettiComplete} />}
   </div>;
 }

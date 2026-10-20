@@ -311,6 +311,18 @@ export function buildCloudPayload(userIdentifier?: string | null): CloudUserData
     if (raw) tasbeeh = JSON.parse(raw);
   } catch {}
 
+  const prayerTracker: Record<string, string[]> = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(`${profileKey}:prayer-tracker:`)) {
+        const datePart = k.slice(`${profileKey}:prayer-tracker:`.length);
+        const raw = localStorage.getItem(k);
+        if (raw) prayerTracker[datePart] = JSON.parse(raw);
+      }
+    }
+  } catch {}
+
   return {
     ...settings,
     quranPage,
@@ -322,6 +334,7 @@ export function buildCloudPayload(userIdentifier?: string | null): CloudUserData
     azkarFavorites: azkarFavorites ?? [],
     calendarReminders: calendarReminders ?? [],
     tasbeeh,
+    prayerTracker,
     updatedAt: new Date().toISOString(),
   };
 }
@@ -611,6 +624,16 @@ export async function syncCloudSettings(userIdentifier?: string | null): Promise
         localStorage.setItem(`${key}.tasbeeh`, JSON.stringify(cloud.tasbeeh));
       }
 
+      // 11. Prayer Tracker
+      if (cloud.prayerTracker && typeof cloud.prayerTracker === "object") {
+        for (const [datePart, prayers] of Object.entries(cloud.prayerTracker)) {
+          if (Array.isArray(prayers)) {
+            const itemKey = `${key}:prayer-tracker:${datePart}`;
+            localStorage.setItem(itemKey, JSON.stringify(prayers));
+          }
+        }
+      }
+
       // Broadcast updates to all listeners
       window.dispatchEvent(
         new CustomEvent("ic:settingsUpdated", {
@@ -623,6 +646,7 @@ export async function syncCloudSettings(userIdentifier?: string | null): Promise
         })
       );
       window.dispatchEvent(new Event("ic:libraryUpdated"));
+      window.dispatchEvent(new CustomEvent("ic:prayerTrackerUpdated"));
 
       return merged;
     } else {

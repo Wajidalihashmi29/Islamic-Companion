@@ -110,8 +110,45 @@
 .ptv-prayer-card:hover { transform: translateY(-4px); border-color: rgba(201, 154, 46, 0.7); }
 
 .ptv-prayer-icon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 15px; color: #0f4d49; background: linear-gradient(145deg, #e6f1ee, #cfe3de); }
-.ptv-prayer-alert { position: absolute; top: 12px; right: 12px; display: inline-flex; align-items: center; gap: 4px; min-height: 24px; padding: 3px 8px; border-radius: 999px; color: #0f4d49; background: #e6f1ee; font-size: .66rem; font-weight: 800; line-height: 1; white-space: nowrap; }
+.ptv-prayer-alert {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  line-height: 1;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+  z-index: 2;
+}
+.ptv-prayer-alert:hover {
+  transform: scale(1.12);
+}
+.ptv-prayer-alert:active {
+  transform: scale(0.92);
+}
 html[dir="rtl"] .ptv-prayer-alert { right: auto; left: 12px; }
+
+.ptv-prayer-alert.is-enabled {
+  color: #0f4d49;
+  background: #e6f1ee;
+}
+.ptv-prayer-alert.is-disabled {
+  color: #8e9e9a;
+  background: #f1f3f2;
+  opacity: 0.7;
+}
+.ptv-prayer-alert.is-disabled:hover {
+  opacity: 1;
+  color: #51655f;
+  background: #e2e8e5;
+}
 .ptv-prayer-name { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--p-body); }
 .ptv-prayer-time { font-family: "Mono45 Headline", "mono45-headline", "Arial Narrow", "Aptos Narrow", sans-serif; font-size: clamp(1.5rem, 2.6vw, 1.9rem); font-weight: 600; color: var(--p-ink); font-variant-numeric: tabular-nums; }
 .ptv-prayer-state { display: inline-flex; align-items: center; gap: 5px; min-height: 22px; padding: 2px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: #51655f; background: #eef1ee; }
@@ -145,7 +182,37 @@ html[dir="rtl"] .ptv-prayer-alert { right: auto; left: 12px; }
 .ptv-prayer-card.is-next .ptv-prayer-name { color: rgba(243, 239, 226, 0.85); }
 .ptv-prayer-card.is-next .ptv-prayer-time { color: var(--p-gold-soft); }
 .ptv-prayer-card.is-next .ptv-prayer-state { color: #1d1604; background: linear-gradient(135deg, #f6dc8c, #e0b84f); }
-.ptv-prayer-card.is-next .ptv-prayer-alert { color: #1d1604; background: var(--p-gold-soft); }
+.ptv-prayer-card.is-ongoing .ptv-prayer-alert.is-enabled {
+  color: #1d1604;
+  background: linear-gradient(135deg, #f6dc8c, #e0b84f);
+  box-shadow: 0 2px 6px rgba(224, 184, 79, 0.35);
+}
+.ptv-prayer-card.is-ongoing .ptv-prayer-alert.is-disabled {
+  color: rgba(15, 77, 73, 0.55);
+  background: rgba(15, 77, 73, 0.08);
+  opacity: 0.75;
+}
+.ptv-prayer-card.is-ongoing .ptv-prayer-alert.is-disabled:hover {
+  opacity: 1;
+  color: rgba(15, 77, 73, 0.85);
+  background: rgba(15, 77, 73, 0.15);
+}
+
+.ptv-prayer-card.is-next .ptv-prayer-alert.is-enabled {
+  color: #1d1604;
+  background: var(--p-gold-soft);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.ptv-prayer-card.is-next .ptv-prayer-alert.is-disabled {
+  color: rgba(243, 239, 226, 0.45);
+  background: rgba(255, 255, 255, 0.12);
+  opacity: 0.7;
+}
+.ptv-prayer-card.is-next .ptv-prayer-alert.is-disabled:hover {
+  opacity: 1;
+  color: rgba(243, 239, 226, 0.85);
+  background: rgba(255, 255, 255, 0.22);
+}
 
 /* ---------- Placeholder ---------- */
 .ptv-placeholder {
