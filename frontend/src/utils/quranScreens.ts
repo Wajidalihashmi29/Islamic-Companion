@@ -33,6 +33,11 @@ export function getQuranSwipeDirection(dx: number, dy: number, duration: number)
   return dx > 0 ? 1 : -1;
 }
 
+export function getZoomedQuranSwipeDirection(dx: number, dy: number, duration: number): -1 | 0 | 1 {
+  if (duration > 450 || Math.abs(dx) < 120 || Math.abs(dx) < Math.abs(dy) * 2.5) return 0;
+  return dx > 0 ? 1 : -1;
+}
+
 export function startsInSystemGestureZone(clientX: number, clientY: number, viewport: {
   left: number; top: number; width: number; height: number;
 }): boolean {

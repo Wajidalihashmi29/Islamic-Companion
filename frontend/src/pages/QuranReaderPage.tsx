@@ -19,7 +19,7 @@ import { getQuranLineHeightMultiplier, getQuranTextRuns } from "../utils/quranTy
 import { getStorageKeyForUser, loadSettings, saveSettings, RECITERS_OPTIONS, TRANSLATION_OPTIONS, TAFSEER_OPTIONS } from "../utils/settingsStorage";
 import { loadQuranFavoriteSurahs, loadQuranReaderView, loadQuranReadingPage, normalizeQuranSearch, parseAyahReference,
   saveQuranFavoriteSurahs, saveQuranReaderView, saveQuranReadingPage } from "../utils/quranNavigation";
-import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, QURAN_PAGE_ASPECT_RATIO, startsInSystemGestureZone } from "../utils/quranScreens";
+import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, getZoomedQuranSwipeDirection, QURAN_PAGE_ASPECT_RATIO, startsInSystemGestureZone } from "../utils/quranScreens";
 import type { QuranReaderPageNumber } from "../utils/quranScreens";
 import { getAdjacentQuranVerse, QuranAudioPlayer } from "../utils/quranAudio";
 import { getCanonicalQuranVerse, getReaderQuranVerse } from "../utils/quranFatihah";
@@ -344,7 +344,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const paper = useRef<HTMLElement>(null);
   const fitSizing = useRef({ key: "", attempts: 0, fittingWidth: 0, widths: new Set<number>() });
   const gesture = useRef<{ x: number; y: number; time: number } | null>(null);
-  const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const drag = useRef<{ x: number; y: number; left: number; top: number; time: number } | null>(null);
   const pinch = useRef<{ distance: number; zoom: number; x: number; y: number } | null>(null);
   const zoomAnimation = useRef(0);
   const suppressClickUntil = useRef(0);
@@ -832,7 +832,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     next.set("page", String(number));
     if (favorite === null) next.delete("favorite");
     else if (favorite !== undefined) next.set("favorite", String(favorite));
-    setParams(next);
+    setParams(next, { replace: true });
     window.scrollTo({ top: 0, behavior: "instant" });
   }
   function turnPage(delta: -1 | 1) {
@@ -921,7 +921,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
       height: window.innerHeight,
     })) return;
     if (pageZoom > 1) {
-      drag.current = { x: touch.clientX, y: touch.clientY, left: viewport.scrollLeft, top: viewport.scrollTop };
+      drag.current = { x: touch.clientX, y: touch.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, time: Date.now() };
       return;
     }
     gesture.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
@@ -951,13 +951,27 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   function endSwipe(event: TouchEvent<HTMLDivElement>) {
     if (pinch.current || drag.current) {
       const touch = event.changedTouches[0];
+      const zoomedSwipe = drag.current && touch && !event.touches.length && !window.getSelection()?.toString()
+        ? getZoomedQuranSwipeDirection(
+          touch.clientX - drag.current.x,
+          touch.clientY - drag.current.y,
+          Date.now() - drag.current.time,
+        )
+        : 0;
       if (pinch.current || (drag.current && touch &&
         Math.hypot(touch.clientX - drag.current.x, touch.clientY - drag.current.y) > 6))
         suppressClickUntil.current = Date.now() + 400;
       gesture.current = null; pinch.current = null; drag.current = null;
+      if (zoomedSwipe) {
+        turnPage(zoomedSwipe);
+        return;
+      }
       if (event.touches.length === 1 && pageZoom > 1) {
         const touch = event.touches[0];
-        drag.current = { x: touch.clientX, y: touch.clientY, left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop };
+        drag.current = {
+          x: touch.clientX, y: touch.clientY,
+          left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop, time: Date.now(),
+        };
       }
       return;
     }
@@ -1155,17 +1169,17 @@ function QuranReader({ profileKey }: { profileKey: string }) {
                   transform: `scale(${fitReady ? pageFit.scale * pageZoom : 1})`,
                 } : {}) }}>
               <header className="quran-page-margin" dir="rtl" lang="ar">
-                <span className="quran-margin-label">{currentSurah && <>
-                  <QuranNumber value={currentSurah.number} script={preferences.arabicScript} />
-                  <QuranGlyph text={SURAH_COLOR_GLYPHS[currentSurah.number - 1]} script="surah-name-color-v4"
-                    className="quran-margin-surah" label={`سُورَةُ ${currentSurah.nameArabic}`} />
-                </>}</span>
-                <span><QuranNumber value={pageNumber} script={preferences.arabicScript} /> / <span className="quran-latin-number">{pageNumber}</span></span>
                 <span className="quran-margin-label">
                   <QuranNumber value={page.juzNumber} script={preferences.arabicScript} />
                   <QuranGlyph text={`j${String(page.juzNumber).padStart(3, "0")}`} script="juz-name"
                     className="quran-margin-juz" label={page.juzNameArabic} />
                 </span>
+                <span><QuranNumber value={pageNumber} script={preferences.arabicScript} /> / <span className="quran-latin-number">{pageNumber}</span></span>
+                <span className="quran-margin-label">{currentSurah && <>
+                  <QuranNumber value={currentSurah.number} script={preferences.arabicScript} />
+                  <QuranGlyph text={SURAH_COLOR_GLYPHS[currentSurah.number - 1]} script="surah-name-color-v4"
+                    className="quran-margin-surah" label={`سُورَةُ ${currentSurah.nameArabic}`} />
+                </>}</span>
               </header>
               <div className={`quran-arabic-stream quran-layout-probe ${arabicClass}`}
                 style={arabicStyle} ref={probe} aria-hidden="true" />
@@ -1256,7 +1270,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
               onClick={() => setDrawer("more")}><MoreHorizontal size={19} /><span>More</span></button>
           </nav>
           {fitMode && !completionPage && <p className="quran-dock-hint">{browserZoomed ? "Drag to read · Pinch back to zoom out" : pageZoom > 1
-            ? "Drag with one finger · Zoom out or fit page" : "Pinch to zoom · Swipe right for next · Tap for controls"}</p>}
+            ? "Drag to read · Swipe quickly to turn page" : "Pinch to zoom · Swipe right for next · Tap for controls"}</p>}
         </div>
         <audio ref={audio} preload="auto" />
         <audio ref={bufferedAudio} preload="auto" />

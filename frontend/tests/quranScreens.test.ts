@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, startsInSystemGestureZone } from "../src/utils/quranScreens.ts";
+import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, getZoomedQuranSwipeDirection, startsInSystemGestureZone } from "../src/utils/quranScreens.ts";
 
 test("page turns wrap in both directions without changing ordinary navigation", () => {
   assert.equal(getAdjacentQuranPage(604, 1), 1);
@@ -50,6 +50,13 @@ test("right swipes advance, left swipes go back, and vertical, short and long-pr
   assert.equal(getQuranSwipeDirection(-100, 10, 300), -1);
   for (const [dx, dy, duration] of [[20, 0, 100], [70, 90, 100], [100, 0, 1000], [0, 100, 100]])
     assert.equal(getQuranSwipeDirection(dx, dy, duration), 0);
+});
+
+test("zoomed pages turn only for deliberate fast horizontal swipes", () => {
+  assert.equal(getZoomedQuranSwipeDirection(150, 20, 300), 1);
+  assert.equal(getZoomedQuranSwipeDirection(-150, 20, 300), -1);
+  for (const [dx, dy, duration] of [[90, 0, 200], [150, 70, 200], [150, 0, 600], [0, 150, 200]])
+    assert.equal(getZoomedQuranSwipeDirection(dx, dy, duration), 0);
 });
 
 test("phone edge and bottom navigation gestures never start Quran page turns", () => {
