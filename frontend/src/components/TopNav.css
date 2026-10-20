@@ -245,16 +245,14 @@
   position: fixed;
   top: var(--nav-height);
   inset: var(--nav-height) 0 0 0;
-  background: rgba(237, 242, 240, 0.98);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: #edf2f0;
   z-index: 99;
   padding: var(--space-5);
   overflow-y: auto;
-  animation: fade var(--dur-fast) ease;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  contain: layout paint;
 }
 
 .top-nav-mobile-header {
@@ -305,7 +303,8 @@
   border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
-  transition: all var(--dur-fast) ease;
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease,
+    border-color var(--dur-fast) ease;
 }
 
 .top-nav-mobile-link:hover {
@@ -357,6 +356,12 @@
 
 /* ---------- Responsive Breakpoints ---------- */
 @media (max-width: 960px) {
+  .top-nav {
+    background: #edf2f0;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
   .top-nav-desktop {
     display: none;
   }

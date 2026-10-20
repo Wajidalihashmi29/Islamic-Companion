@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import { Plus, RotateCcw, Trash2, Undo2 } from "lucide-react";
 import TasbeehIcon from "./icons/TasbeehIcon";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface ZikrPreset {
   id: string;
@@ -53,6 +54,9 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
   const [customLabel, setCustomLabel] = useState("");
   const [customText, setCustomText] = useState("");
   const [customTarget, setCustomTarget] = useState(33);
+  const [pendingAction, setPendingAction] = useState<
+    { type: "reset" } | { type: "delete-preset"; id: string; label: string } | null
+  >(null);
   const allPresets = [...PRESETS, ...customPresets];
   const preset = allPresets.find(item => item.id === presetId) ?? PRESETS[0];
 
@@ -158,8 +162,31 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
   const beadCount = Math.min(target, 100);
   const completedBeads = Math.floor(count / target * beadCount);
   const beadSize = beadCount > 66 ? 7 : beadCount > 40 ? 9 : 14;
+  const confirmPendingAction = () => {
+    if (!pendingAction) return;
+    if (pendingAction.type === "delete-preset") {
+      removeCustomPreset(pendingAction.id);
+    } else {
+      setCount(0);
+      setRounds(0);
+      setTotalCount(0);
+      persist(0, 0, target, presetId, customPresets, 0);
+    }
+    setPendingAction(null);
+  };
 
   return <section className="faith-panel tasbeeh-experience">
+    <ConfirmDialog
+      open={pendingAction !== null}
+      title={pendingAction?.type === "delete-preset" ? "Delete custom Zikr?" : "Reset Tasbeeh progress?"}
+      message={pendingAction?.type === "delete-preset"
+        ? `"${pendingAction.label}" will be permanently removed from your custom Zikr list.`
+        : "This will clear the current count, completed rounds, and total count."}
+      confirmLabel={pendingAction?.type === "delete-preset" ? "Delete Zikr" : "Reset Counter"}
+      tone="danger"
+      onCancel={() => setPendingAction(null)}
+      onConfirm={confirmPendingAction}
+    />
     <div className="faith-intro"><span className="faith-icon"><TasbeehIcon /></span>
       <div><h2>Digital Tasbeeh</h2></div>
     </div>
@@ -171,7 +198,9 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
             <strong>{item.label}</strong><small>{item.target}</small>
           </button>
           {item.custom && <button type="button" className="tasbeeh-zikr-delete" aria-label={`Delete ${item.label}`}
-            onClick={() => removeCustomPreset(item.id)}><Trash2 size={14} /></button>}
+            onClick={() => setPendingAction({ type: "delete-preset", id: item.id, label: item.label })}>
+            <Trash2 size={14} />
+          </button>}
         </div>)}</div>
         <button type="button" className="tasbeeh-add-custom" onClick={() => setShowCustomForm(value => !value)}>
           <Plus size={16} /> {showCustomForm ? "Cancel custom Zikr" : "Add custom Zikr"}
@@ -203,9 +232,9 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
         </button>
         <div className="tasbeeh-ring-actions">
           <button type="button" onClick={undo} disabled={totalCount === 0}><Undo2 size={17} /> Undo</button>
-          <button type="button" onClick={() => {
-            setCount(0); setRounds(0); setTotalCount(0); persist(0, 0, target, presetId, customPresets, 0);
-          }}><RotateCcw size={17} /> Reset counter</button>
+          <button type="button" onClick={() => setPendingAction({ type: "reset" })} disabled={totalCount === 0}>
+            <RotateCcw size={17} /> Reset counter
+          </button>
         </div>
       </div>
       <aside className="tasbeeh-stats-panel">

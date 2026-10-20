@@ -41,22 +41,6 @@ function translateElement(element: Element, language: InterfaceLanguage) {
   }
 }
 
-function translateTree(root: Node, language: InterfaceLanguage) {
-  if (root.nodeType === Node.TEXT_NODE) {
-    translateTextNode(root as Text, language);
-    return;
-  }
-  if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) return;
-  if (root.nodeType === Node.ELEMENT_NODE) translateElement(root as Element, language);
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
-  let current = walker.nextNode();
-  while (current) {
-    if (current.nodeType === Node.TEXT_NODE) translateTextNode(current as Text, language);
-    else translateElement(current as Element, language);
-    current = walker.nextNode();
-  }
-}
-
 export default function InterfaceLanguageSync() {
   const [language, setLanguage] = useState<InterfaceLanguage>(() =>
     normalizeInterfaceLanguage(loadSettings().general.appLanguage)
@@ -76,25 +60,94 @@ export default function InterfaceLanguageSync() {
   }, []);
 
   useLayoutEffect(() => {
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const previousLanguage = normalizeInterfaceLanguage(document.documentElement.lang);
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ur" ? "rtl" : "ltr";
-    translateTree(document.body, language);
 
-    const observer = new MutationObserver(mutations => {
-      for (const mutation of mutations) {
-        if (mutation.type === "characterData") translateTextNode(mutation.target as Text, language);
-        else if (mutation.type === "attributes") translateElement(mutation.target as Element, language);
-        else mutation.addedNodes.forEach(node => translateTree(node, language));
+    // React renders English source text, so the normal English path needs no DOM scan.
+    if (language === "en" && previousLanguage === "en") return;
+
+    let disposed = false;
+    let idleHandle = 0;
+    let frameHandle = 0;
+    let queueIndex = 0;
+    const queue: Node[] = [];
+    const queued = new Set<Node>();
+    let observer: MutationObserver | null = null;
+
+    const processNode = (node: Node) => {
+      queued.delete(node);
+      if (node.nodeType === Node.TEXT_NODE) {
+        translateTextNode(node as Text, language);
+        return;
       }
-    });
-    observer.observe(document.body, {
-      subtree: true,
-      childList: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: [...TRANSLATED_ATTRIBUTES],
-    });
-    return () => observer.disconnect();
+      if (node.nodeType !== Node.ELEMENT_NODE && node.nodeType !== Node.DOCUMENT_NODE) return;
+      if (node.nodeType === Node.ELEMENT_NODE) translateElement(node as Element, language);
+      node.childNodes.forEach(enqueue);
+    };
+
+    const runBatch = (deadline?: IdleDeadline) => {
+      idleHandle = 0;
+      frameHandle = 0;
+      let processed = 0;
+      while (queueIndex < queue.length && processed < 150 &&
+        (!deadline || deadline.timeRemaining() > 1)) {
+        processNode(queue[queueIndex++]);
+        processed++;
+      }
+      if (queueIndex >= queue.length) {
+        queue.length = 0;
+        queueIndex = 0;
+      } else if (queueIndex > 500) {
+        queue.splice(0, queueIndex);
+        queueIndex = 0;
+      }
+      observer?.takeRecords();
+      schedule();
+    };
+
+    const schedule = () => {
+      if (disposed || queueIndex >= queue.length || idleHandle || frameHandle) return;
+      if (idleWindow.requestIdleCallback) {
+        idleHandle = idleWindow.requestIdleCallback(runBatch, { timeout: 100 });
+      } else {
+        frameHandle = window.requestAnimationFrame(() => runBatch());
+      }
+    };
+
+    function enqueue(node: Node) {
+      if (disposed || queued.has(node)) return;
+      queued.add(node);
+      queue.push(node);
+      schedule();
+    }
+
+    if (language !== "en") {
+      observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+          if (mutation.type === "characterData" || mutation.type === "attributes") enqueue(mutation.target);
+          else mutation.addedNodes.forEach(enqueue);
+        }
+      });
+      observer.observe(document.body, {
+        subtree: true,
+        childList: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: [...TRANSLATED_ATTRIBUTES],
+      });
+    }
+    enqueue(document.body);
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      if (idleHandle) idleWindow.cancelIdleCallback?.(idleHandle);
+      if (frameHandle) window.cancelAnimationFrame(frameHandle);
+    };
   }, [language]);
 
   return null;

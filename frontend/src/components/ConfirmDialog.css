@@ -1,0 +1,148 @@
+.confirm-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 28, 27, 0.62);
+}
+
+.confirm-dialog {
+  width: min(100%, 460px);
+  border: 1px solid rgba(13, 53, 50, 0.14);
+  border-radius: 20px;
+  background: #fffdf8;
+  color: var(--teal-950);
+  box-shadow: 0 24px 70px rgba(8, 28, 27, 0.28);
+  padding: 24px;
+}
+
+.confirm-dialog-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+}
+
+.confirm-dialog-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #8a6510;
+  background: rgba(224, 184, 79, 0.2);
+}
+
+.confirm-dialog-danger .confirm-dialog-icon {
+  color: #b42318;
+  background: rgba(180, 35, 24, 0.1);
+}
+
+.confirm-dialog h2 {
+  margin: 1px 0 7px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.25;
+}
+
+.confirm-dialog-heading p,
+.confirm-dialog-heading div[id="confirm-dialog-message"] {
+  margin: 0;
+  color: rgba(13, 53, 50, 0.72);
+  font-size: 0.93rem;
+  line-height: 1.6;
+}
+
+.confirm-dialog-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(13, 53, 50, 0.05);
+  color: var(--teal-950);
+  cursor: pointer;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.confirm-dialog-actions button {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirm-dialog-actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.confirm-dialog-cancel {
+  border: 1px solid rgba(13, 53, 50, 0.16);
+  background: #ffffff;
+  color: var(--teal-950);
+}
+
+.confirm-dialog-confirm {
+  border: 1px solid var(--teal-950);
+  background: var(--teal-950);
+  color: #ffffff;
+}
+
+.confirm-dialog-danger .confirm-dialog-confirm {
+  border-color: #b42318;
+  background: #b42318;
+}
+
+.confirm-dialog button:focus-visible {
+  outline: 3px solid rgba(42, 90, 86, 0.3);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .confirm-dialog-backdrop {
+    align-items: end;
+    padding: 12px;
+  }
+
+  .confirm-dialog {
+    border-radius: 18px;
+    padding: 20px 16px 16px;
+  }
+
+  .confirm-dialog-heading {
+    gap: 11px;
+  }
+
+  .confirm-dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-dialog-actions button {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .confirm-dialog {
+    animation: confirm-dialog-enter 140ms ease-out;
+  }
+}
+
+@keyframes confirm-dialog-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+}

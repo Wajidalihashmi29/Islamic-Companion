@@ -639,6 +639,33 @@ input:checked + .slider:before {
   gap: 16px;
 }
 
+.settings-action-notice {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(181, 132, 23, 0.24);
+  border-radius: 14px;
+  background: #fff9e8;
+  color: #6f5311;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.settings-action-notice button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
 .preview-header-bar {
   display: flex;
   align-items: center;

@@ -57,15 +57,50 @@ function formatTime(t: string, use12h: boolean): string {
   return `${h % 12 || 12}:${pad(m)} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-/** Ticks every second while `active`, so the countdown stays live. */
-function useNow(active: boolean) {
+/** Prayer boundaries and dates only need recalculation when the minute changes. */
+function useMinuteNow(active: boolean) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     if (!active) return;
-    const id = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(id);
+    let timer = 0;
+    const tick = () => {
+      setNow(new Date());
+      scheduleNextTick();
+    };
+    const scheduleNextTick = () => {
+      const current = new Date();
+      const delay = 60_000 - (current.getSeconds() * 1_000 + current.getMilliseconds());
+      timer = window.setTimeout(tick, Math.max(250, delay));
+    };
+    scheduleNextTick();
+    return () => window.clearTimeout(timer);
   }, [active]);
   return now;
+}
+
+function LivePrayerCountdown({ remaining }: { remaining: number }) {
+  const [seconds, setSeconds] = useState(remaining);
+
+  useEffect(() => {
+    const endsAt = Date.now() + remaining * 1000;
+    const update = () => setSeconds(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
+    update();
+    const timer = window.setInterval(update, 1_000);
+    return () => window.clearInterval(timer);
+  }, [remaining]);
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+  return (
+    <div className="ptv-countdown-boxes" data-no-translate data-preserve-font translate="no" lang="en" dir="ltr">
+      <div><strong>{pad(hours)}</strong><small>hrs</small></div>
+      <span aria-hidden="true">:</span>
+      <div><strong>{pad(minutes)}</strong><small>min</small></div>
+      <span aria-hidden="true">:</span>
+      <div><strong>{pad(remainingSeconds)}</strong><small>sec</small></div>
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -207,7 +242,7 @@ export default function PrayerTimesView() {
     };
   }, [showAlertSettings]);
 
-  const actualNow = useNow(Boolean(data));
+  const actualNow = useMinuteNow(Boolean(data));
   const now = useMemo(() => getDateInTimeZone(actualNow, data?.timeZone), [actualNow, data?.timeZone]);
 
   const handleResolve = async (location: ResolvedLocation, currentSchool = school) => {
@@ -389,9 +424,6 @@ export default function PrayerTimesView() {
   const applied = school === "hanafi";
 
   const schedule = data ? getPrayerSchedule(timings, now) : null;
-  const hrs = schedule ? Math.floor(schedule.remaining / 3600) : 0;
-  const mins = schedule ? Math.floor((schedule.remaining % 3600) / 60) : 0;
-  const secs = schedule ? schedule.remaining % 60 : 0;
 
   useEffect(() => {
     if (!data || !settings.prayer.notificationsEnabled || !("Notification" in window) ||
@@ -491,13 +523,7 @@ export default function PrayerTimesView() {
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--p-gold-soft)", opacity: 0.9 }}>
                       Time remaining
                     </span>
-                    <div className="ptv-countdown-boxes" data-no-translate data-preserve-font translate="no" lang="en" dir="ltr">
-                      <div><strong>{pad(hrs)}</strong><small>hrs</small></div>
-                      <span aria-hidden="true">:</span>
-                      <div><strong>{pad(mins)}</strong><small>min</small></div>
-                      <span aria-hidden="true">:</span>
-                      <div><strong>{pad(secs)}</strong><small>sec</small></div>
-                    </div>
+                    <LivePrayerCountdown remaining={schedule.remaining} />
                   </div>
                   <div className="ptv-progress" aria-hidden="true">
                     <span style={{ width: `${Math.round(schedule.progress * 100)}%` }} />

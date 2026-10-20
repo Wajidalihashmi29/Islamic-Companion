@@ -39,6 +39,22 @@ export default function TopNav({
     };
   }, [moreMenuOpen]);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileMenuOpen]);
+
   const primaryItems = [dashboardItem, ...features.filter((f) => f.primary)];
   const secondaryItems = features.filter((f) => !f.primary);
 
@@ -171,6 +187,7 @@ export default function TopNav({
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle navigation menu"
           aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-navigation-menu"
         >
           {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -178,7 +195,7 @@ export default function TopNav({
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="top-nav-mobile">
+        <div className="top-nav-mobile" id="mobile-navigation-menu">
           <div className="top-nav-mobile-header">
             {isAuthenticated ? (
               <div className="top-nav-user-badge">

@@ -62,6 +62,20 @@ function formatRemainingTime(seconds: number) {
   return [hours, minutes, remainingSeconds].map(value => String(value).padStart(2, "0")).join(":");
 }
 
+function LiveCountdown({ seconds }: { seconds: number }) {
+  const [remaining, setRemaining] = useState(seconds);
+
+  useEffect(() => {
+    const endsAt = Date.now() + seconds * 1000;
+    const update = () => setRemaining(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
+    update();
+    const timer = window.setInterval(update, 1_000);
+    return () => window.clearTimeout(timer);
+  }, [seconds]);
+
+  return formatRemainingTime(remaining);
+}
+
 async function resolveDashboardLocationLabel(location: DashboardLocation, language: string) {
   if (location.type === "city") return `${location.city}, ${location.country}`;
   const fallback = `${location.latitude.toFixed(2)}°, ${location.longitude.toFixed(2)}°`;
@@ -128,7 +142,8 @@ export default function Home() {
   useEffect(() => {
     if ("scrollRestoration" in history) history.scrollRestoration = "manual";
     let activeTrackerKey = trackerKey;
-    const timer = window.setInterval(() => {
+    let timer = 0;
+    const tick = () => {
       const next = new Date();
       const nextDate = getDateInTimeZone(next, prayerSnapshot.timeZone).toDateString();
       const nextTrackerKey = `${profileKey}:prayer-tracker:${nextDate}`;
@@ -141,7 +156,14 @@ export default function Home() {
         }
       }
       setNow(next);
-    }, 1_000);
+      scheduleNextTick();
+    };
+    const scheduleNextTick = () => {
+      const current = new Date();
+      const delay = 60_000 - (current.getSeconds() * 1_000 + current.getMilliseconds());
+      timer = window.setTimeout(tick, Math.max(250, delay));
+    };
+    scheduleNextTick();
     return () => window.clearInterval(timer);
   }, [prayerSnapshot.timeZone, profileKey, trackerKey]);
 
@@ -322,7 +344,7 @@ export default function Home() {
               <strong>{countdownTarget}</strong>
               <span>starts in</span>
               <b data-no-translate data-preserve-font lang="en" dir="ltr">
-                {formatRemainingTime(countdownRemaining)}
+                <LiveCountdown seconds={countdownRemaining} />
               </b>
             </div>}
             <div><span>{currentDateString}</span><span><Moon size={14} /> {hijriDateString}</span></div>

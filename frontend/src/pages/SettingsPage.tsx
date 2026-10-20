@@ -36,6 +36,7 @@ import GoldenSpiral from "../components/GoldenSpiral";
 import AyahMedallion from "../components/AyahMedallion";
 import QuranText from "../components/QuranText";
 import CustomDropdown, { type DropdownOption } from "../components/CustomDropdown";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useAuth } from "../context/AuthContext";
 import { changePassword, forgotPassword, parseApiError, resetPassword } from "../api/authApi";
 import { getQuranLineHeightMultiplier, normalizeIndoPakText } from "../utils/quranTypography";
@@ -60,6 +61,7 @@ import { deletePersonalData, exportPersonalData } from "../utils/personalLibrary
 import "./SettingsPage.css";
 
 type TabId = "quran" | "prayer" | "account" | "general";
+type ConfirmAction = "reset-settings" | "delete-data" | "remove-offline" | null;
 
 interface SettingsTabConfig {
   id: TabId;
@@ -295,20 +297,31 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings(userIdentifier));
   const [savedNotice, setSavedNotice] = useState(false);
   const [previewVerseKey, setPreviewVerseKey] = useState<"kursi" | "fatiha">("kursi");
-  const previewPage = useRef<HTMLDivElement>(null);
-  const [previewScale, setPreviewScale] = useState(1);
+  const [previewPage, setPreviewPage] = useState<HTMLDivElement | null>(null);
+  const [previewScale, setPreviewScale] = useState(() =>
+    Math.min(1, Math.max(0.25, (window.innerWidth - 62) / QURAN_DEFAULT_FIT_WIDTH)));
   const [syncingCloud, setSyncingCloud] = useState(false);
   const [cloudSyncedNotice, setCloudSyncedNotice] = useState(false);
   const [offlineInfo, setOfflineInfo] = useState({ supported: true, entries: 0, bytes: 0 });
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [actionNotice, setActionNotice] = useState("");
+  const actionNoticeTimer = useRef<number | null>(null);
 
   useEffect(() => {
-    const page = previewPage.current;
-    if (!page) return;
-    const updateScale = () => setPreviewScale(Math.min(1, page.clientWidth / QURAN_DEFAULT_FIT_WIDTH));
+    if (activeTab !== "quran" || !previewPage) return;
+    const updateScale = () => {
+      if (previewPage.clientWidth <= 0) return;
+      setPreviewScale(Math.min(1, previewPage.clientWidth / QURAN_DEFAULT_FIT_WIDTH));
+    };
     const observer = new ResizeObserver(updateScale);
-    observer.observe(page);
+    observer.observe(previewPage);
     updateScale();
     return () => observer.disconnect();
+  }, [activeTab, previewPage]);
+
+  useEffect(() => () => {
+    if (actionNoticeTimer.current !== null) window.clearTimeout(actionNoticeTimer.current);
   }, []);
 
   useEffect(() => {
@@ -483,16 +496,14 @@ export default function SettingsPage() {
     ? PREVIEW_VERSES.fatiha.lines[0].translations[settings.quran.preferredTranslation]
     : "Selected translation unavailable. Choose an available edition.";
 
+  const showActionNotice = (message: string) => {
+    if (actionNoticeTimer.current !== null) window.clearTimeout(actionNoticeTimer.current);
+    setActionNotice(message);
+    actionNoticeTimer.current = window.setTimeout(() => setActionNotice(""), 5000);
+  };
+
   const handleResetDefaults = () => {
-    const userLabel = isAuthenticated && (user?.name || user?.email)
-      ? `for ${user.name || user.email}`
-      : "for this browser";
-    if (window.confirm(`Reset all settings ${userLabel} to recommended defaults?`)) {
-      const defaults = resetSettings(userIdentifier);
-      setSettings(defaults);
-      setSavedNotice(true);
-      setTimeout(() => setSavedNotice(false), 2500);
-    }
+    setConfirmAction("reset-settings");
   };
 
   const handleNotificationToggle = async (enabled: boolean) => {
@@ -501,7 +512,7 @@ export default function SettingsPage() {
         ? await Notification.requestPermission()
         : Notification.permission;
       if (permission !== "granted") {
-        window.alert("Prayer notifications are blocked. Allow notifications in your browser or device settings, then try again.");
+        showActionNotice("Prayer notifications are blocked. Allow notifications in your browser or device settings, then try again.");
         return;
       }
     }
@@ -523,7 +534,7 @@ export default function SettingsPage() {
     if (settings.prayer.notificationsEnabled) {
       void syncClosedAppPrayerAlertSelection(prayerNames).catch(error => {
         console.error("Unable to update closed-app prayer alert selection:", error);
-        window.alert("Your selection was saved, but closed-app alerts will update after you reopen Prayer Times.");
+        showActionNotice("Your selection was saved. Closed-app alerts will update after you reopen Prayer Times.");
       });
     }
   };
@@ -540,16 +551,62 @@ export default function SettingsPage() {
   };
 
   const handleDeleteData = () => {
-    if (!window.confirm("Delete this profile's local settings, bookmarks, recent Hadith, and Quran notes from this device?")) return;
-    deletePersonalData(getStorageKeyForUser(userIdentifier));
-    const defaults = resetSettings(userIdentifier);
-    setSettings(defaults);
+    setConfirmAction("delete-data");
   };
 
   const handleLogout = () => {
     logout();
     navigate("/");
   };
+
+  const handleConfirmedAction = async () => {
+    if (!confirmAction) return;
+    setConfirmBusy(true);
+    try {
+      if (confirmAction === "reset-settings") {
+        const defaults = resetSettings(userIdentifier);
+        setSettings(defaults);
+        setSavedNotice(true);
+        window.setTimeout(() => setSavedNotice(false), 2500);
+        showActionNotice("Your settings were restored to the recommended defaults.");
+      } else if (confirmAction === "delete-data") {
+        deletePersonalData(getStorageKeyForUser(userIdentifier));
+        const defaults = resetSettings(userIdentifier);
+        setSettings(defaults);
+        showActionNotice("This profile's local personal data was deleted from this device.");
+      } else {
+        await clearOfflineQuran();
+        setOfflineInfo(await getOfflineQuranStorageInfo());
+        showActionNotice("The offline Quran download was removed.");
+      }
+      setConfirmAction(null);
+    } finally {
+      setConfirmBusy(false);
+    }
+  };
+
+  const confirmCopy = confirmAction === "reset-settings"
+    ? {
+        title: "Restore recommended settings?",
+        message: isAuthenticated && (user?.name || user?.email)
+          ? `This will reset the saved preferences for ${user.name || user.email}.`
+          : "This will reset the preferences saved in this browser.",
+        confirmLabel: "Restore Defaults",
+        tone: "warning" as const,
+      }
+    : confirmAction === "delete-data"
+    ? {
+        title: "Delete personal data?",
+        message: "This removes local settings, bookmarks, recent Hadith, calendar reminders, Azkar favourites, and Quran notes from this device.",
+        confirmLabel: "Delete Data",
+        tone: "danger" as const,
+      }
+    : {
+        title: "Remove offline Quran download?",
+        message: "Downloaded Quran files will be removed from this device. You can download them again later.",
+        confirmLabel: "Remove Download",
+        tone: "danger" as const,
+      };
 
   return (
     <div className="settings-page">
@@ -560,6 +617,16 @@ export default function SettingsPage() {
         }}
         onLogout={handleLogout}
         onSettingsClick={() => {}}
+      />
+      <ConfirmDialog
+        open={confirmAction !== null}
+        title={confirmCopy.title}
+        message={confirmCopy.message}
+        confirmLabel={confirmCopy.confirmLabel}
+        tone={confirmCopy.tone}
+        busy={confirmBusy}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => void handleConfirmedAction()}
       />
 
       <main className="settings-container">
@@ -609,6 +676,15 @@ export default function SettingsPage() {
             </p>
           </div>
         </header>
+        {actionNotice && (
+          <div className="settings-action-notice" role="status" aria-live="polite">
+            <CircleAlert size={18} />
+            <span>{actionNotice}</span>
+            <button type="button" onClick={() => setActionNotice("")} aria-label="Dismiss message">
+              <X size={16} />
+            </button>
+          </div>
+        )}
 
         {/* Tab Selector */}
         <div className="settings-tabs-scroll-container">
@@ -986,7 +1062,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="mushaf-interlinear-container">
-                  <div className="mushaf-page-frame" ref={previewPage}>
+                  <div className="mushaf-page-frame" ref={setPreviewPage}>
                     <div className="mushaf-frame-header">
                       <span className="mushaf-frame-title">{PREVIEW_VERSES[previewVerseKey].title}</span>
                       <span className="mushaf-frame-badge">
@@ -1696,10 +1772,9 @@ export default function SettingsPage() {
               <div className="settings-reset-block">
                 <div><strong><HardDrive size={16} /> Offline Quran storage</strong>
                   <p>{offlineInfo.entries} cached files{offlineInfo.bytes ? ` · ${(offlineInfo.bytes / 1024 / 1024).toFixed(1)} MB reported` : ""}.</p></div>
-                <button type="button" className="btn-reset" onClick={async () => {
-                  await clearOfflineQuran();
-                  setOfflineInfo(await getOfflineQuranStorageInfo());
-                }}>Remove download</button>
+                <button type="button" className="btn-reset" onClick={() => setConfirmAction("remove-offline")}>
+                  Remove download
+                </button>
               </div>
 
               <div className="settings-reset-block">
