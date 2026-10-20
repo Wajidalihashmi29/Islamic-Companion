@@ -26,6 +26,7 @@
     #edf2f0;
   background-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%, 100% 100%;
   background-attachment: fixed;
+  overflow-x: clip;
 }
 
 .settings-container {
@@ -37,6 +38,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;
 }
 
 /* ---------- Hero Banner (Matching Home & Prayer Hero) ---------- */
@@ -2077,6 +2079,10 @@ html[lang="ur"] .hijri-live-badge {
   gap: 8px;
   margin: 0;
   padding: 16px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border: 1px solid var(--s-line);
   border-radius: 16px;
   background: #f8fbfa;
@@ -2097,4 +2103,135 @@ html[lang="ur"] .hijri-live-badge {
 .prayer-alert-selection small { color: #a14535; font-weight: 700; }
 @media (max-width: 620px) {
   .prayer-alert-selection > div { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+
+.settings-section,
+.settings-card,
+.settings-card-header,
+.settings-card-header > div,
+.settings-field-group,
+.settings-toggle-row,
+.settings-toggle-text,
+.settings-sliders-row,
+.slider-box,
+.settings-preview-box,
+.selection-card-grid,
+.selection-option-card,
+.selection-card-body,
+.account-user-card,
+.account-info,
+.account-cloud-status-card,
+.cloud-status-left,
+.cloud-status-left > div,
+.account-prefs-summary,
+.account-prefs-grid,
+.account-pref-item,
+.account-security-card,
+.security-card-header,
+.security-card-header > div,
+.password-fields-grid,
+.password-field-group,
+.password-input-wrapper,
+.settings-reset-block,
+.settings-reset-block > div {
+  min-width: 0;
+}
+
+.settings-section,
+.settings-card,
+.settings-preview-box,
+.selection-option-card,
+.account-user-card,
+.account-cloud-status-card,
+.account-prefs-summary,
+.account-security-card,
+.settings-reset-block {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-card-header p,
+.settings-label small,
+.settings-toggle-text,
+.selection-card-title,
+.selection-card-desc,
+.account-info p,
+.account-badge,
+.cloud-status-left p,
+.security-card-header p,
+.settings-reset-block p {
+  overflow-wrap: anywhere;
+}
+
+.settings-button-group,
+.btn-choice {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.btn-choice {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .settings-toggle-row {
+    align-items: flex-start;
+  }
+
+  .settings-switch {
+    flex: none;
+  }
+
+  .account-user-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .account-info {
+    width: 100%;
+  }
+
+  .account-badge {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .account-cloud-status-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+  }
+
+  .btn-sync-cloud {
+    width: 100%;
+    justify-content: center;
+    white-space: normal;
+  }
+
+  .account-prefs-grid,
+  .password-fields-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .security-card-header {
+    align-items: flex-start;
+  }
+
+  .security-form-actions,
+  .settings-data-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .security-form-actions button,
+  .settings-data-actions button {
+    width: 100%;
+    max-width: 100%;
+    justify-content: center;
+    white-space: normal;
+  }
 }

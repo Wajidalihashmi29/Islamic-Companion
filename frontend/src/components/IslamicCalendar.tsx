@@ -87,7 +87,7 @@ export default function IslamicCalendar({ storageKey }: { storageKey: string }) 
 
   return <section className="faith-panel calendar-experience">
     <div className="faith-intro"><span className="faith-icon"><CalendarDays /></span>
-      <div><h2>Islamic Calendar</h2><p>Gregorian and Hijri dates together, with important Islamic occasions clearly marked.</p></div>
+      <div><h2>Islamic Calendar</h2></div>
     </div>
     <div className="calendar-month-header">
       <button type="button" aria-label="Previous month" onClick={() => changeMonth(-1)}><ChevronLeft /></button>

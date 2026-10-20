@@ -190,7 +190,7 @@ export default function DailyAzkar({ language }: { language: string }) {
 
   return <section className="faith-panel azkar-experience">
     <div className="faith-intro"><span className="faith-icon"><BookHeart /></span>
-      <div><h2>Daily Duas &amp; Azkar</h2><p>A calm, focused space for daily remembrance.</p></div>
+      <div><h2>Daily Duas &amp; Azkar</h2></div>
     </div>
     <nav className="azkar-categories" aria-label="Azkar categories">
       {CATEGORIES.map(item => <button key={item} type="button" className={category === item ? "is-active" : ""}

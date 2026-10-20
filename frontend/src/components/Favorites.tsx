@@ -37,7 +37,7 @@ export default function Favorites({ storageKey }: { storageKey: string }) {
   void libraryVersion;
   return <section className="faith-panel">
     <div className="faith-intro"><span className="faith-icon"><Heart /></span>
-      <div><h2>Favorites</h2><p>Return to the Surahs you marked as favorites in the Quran reader.</p></div>
+      <div><h2>Favorites</h2></div>
     </div>
     {error && <p className="faith-error" role="alert">{error}</p>}
     <div className="favorites-grid">

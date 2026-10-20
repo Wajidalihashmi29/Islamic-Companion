@@ -17,6 +17,10 @@
   border: 1px solid var(--l-line);
   border-radius: 24px;
   box-shadow: 0 2px 6px rgba(13, 53, 50, 0.05), 0 22px 44px -26px rgba(13, 53, 50, 0.3);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* ---------- Tabs ---------- */
@@ -68,7 +72,10 @@
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 18px;
+  min-width: 0;
 }
+.loc-auto-text { min-width: 0; }
+.loc-auto-text h3, .loc-auto-text p { overflow-wrap: anywhere; }
 .loc-auto-icon {
   display: inline-flex;
   align-items: center;
@@ -123,7 +130,7 @@
   align-items: end;
   gap: 14px;
 }
-.loc-field { display: flex; flex-direction: column; gap: 6px; }
+.loc-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .loc-field > span:first-child { font-size: 0.8rem; font-weight: 700; color: var(--l-ink); }
 .loc-input { position: relative; display: flex; align-items: center; }
 .loc-input svg { position: absolute; left: 14px; color: var(--l-body); pointer-events: none; transition: color 0.2s ease; }
@@ -169,4 +176,5 @@
   .loc-manual { grid-template-columns: 1fr; }
   .loc-manual .loc-btn { width: 100%; }
   .loc-tabs { max-width: none; }
+  .loc-btn { max-width: 100%; padding-inline: 16px; white-space: normal; }
 }

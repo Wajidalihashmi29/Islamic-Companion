@@ -94,9 +94,9 @@ export default function HadithCollection({ language, storageKey }: { language: s
     }
   };
 
-  return <section className="faith-panel">
+  return <section className="faith-panel faith-hadith-panel">
     <div className="faith-intro"><span className="faith-icon"><BookOpen /></span>
-      <div><h2>Hadith Collection</h2><p>Search Hadith collection by number, Arabic matn, or Urdu translation.</p></div>
+      <div><h2>Hadith Collection</h2></div>
     </div>
     {language !== "ur" && <p className="faith-note">Dawat-e-Islami currently provides this collection in Arabic with Urdu translation.</p>}
     <form className="faith-hadith-controls" onSubmit={event => {
@@ -180,6 +180,5 @@ export default function HadithCollection({ language, storageKey }: { language: s
         onClick={() => void (resultMode === "browse" ? browse(page + 1) : search(page + 1))}>
         Load more Hadith
       </button>}
-    <p className="faith-note">Source: Faizan-e-Hadees by Dawat-e-Islami. Open the source link to read the available commentary and references.</p>
   </section>;
 }

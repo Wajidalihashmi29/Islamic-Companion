@@ -42,7 +42,6 @@ import { getQuranLineHeightMultiplier, normalizeIndoPakText } from "../utils/qur
 import { QURAN_DEFAULT_FIT_WIDTH } from "../utils/quranScreens";
 import { disableClosedAppPrayerAlerts, syncClosedAppPrayerAlertSelection } from "../api/prayerPushApi";
 import { formatHijriDate } from "../utils/hijriDate";
-import { getQuranTranslationForInterfaceLanguage } from "../i18n/contentLanguage";
 import {
   loadSettings,
   saveSettings,
@@ -677,7 +676,7 @@ export default function SettingsPage() {
                         <div
                           className={`selection-trans-preview ${selectedLang}`}
                           style={{
-                            fontSize: `${settings.quran.translationFontSize}px`,
+                            fontSize: `${Math.min(settings.quran.translationFontSize, 26)}px`,
                           }}
                         >
                           {bismillahTranslation}
@@ -711,7 +710,7 @@ export default function SettingsPage() {
                         <div
                           className={`selection-trans-preview ${selectedLang}`}
                           style={{
-                            fontSize: `${settings.quran.translationFontSize}px`,
+                            fontSize: `${Math.min(settings.quran.translationFontSize, 26)}px`,
                           }}
                         >
                           {bismillahTranslation}
@@ -1686,13 +1685,6 @@ export default function SettingsPage() {
                     const appLanguage = String(val);
                     updateSettings((prev) => ({
                       ...prev,
-                      quran: {
-                        ...prev.quran,
-                        preferredTranslation: getQuranTranslationForInterfaceLanguage(
-                          appLanguage,
-                          prev.quran.preferredTranslation,
-                        ),
-                      },
                       general: { ...prev.general, appLanguage },
                     }));
                   }}

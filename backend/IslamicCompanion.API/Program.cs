@@ -118,6 +118,12 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 app.Services.GetRequiredService<QuranDataset>();
 
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
+
 app.UseStaticFiles();
 
 if (app.Environment.IsDevelopment())

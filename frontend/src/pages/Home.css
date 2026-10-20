@@ -30,7 +30,7 @@
   background-attachment: fixed;
 }
 
-.home-content { flex: 1; }
+.home-content { flex: 1; min-width: 0; }
 
 .home-main,
 .home-view {
@@ -39,6 +39,7 @@
   margin: 0 auto;
   padding: clamp(36px, 5vw, 60px) clamp(16px, 3vw, 28px) 56px;
   box-sizing: border-box;
+  min-width: 0;
 }
 .home-main { padding-top: clamp(20px, 3vw, 36px); }
 
@@ -49,7 +50,9 @@
 }
 
 /* ---------- Prayer view header ---------- */
-.home-view-header { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
+.home-view-header { display: flex; align-items: center; gap: 16px; min-width: 0; margin-bottom: 28px; }
+.home-view-header > div { min-width: 0; }
+.home-view-header h1, .home-eyebrow { overflow-wrap: anywhere; }
 .home-back-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 46px; height: 46px; flex: none;
@@ -229,10 +232,10 @@ html[lang="ur"] .home-content [lang="ar"] * {
 .dashboard-shortcuts button > span { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 13px; color: var(--h-teal); background: #e5f3ee; transition: transform .2s ease, background .2s ease; }
 .dashboard-shortcuts button:hover > span { transform: translateY(-2px); background: #f4dda0; }.dashboard-shortcuts svg { width: 21px; }.dashboard-shortcuts small { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: .72rem; font-weight: 700; white-space: nowrap; }
 .dashboard-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 18px; }
-.dashboard-last-read { display: grid; grid-template-columns: 1fr auto; align-items: center; min-height: 190px; padding: clamp(20px,3vw,30px); border-radius: 22px; color: #fff; text-decoration: none; background: radial-gradient(circle at 90% 10%,rgba(255,255,255,.24),transparent 40%), linear-gradient(135deg,#13745f,#4ab886); box-shadow: 0 18px 34px -25px rgba(13,53,50,.8); }
-.dashboard-last-read div { display: grid; gap: 7px; }.dashboard-last-read span,.dashboard-last-read small { color: rgba(255,255,255,.78); }.dashboard-last-read strong { font-family: var(--h-display); font-size: 1.55rem; }.dashboard-last-read b { display: inline-flex; align-items: center; gap: 6px; width: fit-content; margin-top: 7px; padding: 8px 12px; border-radius: 999px; color: var(--h-teal); background: #fff; font-size: .78rem; }
-.dashboard-reading-details { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; }.dashboard-reading-details i { opacity: .7; font-style: normal; }.dashboard-surah-name { color: #fff !important; font-weight: 750; }.dashboard-surah-name[lang="ar"] { font-family: var(--font-arabic, "Amiri Quran","Traditional Arabic",serif) !important; font-size: 1.08em; word-spacing: normal !important; }
-.dashboard-last-read > svg { width: clamp(84px,14vw,145px); height: auto; color: #fff4c8; stroke-width: 1.4; }
+.dashboard-last-read { display: grid; grid-template-columns: 1fr auto; align-items: center; min-height: 190px; padding: clamp(20px,3vw,30px); overflow: hidden; border: 1px solid rgba(224,184,79,.55); border-radius: 22px; color: var(--h-ink); text-decoration: none; background: radial-gradient(circle at 92% 8%,rgba(224,184,79,.24),transparent 38%), linear-gradient(145deg,#fffdf8,#f7f1df); box-shadow: 0 16px 34px -28px rgba(13,53,50,.5); }
+.dashboard-last-read div { display: grid; gap: 7px; }.dashboard-last-read div > span { color: var(--h-gold-ink); font-size: .72rem; font-weight: 850; letter-spacing: .08em; text-transform: uppercase; }.dashboard-last-read small { color: var(--h-body); }.dashboard-last-read strong { font-family: var(--h-display); font-size: 1.55rem; }.dashboard-last-read b { display: inline-flex; align-items: center; gap: 6px; width: fit-content; margin-top: 7px; padding: 8px 12px; border-radius: 999px; color: #fff; background: var(--h-teal); font-size: .78rem; }
+.dashboard-reading-details { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; }.dashboard-reading-details i { opacity: .55; font-style: normal; }.dashboard-reading-details > span { color: var(--h-body) !important; font-size: inherit !important; font-weight: inherit !important; letter-spacing: 0 !important; text-transform: none !important; }.dashboard-surah-name { color: var(--h-teal) !important; font-weight: 800 !important; }.dashboard-surah-name[lang="ar"] { font-family: var(--font-arabic, "Amiri Quran","Traditional Arabic",serif) !important; font-size: 1.08em !important; word-spacing: normal !important; }
+.dashboard-last-read > svg { width: clamp(84px,14vw,145px); height: auto; color: var(--h-gold); opacity: .72; stroke-width: 1.4; }
 .dashboard-tracker,.dashboard-dua { display: grid; gap: 18px; padding: 22px; border: 1px solid var(--h-line); border-radius: 22px; background: #fff; }
 .dashboard-tracker header,.dashboard-dua header { display: flex; align-items: start; justify-content: space-between; gap: 12px; }.dashboard-tracker header div { display: grid; gap: 4px; }.dashboard-tracker header span,.dashboard-dua header span { color: var(--h-ink); font-weight: 850; }.dashboard-tracker header strong,.dashboard-tracker header small,.dashboard-dua header small { color: var(--h-body); font-size: .74rem; }
 .dashboard-tracker > div { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }

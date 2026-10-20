@@ -180,7 +180,7 @@ export default function QiblaFinder() {
   return <section className="faith-panel faith-qibla">
     <div className="faith-intro">
       <span className="faith-icon"><Compass /></span>
-      <div><h2>Find the Qibla</h2><p>Use your location and phone compass to face the Kaaba in real time.</p></div>
+      <div><h2>Find the Qibla</h2></div>
     </div>
     {bearing === null ? <button className="faith-primary" type="button" onClick={locate} disabled={loading}>
       <LocateFixed size={18} />{loading ? "Detecting location..." : "Use my location"}

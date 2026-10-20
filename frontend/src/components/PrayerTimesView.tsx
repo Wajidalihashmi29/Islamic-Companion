@@ -253,7 +253,7 @@ export default function PrayerTimesView() {
           }));
         } catch (pushError) {
           console.error("Unable to enable closed-app prayer alerts:", pushError);
-          setPushStatus("Prayer times loaded, but closed-app alerts could not be enabled. Check notification permission and sign-in.");
+          setPushStatus("Prayer times loaded. Reopen alert settings to retry closed-app notifications.");
         }
       }
       setShowSelector(false);
@@ -319,7 +319,7 @@ export default function PrayerTimesView() {
         await enableAlertsForCurrentLocation();
       } catch (notificationError) {
         console.error("Unable to enable prayer notifications:", notificationError);
-        setPushStatus("Prayer notification settings were saved, but closed-app alerts could not be enabled.");
+        setPushStatus("In-app alerts are enabled. Reopen alert settings to retry closed-app notifications.");
       }
       return;
     }
@@ -474,7 +474,10 @@ export default function PrayerTimesView() {
                     {schedule.current ?? `Next: ${schedule.next}`}
                   </h2>
                   <div className="ptv-next-subtitle">
-                    {schedule.current && <>Next: </>}<strong>{schedule.next}</strong> at {formatTime(timings[schedule.next], use12h)}
+                    {schedule.current && <>Next: </>}<strong>{schedule.next}</strong> at{" "}
+                    <span className="ptv-time-value" data-no-translate data-preserve-font translate="no" lang="en" dir="ltr">
+                      {formatTime(timings[schedule.next], use12h)}
+                    </span>
                   </div>
                   {place && (
                     <span className="ptv-next-place" style={{ marginTop: "12px", color: "rgba(245, 247, 246, 0.85)" }}>
@@ -488,7 +491,7 @@ export default function PrayerTimesView() {
                     <span style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--p-gold-soft)", opacity: 0.9 }}>
                       Time remaining
                     </span>
-                    <div className="ptv-countdown-boxes">
+                    <div className="ptv-countdown-boxes" data-no-translate data-preserve-font translate="no" lang="en" dir="ltr">
                       <div><strong>{pad(hrs)}</strong><small>hrs</small></div>
                       <span aria-hidden="true">:</span>
                       <div><strong>{pad(mins)}</strong><small>min</small></div>
@@ -589,10 +592,6 @@ export default function PrayerTimesView() {
                   {showSelector ? "Hide" : "Change location"}
                 </button>
               </div>
-              <p className="ptv-note">
-                Prayer times are calculated and may differ slightly from local mosques, looking at the local mosque's timetable is recommended for accuracy.
-              </p>
-              {pushStatus && <p className="ptv-note" role="status">{pushStatus}</p>}
             </section>
 
             <button type="button" className="ptv-alert-settings-trigger"
@@ -619,8 +618,7 @@ export default function PrayerTimesView() {
                 <header>
                   <div>
                     <span><Bell size={20} aria-hidden="true" /></span>
-                    <div><strong id="ptv-alert-settings-title">Prayer alert settings</strong>
-                      <small>Choose when you want to be notified.</small></div>
+                    <div><strong id="ptv-alert-settings-title">Prayer alert settings</strong></div>
                   </div>
                   <button type="button" onClick={() => setShowAlertSettings(false)}
                     aria-label="Close prayer alert settings" autoFocus><X size={20} /></button>
@@ -630,7 +628,6 @@ export default function PrayerTimesView() {
                   <div className="ptv-alert-setting-row">
                     <div>
                       <strong><Bell size={17} /> Prayer Time Notifications</strong>
-                      <p>Receive prayer alerts even when the installed app is closed.</p>
                     </div>
                     <label className="ptv-switch">
                       <input type="checkbox" checked={settings.prayer.notificationsEnabled}
@@ -641,7 +638,6 @@ export default function PrayerTimesView() {
 
                   <fieldset className="ptv-alert-prayers" disabled={!settings.prayer.notificationsEnabled}>
                     <legend>Choose prayer alerts</legend>
-                    <p>Select the prayers for which you want to receive a notification.</p>
                     <div>
                       {PRAYER_ALERT_NAMES.map(prayer => {
                         const selected = settings.prayer.alertPrayers.includes(prayer);
@@ -659,7 +655,6 @@ export default function PrayerTimesView() {
                   <div className="ptv-alert-setting-row">
                     <div>
                       <strong><Volume2 size={17} /> Prayer Alert Chime</strong>
-                      <p>Play a gentle alert chime at prayer entrance time.</p>
                     </div>
                     <label className="ptv-switch">
                       <input type="checkbox" checked={settings.prayer.soundEnabled}
@@ -700,7 +695,9 @@ export default function PrayerTimesView() {
                       <Icon size={22} />
                     </span>
                     <span className="ptv-prayer-name">{name}</span>
-                    <span className="ptv-prayer-time">{formatTime(time, use12h)}</span>
+                    <span className="ptv-prayer-time" data-no-translate data-preserve-font translate="no" lang="en" dir="ltr">
+                      {formatTime(time, use12h)}
+                    </span>
                     {(name === "Asr" || name === "Isha") && <span className="ptv-prayer-sub">{applied ? "Hanafi" : "Shafi'i"}</span>}
                     <span className="ptv-prayer-state">
                       {state === "next" && "Next"}
@@ -758,7 +755,8 @@ export default function PrayerTimesView() {
                       <thead><tr><th>Date</th>{DISPLAY_TIMINGS.map(name => <th key={name}>{name}</th>)}</tr></thead>
                       <tbody>{timetable.map(day => <tr key={day.date}>
                         <th scope="row"><span>{day.date}</span><small>{day.hijriDate}</small></th>
-                        {DISPLAY_TIMINGS.map(name => <td key={name}>{formatTime(day.timings[name] ?? "-", use12h)}</td>)}
+                        {DISPLAY_TIMINGS.map(name => <td key={name} data-no-translate data-preserve-font
+                          translate="no" lang="en" dir="ltr">{formatTime(day.timings[name] ?? "-", use12h)}</td>)}
                       </tr>)}</tbody>
                     </table>
                   </div>

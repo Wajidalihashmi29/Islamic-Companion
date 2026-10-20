@@ -161,7 +161,7 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
 
   return <section className="faith-panel tasbeeh-experience">
     <div className="faith-intro"><span className="faith-icon"><TasbeehIcon /></span>
-      <div><h2>Digital Tasbeeh</h2><p>Choose a Zikr, set your target, and tap the counter. Your progress stays on this device.</p></div>
+      <div><h2>Digital Tasbeeh</h2></div>
     </div>
     <div className="tasbeeh-studio">
       <aside className="tasbeeh-zikr-panel">
@@ -201,7 +201,6 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
           })}
           <span><strong>{count}</strong><small>of {target}</small></span>
         </button>
-        <p>Tap the bead ring to count</p>
         <div className="tasbeeh-ring-actions">
           <button type="button" onClick={undo} disabled={totalCount === 0}><Undo2 size={17} /> Undo</button>
           <button type="button" onClick={() => {

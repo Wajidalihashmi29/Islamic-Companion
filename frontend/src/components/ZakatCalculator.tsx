@@ -74,7 +74,7 @@ export default function ZakatCalculator() {
 
   return <section className="faith-panel">
     <div className="faith-intro"><span className="faith-icon"><WalletCards /></span>
-      <div><h2>Zakat Calculator</h2><p>Hanafi estimate: enter what you own on your Zakat date. If eligible, Zakat is 2.5% (1/40) of all net zakatable wealth, not only the amount above nisab.</p></div>
+      <div><h2>Zakat Calculator</h2></div>
     </div>
     <div className="metal-price-panel">
       <div className="faith-field"><span>Currency</span><CustomDropdown value={currency}

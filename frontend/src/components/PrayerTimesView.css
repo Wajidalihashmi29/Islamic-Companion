@@ -11,12 +11,15 @@
   --p-gold-ink: #856510;
   --p-display: var(--font-display, "Playfair Display", Georgia, serif);
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   color: var(--p-ink);
   scroll-margin-top: calc(var(--nav-height, 70px) + 20px);
 }
 
-.ptv-card-wrapper { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 30px); }
-.ptv-result { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 28px); animation: ptv-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.ptv-card-wrapper { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 30px); min-width: 0; }
+.ptv-result { display: flex; flex-direction: column; gap: clamp(20px, 3vw, 28px); min-width: 0; animation: ptv-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 .ptv-error {
   margin: 0; padding: 14px 16px; font-size: 0.92rem; line-height: 1.45;
@@ -50,7 +53,7 @@
 .ptv-next-subtitle {
   margin-top: 6px;
   font-size: 1rem; font-weight: 600; color: rgba(245, 247, 246, 0.85);
-  display: flex; align-items: baseline; gap: 6px;
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
 }
 .ptv-next-subtitle strong {
   font-family: var(--p-display); font-size: 1.3rem; color: var(--p-gold-soft);
@@ -80,6 +83,7 @@
 .ptv-location-tag {
   display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 14px;
   font-size: 0.85rem; font-weight: 600; color: #0f4d49; background: #e6f1ee; border-radius: 999px;
+  min-width: 0; max-width: 100%; overflow-wrap: anywhere;
 }
 .ptv-toggle { display: inline-flex; padding: 3px; border-radius: 999px; background: #eef1ee; }
 .ptv-toggle button {

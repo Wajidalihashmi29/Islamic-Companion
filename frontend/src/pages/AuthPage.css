@@ -35,6 +35,8 @@
   align-self: center; /* stops the parent layout from stretching the card */
   color: var(--ac-ink);
   animation: auth-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 @keyframes auth-rise {
@@ -48,6 +50,8 @@
   grid-template-areas: "card";
   width: 100%;
   height: auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .auth-card-face {
@@ -72,6 +76,8 @@
     0 0 0 1px rgba(255, 255, 255, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
   box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   will-change: transform;
@@ -146,8 +152,8 @@
 }
 
 /* ---------- Form & fields ---------- */
-.auth-form { display: flex; flex-direction: column; gap: calc(12 * var(--u)); }
-.field { display: flex; flex-direction: column; gap: 6px; }
+.auth-form { display: flex; flex-direction: column; gap: calc(12 * var(--u)); min-width: 0; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
 .field-header-row {
   display: flex;
@@ -484,8 +490,10 @@
 
 /* ---------- Responsive ---------- */
 @media (max-width: 420px) {
-  .auth-card-face { padding: 22px 18px 18px; border-radius: 20px; }
+  .auth-card-face { padding: 22px 14px 18px; border-radius: 20px; }
   .auth-title { font-size: 22px; }
+  .auth-email-banner,
+  .auth-reset-footer { align-items: stretch; flex-direction: column; }
 }
 
 /* ---------- No page scroll (class is added by AuthPage while mounted) ---------- */
@@ -611,7 +619,7 @@ html.auth-no-scroll body { height: 100%; overflow: hidden; }
 
 .auth-rules {
   display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 8px 12px !important;
   padding: 10px 14px !important;
   border-radius: 12px !important;
@@ -624,6 +632,7 @@ html.auth-no-scroll body { height: 100%; overflow: hidden; }
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
+  min-width: 0;
   font-size: 0.73rem !important;
   color: var(--ac-muted) !important;
   transition: all 0.2s ease !important;
@@ -638,6 +647,14 @@ html.auth-no-scroll body { height: 100%; overflow: hidden; }
 .auth-rules .rule.unmet-mismatch {
   color: #fca5a5 !important;
   font-weight: 600 !important;
+}
+
+@media (max-width: 420px) {
+  .auth-rules { grid-template-columns: minmax(0, 1fr) !important; }
+  .auth-rules .rule {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
 }
 
 /* ---------- OTP & Email banner styles in Reset Password ---------- */
@@ -727,4 +744,3 @@ html.auth-no-scroll body { height: 100%; overflow: hidden; }
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-

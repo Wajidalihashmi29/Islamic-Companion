@@ -1,7 +1,6 @@
 import { jwtDecode } from "jwt-decode";
 import { fetchCloudSettings, saveCloudSettings } from "../api/userSettingsApi";
 import { DEFAULT_QURAN_TYPOGRAPHY, normalizeQuranTypography } from "./quranTypography";
-import { getQuranTranslationForInterfaceLanguage } from "../i18n/contentLanguage";
 import { DEFAULT_QURAN_RECITER, normalizeReciter } from "./quranReciters";
 import { getQuranOfflineCompletionKey } from "./quranOffline";
 import { getOfflineQuranPreferencePatch } from "./offlineQuranPreferences";
@@ -200,11 +199,6 @@ export function loadSettings(userIdentifier?: string | null): AppSettings {
     quran.mushafLines = FIXED_MUSHAF_LINES;
     if (quran.preferredTafseer === "khazain-ul-irfan") quran.preferredTafseer = DEFAULT_SETTINGS.quran.preferredTafseer;
     quran.reciter = normalizeReciter(quran.reciter);
-    quran.preferredTranslation = getQuranTranslationForInterfaceLanguage(
-      general.appLanguage,
-      quran.preferredTranslation,
-    );
-
     const prayer = { ...DEFAULT_SETTINGS.prayer, ...(parsed.prayer || {}) };
     prayer.alertPrayers = normalizePrayerAlertNames(parsed.prayer?.alertPrayers);
 
@@ -361,10 +355,6 @@ export async function syncCloudSettings(userIdentifier?: string | null): Promise
         merged.quran.preferredTafseer = DEFAULT_SETTINGS.quran.preferredTafseer;
       merged.quran.mushafLines = FIXED_MUSHAF_LINES;
       merged.quran.reciter = normalizeReciter(merged.quran.reciter);
-      merged.quran.preferredTranslation = getQuranTranslationForInterfaceLanguage(
-        merged.general.appLanguage,
-        merged.quran.preferredTranslation,
-      );
       localStorage.setItem(key, JSON.stringify(merged));
       if (merged.prayer?.asrSchool) {
         localStorage.setItem("ic.asrSchool", merged.prayer.asrSchool);

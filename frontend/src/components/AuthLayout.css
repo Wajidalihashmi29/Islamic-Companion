@@ -209,6 +209,7 @@
 .auth-main-inner {
   width: 100%;
   max-width: 380px;
+  min-width: 0;
 }
 
 .auth-main-footer {
@@ -241,8 +242,18 @@
 }
 
 @media (max-width: 520px) {
+  .auth-shell {
+    padding-inline: 12px;
+  }
+
   .auth-hero-highlights {
     grid-template-columns: 1fr;
+  }
+
+  .auth-main,
+  .auth-main-inner {
+    min-width: 0;
+    max-width: 100%;
   }
 }
 
