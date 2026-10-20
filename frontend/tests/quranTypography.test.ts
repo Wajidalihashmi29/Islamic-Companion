@@ -20,26 +20,29 @@ test("unsupported Indo-Pak letters and internal pause signs use whole-word fallb
   assert.deepEqual(getQuranTextRuns(source, "uthmani"), [{ text: source, fallback: false }]);
 });
 
-test("previous defaults migrate to 54px Arabic and 36px translation without enlarging them again on reload", () => {
+test("previous defaults migrate to 60px Arabic and 36px translation without enlarging them again on reload", () => {
   const migrated = normalizeQuranTypography({ arabicFontSize: 34, translationFontSize: 28 });
-  assert.deepEqual(migrated, { arabicFontSize: 54, translationFontSize: 36, typographyVersion: 6 });
+  assert.deepEqual(migrated, { arabicFontSize: 60, translationFontSize: 36, typographyVersion: 9 });
   assert.deepEqual(normalizeQuranTypography(migrated), migrated);
   assert.deepEqual(normalizeQuranTypography({}), migrated);
   assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 44, translationFontSize: 32, typographyVersion: 2 }), migrated);
   assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 48, translationFontSize: 32, typographyVersion: 3 }), migrated);
   assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 52, translationFontSize: 32, typographyVersion: 4 }), migrated);
   assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 52, translationFontSize: 36, typographyVersion: 5 }), migrated);
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 54, translationFontSize: 36, typographyVersion: 6 }), migrated);
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 56, translationFontSize: 36, typographyVersion: 7 }), migrated);
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 58, translationFontSize: 36, typographyVersion: 8 }), migrated);
 });
 
 test("custom text sizes survive migration and small user-selected sizes are retained on subsequent loads", () => {
   assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 52, translationFontSize: 20, preferredTranslation: "irfan-ul-quran-ur" }),
-    { arabicFontSize: 52, translationFontSize: 25, typographyVersion: 6 });
+    { arabicFontSize: 52, translationFontSize: 25, typographyVersion: 9 });
   assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 32, translationFontSize: 18, preferredTranslation: "kanzul-iman-en" }),
-    { arabicFontSize: 32, translationFontSize: 18, typographyVersion: 6 });
-  const custom = { arabicFontSize: 34, translationFontSize: 12, typographyVersion: 6 };
+    { arabicFontSize: 32, translationFontSize: 18, typographyVersion: 9 });
+  const custom = { arabicFontSize: 34, translationFontSize: 12, typographyVersion: 9 };
   assert.deepEqual(normalizeQuranTypography(custom), custom);
-  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 100, translationFontSize: 100, typographyVersion: 6 }),
-    { arabicFontSize: 64, translationFontSize: 56, typographyVersion: 6 });
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 100, translationFontSize: 100, typographyVersion: 9 }),
+    { arabicFontSize: 64, translationFontSize: 56, typographyVersion: 9 });
   assert.throws(() => normalizeQuranTypography({ translationFontSize: NaN }), /finite/);
 });
 

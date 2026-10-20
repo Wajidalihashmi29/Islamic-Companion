@@ -549,7 +549,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     }
     let revealFrame = 0;
     const captureFrame = requestAnimationFrame(() => {
-      // Paint the complete incoming paper before fading the retained page.
+      // Paint the complete incoming paper before revealing it beneath the retained page.
       revealFrame = requestAnimationFrame(() => {
         if (paper.current && readingViewport.current)
           retainedPage.current = captureReadingPage(paper.current, readingViewport.current);
@@ -810,8 +810,8 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     retainedPage.current = captureReadingPage(sheet, viewport);
     showReadingPage(surface, retainedPage.current);
     setHasPresentedPage(true);
-    frame.current?.style.setProperty("--quran-page-shift", `${direction * 18}%`);
-    frame.current?.style.setProperty("--quran-page-tilt", `${direction * .35}deg`);
+    frame.current?.style.setProperty("--quran-page-exit",
+      direction > 0 ? "inset(0 0 0 100%)" : "inset(0 100% 0 0)");
   }
   function changePage(number: QuranReaderPageNumber, keepAudio = false,
     direction = number === "dua" || number > pageNumber ? 1 : -1, favorite?: number | null) {

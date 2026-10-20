@@ -68,7 +68,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     preferredTafseer: "sirat-ul-jinan",
     arabicScript: "indopak",
     ...DEFAULT_QURAN_TYPOGRAPHY,
-    reciter: "alafasy",
+    reciter: "shuraim",
   },
   prayer: {
     asrSchool: "hanafi",

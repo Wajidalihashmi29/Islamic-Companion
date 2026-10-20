@@ -15,9 +15,9 @@ export function getQuranTextRuns(text: string, script: "indopak" | "uthmani"): {
 }
 
 export const DEFAULT_QURAN_TYPOGRAPHY = {
-  arabicFontSize: 54,
+  arabicFontSize: 60,
   translationFontSize: 36,
-  typographyVersion: 6,
+  typographyVersion: 9,
 };
 
 export function getQuranLineHeightMultiplier(script: "indopak" | "uthmani", fitMode: boolean) {
@@ -37,6 +37,12 @@ export function normalizeQuranTypography(saved: {
     if (saved.typographyVersion === 2 && arabic === 44) arabic = DEFAULT_QURAN_TYPOGRAPHY.arabicFontSize;
     if (saved.typographyVersion === 3 && arabic === 48) arabic = DEFAULT_QURAN_TYPOGRAPHY.arabicFontSize;
     if ((saved.typographyVersion === 4 || saved.typographyVersion === 5) && arabic === 52)
+      arabic = DEFAULT_QURAN_TYPOGRAPHY.arabicFontSize;
+    if (saved.typographyVersion === 6 && arabic === 54)
+      arabic = DEFAULT_QURAN_TYPOGRAPHY.arabicFontSize;
+    if (saved.typographyVersion === 7 && arabic === 56)
+      arabic = DEFAULT_QURAN_TYPOGRAPHY.arabicFontSize;
+    if (saved.typographyVersion === 8 && arabic === 58)
       arabic = DEFAULT_QURAN_TYPOGRAPHY.arabicFontSize;
     if (saved.typographyVersion !== undefined && saved.typographyVersion >= 2 && translation === 32)
       translation = DEFAULT_QURAN_TYPOGRAPHY.translationFontSize;

@@ -41,7 +41,7 @@
 .quran-page {
   font-family: var(--quran-script-font);
   border: 4px double rgba(139, 111, 71, .5);
-  padding: 6px calc(1em + 6px) 6px 14px;
+  padding: 6px calc(1em + 6px) 2px 14px;
   background: #fffdf9;
   box-shadow: 0 8px 28px rgba(13, 53, 50, .06);
 }
@@ -94,13 +94,13 @@
 .quran-reader--fit .quran-page-margin { font-size: .6em; }
 .quran-reader--fit .quran-surah-banner h2 { font-size: .8em; }
 .quran-reader--fit .quran-surah-stat { font-size: .53em; }
-.quran-reader--fit .quran-page-footer { margin-top: auto; padding: 6px 0 2px; font-size: .5em; }
+.quran-reader--fit .quran-page-footer { margin-top: auto; padding: 4px 0 0; font-size: .5em; }
 .quran-reader--fit .quran-register { padding-block: 1px; }
 .quran-reader--fit .quran-register, .quran-reader--fit .quran-register .quran-arabic-stream { border-bottom-width: 2px; }
 .quran-reader--fit .quran-controls { position: static; flex-shrink: 0; width: 100%; max-width: none; margin-top: 6px; transform: none; box-shadow: none; }
 .quran-fit-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; }
-.quran-page-transition { position: fixed; z-index: 2; overflow: hidden; pointer-events: none; visibility: hidden; transform: translateX(var(--quran-page-shift, 0)) rotate(var(--quran-page-tilt, 0)); transform-origin: center; transition: transform 280ms cubic-bezier(.22, .7, .25, 1), visibility 0s linear 280ms; background: #f5f6f2; box-shadow: 0 8px 28px #12352b24; will-change: transform; }
-.quran-page-transition.is-visible { visibility: visible; transform: translateX(0) rotate(0); transition: none; }
+.quran-page-transition { position: fixed; z-index: 2; overflow: hidden; pointer-events: none; visibility: hidden; clip-path: var(--quran-page-exit, inset(0 0 0 100%)); transition: clip-path 260ms cubic-bezier(.22, .7, .25, 1), visibility 0s linear 260ms; background: #f5f6f2; will-change: clip-path; }
+.quran-page-transition.is-visible { visibility: visible; clip-path: inset(0); transition: none; }
 .quran-reading-viewport[aria-busy="false"] .quran-page-stage--opening { animation: quran-page-open 180ms ease-out; }
 @keyframes quran-page-open { from { opacity: 0; } to { opacity: 1; } }
 .quran-loading-announcement { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
