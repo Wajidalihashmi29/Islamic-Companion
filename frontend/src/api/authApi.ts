@@ -1,4 +1,5 @@
 import axiosClient from "./axiosClient";
+import { getFriendlyErrorMessage } from "../utils/friendlyError";
 
 export interface RegisterPayload {
   email: string;
@@ -53,6 +54,9 @@ export const changePassword = (data: { currentPassword: string; newPassword: str
 
 /** Normalises the API's error shapes (Identity error arrays, { message, code }, 429s) into one message. */
 export function parseApiError(err: unknown, fallback: string): { message: string; code?: string } {
+  const connectionMessage = getFriendlyErrorMessage(err, "");
+  if (connectionMessage) return { message: connectionMessage };
+
   if (err && typeof err === "object" && "response" in err) {
     const response = (err as { response?: { status?: number; data?: unknown } }).response;
 
@@ -76,8 +80,6 @@ export function parseApiError(err: unknown, fallback: string): { message: string
       const { message, code } = data as { message?: string; code?: string };
       return { message: message || fallback, code };
     }
-  } else if (err && typeof err === "object" && "request" in err) {
-    return { message: "We can't reach the server right now. Check your connection and try again." };
   }
 
   return { message: fallback };

@@ -32,3 +32,13 @@ export function getQuranSwipeDirection(dx: number, dy: number, duration: number)
   if (duration > 800 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 2) return 0;
   return dx > 0 ? 1 : -1;
 }
+
+export function startsInSystemGestureZone(clientX: number, clientY: number, viewport: {
+  left: number; top: number; width: number; height: number;
+}): boolean {
+  const edgeWidth = 32;
+  const bottomHeight = 56;
+  return clientX <= viewport.left + edgeWidth ||
+    clientX >= viewport.left + viewport.width - edgeWidth ||
+    clientY >= viewport.top + viewport.height - bottomHeight;
+}

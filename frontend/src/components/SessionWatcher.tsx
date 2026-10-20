@@ -33,7 +33,9 @@ export default function SessionWatcher() {
         if (!disposed && localStorage.getItem("refreshToken")) {
           console.warn("Session renewal will retry when the connection is restored.",
             error instanceof Error ? error.message : "Network request failed.");
-          setError({ token, message: "Your session could not be renewed. Reconnecting automatically…" });
+          setError({ token, message: navigator.onLine
+            ? "Connection interrupted. We’ll reconnect your session automatically."
+            : "You’re offline. Saved content remains available, and your session will reconnect automatically." });
           timer = window.setTimeout(check, 30_000);
         }
       } finally { refreshing = false; }

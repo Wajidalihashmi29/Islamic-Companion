@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection } from "../src/utils/quranScreens.ts";
+import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, startsInSystemGestureZone } from "../src/utils/quranScreens.ts";
 
 test("page turns wrap in both directions without changing ordinary navigation", () => {
   assert.equal(getAdjacentQuranPage(604, 1), 1);
@@ -50,6 +50,15 @@ test("right swipes advance, left swipes go back, and vertical, short and long-pr
   assert.equal(getQuranSwipeDirection(-100, 10, 300), -1);
   for (const [dx, dy, duration] of [[20, 0, 100], [70, 90, 100], [100, 0, 1000], [0, 100, 100]])
     assert.equal(getQuranSwipeDirection(dx, dy, duration), 0);
+});
+
+test("phone edge and bottom navigation gestures never start Quran page turns", () => {
+  const viewport = { left: 0, top: 0, width: 390, height: 844 };
+  assert.equal(startsInSystemGestureZone(12, 400, viewport), true);
+  assert.equal(startsInSystemGestureZone(378, 400, viewport), true);
+  assert.equal(startsInSystemGestureZone(195, 820, viewport), true);
+  assert.equal(startsInSystemGestureZone(80, 400, viewport), false);
+  assert.equal(startsInSystemGestureZone(310, 760, viewport), false);
 });
 
 test("tall mobile paper uses the screen's portrait proportions for larger fitted text", () => {

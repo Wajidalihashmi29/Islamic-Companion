@@ -19,12 +19,13 @@ import { getQuranLineHeightMultiplier, getQuranTextRuns } from "../utils/quranTy
 import { getStorageKeyForUser, loadSettings, saveSettings, RECITERS_OPTIONS, TRANSLATION_OPTIONS, TAFSEER_OPTIONS } from "../utils/settingsStorage";
 import { loadQuranFavoriteSurahs, loadQuranReaderView, loadQuranReadingPage, normalizeQuranSearch, parseAyahReference,
   saveQuranFavoriteSurahs, saveQuranReaderView, saveQuranReadingPage } from "../utils/quranNavigation";
-import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, QURAN_PAGE_ASPECT_RATIO } from "../utils/quranScreens";
+import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, QURAN_PAGE_ASPECT_RATIO, startsInSystemGestureZone } from "../utils/quranScreens";
 import type { QuranReaderPageNumber } from "../utils/quranScreens";
 import { getAdjacentQuranVerse, QuranAudioPlayer } from "../utils/quranAudio";
 import { getCanonicalQuranVerse, getReaderQuranVerse } from "../utils/quranFatihah";
 import { prepareQuranOffline, subscribeQuranOfflineProgress } from "../utils/quranOffline";
 import type { QuranOfflineProgress } from "../utils/quranOffline";
+import { getFriendlyErrorMessage } from "../utils/friendlyError";
 import type { AppSettings } from "../utils/settingsStorage";
 import type { RecitationState } from "../utils/quranAudio";
 import "./Home.css";
@@ -40,8 +41,13 @@ const SURAH_COLOR_GLYPHS =
   "\uFBD3\uFBD4\uFBD6\uFBD7\uFBD9\uFBDA\uFBDC\uFBDD\uFBDF\uFBE0\uFBE2\uFBE3\uFBE5\uFBE6\uFBE8\uFBE9\uFBEB";
 
 function errorMessage(error: unknown, fallback: string) {
-  if (axios.isAxiosError<{ message?: string }>(error)) return error.response?.data?.message || fallback;
-  return error instanceof Error ? error.message : fallback;
+  if (axios.isAxiosError<{ message?: string }>(error)) {
+    const status = error.response?.status;
+    if (status !== undefined && status < 500) return error.response?.data?.message || fallback;
+  }
+  return getFriendlyErrorMessage(error, fallback, {
+    offlineMessage: "This Quran content is not available offline yet. Reconnect once to download it.",
+  });
 }
 
 function captureReadingPage(sheet: HTMLElement, viewport: HTMLElement) {
@@ -548,7 +554,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
         if (paper.current && readingViewport.current)
           retainedPage.current = captureReadingPage(paper.current, readingViewport.current);
         surface.classList.remove("is-visible");
-        transitionTimeout.current = window.setTimeout(() => surface.replaceChildren(), 240);
+        transitionTimeout.current = window.setTimeout(() => surface.replaceChildren(), 300);
       });
     });
     return () => {
@@ -804,7 +810,8 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     retainedPage.current = captureReadingPage(sheet, viewport);
     showReadingPage(surface, retainedPage.current);
     setHasPresentedPage(true);
-    frame.current?.style.setProperty("--quran-page-shift", `${direction * 16}px`);
+    frame.current?.style.setProperty("--quran-page-shift", `${direction * 18}%`);
+    frame.current?.style.setProperty("--quran-page-tilt", `${direction * .35}deg`);
   }
   function changePage(number: QuranReaderPageNumber, keepAudio = false,
     direction = number === "dua" || number > pageNumber ? 1 : -1, favorite?: number | null) {
@@ -901,11 +908,22 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     }
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
+    const visualViewport = window.visualViewport;
+    if (startsInSystemGestureZone(touch.clientX, touch.clientY, visualViewport ? {
+      left: visualViewport.offsetLeft,
+      top: visualViewport.offsetTop,
+      width: visualViewport.width,
+      height: visualViewport.height,
+    } : {
+      left: 0,
+      top: 0,
+      width: window.innerWidth,
+      height: window.innerHeight,
+    })) return;
     if (pageZoom > 1) {
       drag.current = { x: touch.clientX, y: touch.clientY, left: viewport.scrollLeft, top: viewport.scrollTop };
       return;
     }
-    if (touch.clientX < bounds.left + 16 || touch.clientX > bounds.right - 16) return;
     gesture.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
   }
   function moveSwipe(event: TouchEvent<HTMLDivElement>) {

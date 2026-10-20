@@ -7,6 +7,7 @@ import type { PrayerTimesResponse } from "../api/prayerTimesApi";
 import { loadSettings } from "../utils/settingsStorage";
 import { formatHijriDate } from "../utils/hijriDate";
 import GoldenSpiral from "./GoldenSpiral";
+import { getFriendlyErrorMessage } from "../utils/friendlyError";
 import "./PrayerTimesView.css";
 
 const prayerIcons: Record<string, React.ElementType> = {
@@ -213,7 +214,9 @@ export default function PrayerTimesView() {
       setShowSelector(false);
     } catch (err) {
       console.error("Failed to fetch prayer times:", err);
-      setError("Couldn't fetch prayer times for that location. Please try again.");
+      setError(getFriendlyErrorMessage(err, "We couldn't load prayer times for that location. Please check the location and try again.", {
+        offlineMessage: "Prayer times need an internet connection. Reconnect and try again.",
+      }));
     } finally {
       setLoading(false);
     }
