@@ -36,6 +36,16 @@ builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<QuranDataset>();
 builder.Services.AddHttpClient<IPrayerTimesService, AladhanPrayerTimesService>();
 builder.Services.AddHttpClient<IQuranService, QuranService>(client => client.Timeout = TimeSpan.FromSeconds(45));
+builder.Services.AddHttpClient<IHadithService, DawatHadithService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(20);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("IslamicCompanion/1.0");
+});
+builder.Services.AddHttpClient<IMetalPriceService, MetalPriceService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("IslamicCompanion/1.0");
+});
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddEndpointsApiExplorer();

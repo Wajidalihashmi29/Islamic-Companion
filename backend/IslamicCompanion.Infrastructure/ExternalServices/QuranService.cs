@@ -11,7 +11,7 @@ public sealed class QuranService(HttpClient http, IMemoryCache cache, QuranDatas
     private const string QuranApi = "https://api.quran.com/api/v4";
     private static readonly Dictionary<string, int> Reciters = new()
     {
-        ["alafasy"] = 7, ["abdul-basit"] = 2, ["husary"] = 6, ["minshawi"] = 9, ["shuraim"] = 10
+        ["alafasy"] = 7, ["abdul-basit"] = 2, ["husary"] = 6, ["shuraim"] = 10, ["sudais"] = 3
     };
 
     private async Task<JsonElement> Fetch(string url, CancellationToken token)

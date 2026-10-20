@@ -6,6 +6,8 @@
   margin: 0 auto;
   padding: 28px 44px 150px;
   color: #112d2a;
+  direction: ltr;
+  word-spacing: normal;
 }
 .quran-reader:fullscreen { overflow-y: auto; max-width: none; background: #f5f6f2; }
 .quran-reader .home-view-header { flex-wrap: wrap; margin-bottom: 24px; }
@@ -40,6 +42,7 @@
 .quran-completion-text { padding-block: 0; background-image: linear-gradient(to bottom, transparent calc(100% - 1px), var(--quran-rule) calc(100% - 1px)); background-repeat: repeat-y; text-align-last: right; }
 .quran-page {
   font-family: var(--quran-script-font);
+  direction: rtl;
   border: 4px double rgba(139, 111, 71, .5);
   padding: 6px calc(1em + 6px) 2px 14px;
   background: #fffdf9;
@@ -246,10 +249,23 @@
 .quran-toggle-row strong { font-size: 12px; font-weight: 500; }
 .quran-toggle-row small, .quran-menu-note { color: #526b60; font-size: 12px; line-height: 1.6; }
 .quran-menu-note { margin: 0; }
-.quran-toggle-row input { appearance: none; flex-shrink: 0; width: 40px; height: 24px; margin: 0; padding: 3px; border: 1px solid #9cafa5; border-radius: 20px; background: #dce5dc; cursor: pointer; }
+.quran-toggle-row input { appearance: none; direction: ltr; flex-shrink: 0; width: 40px; height: 24px; margin: 0; padding: 3px; border: 1px solid #9cafa5; border-radius: 20px; background: #dce5dc; cursor: pointer; }
 .quran-toggle-row input::before { content: ""; display: block; width: 16px; height: 16px; border-radius: 50%; background: white; box-shadow: 0 1px 3px #12352b33; }
 .quran-toggle-row input:checked { background: #145550; border-color: #145550; }
 .quran-toggle-row input:checked::before { transform: translateX(16px); }
+
+html[lang="ur"] .quran-reader > .home-view-header,
+html[lang="ur"] .quran-reader .quran-controls,
+html[lang="ur"] .quran-drawer {
+  font-family: var(--font-urdu, "Jameel Noori Nastaleeq Regular", "Jameel Noori Nastaleeq", serif);
+  direction: rtl;
+  word-spacing: 0.14em;
+}
+
+html[lang="ur"] .quran-page,
+html[lang="ur"] .quran-page * {
+  word-spacing: normal;
+}
 .quran-menu-actions > button, .quran-menu-actions > a { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 12px; border: 1px solid #dce5dc; border-radius: 10px; background: white; color: #145550; text-decoration: none; font: inherit; text-align: left; cursor: pointer; }
 .quran-menu-actions > button:hover, .quran-menu-actions > a:hover { background: #edf3ed; }
 .quran-menu-actions > :is(button, a) > span { display: grid; flex: 1; min-width: 0; gap: 4px; }

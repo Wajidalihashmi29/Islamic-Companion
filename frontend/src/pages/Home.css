@@ -199,6 +199,121 @@
 
 .home-empty { margin: 8px 0 0; padding: 28px; text-align: center; color: var(--h-body); border: 1px dashed var(--h-line); border-radius: 18px; }
 
+/* Keep Urdu dashboard typography consistent without changing English or Quran geometry. */
+html[lang="ur"] .home-content {
+  word-spacing: 0.2em;
+}
+
+html[lang="ur"] .home-content :where(
+  h1, h2, h3, h4, h5, h6,
+  p, span, strong, small, em, a, button,
+  label, input, textarea
+) {
+  font-family: var(--font-urdu, 'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', serif) !important;
+  font-synthesis: none;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+html[lang="ur"] .home-eyebrow {
+  font-size: 0.9rem;
+  line-height: 1.8;
+  text-transform: none;
+}
+
+html[lang="ur"] .home-date-pill {
+  padding-block: 7px;
+  font-size: 0.9rem;
+  line-height: 1.75;
+}
+
+html[lang="ur"] .home-hero-content {
+  gap: 18px;
+}
+
+html[lang="ur"] .home-hero h1 {
+  font-size: clamp(2.15rem, 3.8vw, 3.15rem);
+  line-height: 1.55;
+}
+
+html[lang="ur"] .home-hero-summary {
+  font-size: 1.08rem;
+  line-height: 2;
+}
+
+html[lang="ur"] .home-hero-explore {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+html[lang="ur"] .home-hero-featured {
+  min-height: 108px;
+}
+
+html[lang="ur"] .home-hero-featured-copy {
+  gap: 6px;
+}
+
+html[lang="ur"] .home-hero-featured-copy strong {
+  font-size: 1.18rem;
+  line-height: 1.8;
+}
+
+html[lang="ur"] .home-hero-featured-copy > span {
+  font-size: 0.94rem;
+  line-height: 1.9;
+}
+
+html[lang="ur"] .home-section-header h2,
+html[lang="ur"] .home-view-header h1 {
+  line-height: 1.7;
+}
+
+html[lang="ur"] .home-section-header p {
+  font-size: 1.05rem;
+  line-height: 1.9;
+}
+
+html[lang="ur"] .home-chip {
+  padding-inline: 18px;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+html[lang="ur"] .home-chip span {
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+html[lang="ur"] .home-card {
+  min-height: 210px;
+  gap: 20px;
+  text-align: right;
+}
+
+html[lang="ur"] .home-card-badge {
+  padding-block: 7px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+html[lang="ur"] .home-card-body h3 {
+  margin-bottom: 9px;
+  font-size: 1.34rem;
+  line-height: 1.8;
+}
+
+html[lang="ur"] .home-card-body p {
+  font-size: 1rem;
+  line-height: 2;
+}
+
+html[lang="ur"] .home-card-cta {
+  gap: 10px;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
 @keyframes home-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -220,6 +335,7 @@
   .home-hero-featured { gap: 10px; padding: 14px; }
   .home-grid { grid-template-columns: 1fr; }
   .home-card { min-height: 0; }
+  html[lang="ur"] .home-card { min-height: 0; padding: 20px; }
   .home-filters { width: 100%; }
   .home-chip { flex: 1 1 auto; justify-content: center; }
 }

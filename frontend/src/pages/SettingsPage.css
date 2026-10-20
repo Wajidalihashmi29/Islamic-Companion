@@ -303,6 +303,52 @@
   color: var(--s-body);
 }
 
+html[lang="ur"] .settings-container {
+  gap: 30px;
+}
+
+html[lang="ur"] .settings-section {
+  gap: 28px;
+}
+
+html[lang="ur"] .settings-card:not(.settings-preview-card) {
+  gap: 28px;
+}
+
+html[lang="ur"] .settings-card:not(.settings-preview-card) .settings-card-header {
+  gap: 18px;
+  padding-bottom: 20px;
+}
+
+html[lang="ur"] .settings-card:not(.settings-preview-card) .settings-card-header h2 {
+  margin-bottom: 6px;
+  font-size: 1.55rem;
+  line-height: 1.9;
+}
+
+html[lang="ur"] .settings-card:not(.settings-preview-card) .settings-card-header p {
+  font-size: 1rem;
+  line-height: 2.15;
+}
+
+html[lang="ur"] .settings-card:not(.settings-preview-card) .settings-field-group {
+  gap: 13px;
+}
+
+html[lang="ur"] .settings-card:not(.settings-preview-card) .settings-label {
+  gap: 6px;
+}
+
+html[lang="ur"] .settings-card:not(.settings-preview-card) .settings-label span {
+  font-size: 1.08rem;
+  line-height: 2;
+}
+
+html[lang="ur"] .settings-card:not(.settings-preview-card) .settings-label small {
+  font-size: 0.96rem;
+  line-height: 2.1;
+}
+
 /* ---------- Structured Selection Cards (Mushaf & Calligraphy) ---------- */
 .selection-card-grid {
   display: grid;
@@ -984,6 +1030,23 @@ input:checked + .slider:before {
   font-size: 0.85rem;
   font-weight: 600;
   width: fit-content;
+}
+
+html[lang="ur"] .settings-button-group {
+  gap: 12px;
+}
+
+html[lang="ur"] .btn-choice {
+  min-height: 60px;
+  padding: 10px 22px;
+  font-size: 1rem;
+  line-height: 1.9;
+}
+
+html[lang="ur"] .hijri-live-badge {
+  padding: 9px 18px;
+  font-size: 0.98rem;
+  line-height: 1.9;
 }
 
 /* ---------- Account Tab ---------- */
@@ -2007,4 +2070,3 @@ input:checked + .slider:before {
     width: 100%;
   }
 }
-

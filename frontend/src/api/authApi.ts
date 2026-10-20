@@ -66,19 +66,39 @@ export function parseApiError(err: unknown, fallback: string): { message: string
 
     const data = response?.data;
     if (Array.isArray(data)) {
-      const details = (data as { code?: string; description?: string }[])
-        .map((e) => e.description || e.code)
-        .filter(Boolean)
-        .join(" ");
-      if (/already taken/i.test(details)) {
+      const codes = (data as { code?: string }[]).map(error => error.code ?? "");
+      if (codes.some(code => /duplicateemail|duplicateusername/i.test(code))) {
         return { message: "That email is already registered. Try signing in instead.", code: "duplicate_email" };
       }
-      return { message: details || fallback };
+      if (codes.some(code => /passwordmismatch/i.test(code))) {
+        return { message: "Your current password is incorrect. Please try again.", code: "password_mismatch" };
+      }
+      if (codes.some(code => /^password/i.test(code))) {
+        return { message: "Choose a stronger password that meets all the listed requirements.", code: "weak_password" };
+      }
+      if (codes.some(code => /invalidtoken/i.test(code))) {
+        return { message: "This link or verification code is invalid or has expired.", code: "invalid_token" };
+      }
+      return { message: fallback };
     }
 
     if (data && typeof data === "object" && "message" in data) {
       const { message, code } = data as { message?: string; code?: string };
-      return { message: message || fallback, code };
+      if (code === "email_not_confirmed") {
+        return { message: "Please verify your email before signing in. Check your inbox.", code };
+      }
+      const safeMessage = [
+        /verification link is incomplete/i,
+        /verification link is invalid or has expired/i,
+        /email is already verified/i,
+        /verification code has expired/i,
+        /invalid verification code/i,
+        /please enter your email and the 6-digit verification code/i,
+        /google sign-in/i,
+        /google account email isn't verified/i,
+        /session expired/i,
+      ].some(pattern => pattern.test(message ?? "")) ? message : fallback;
+      return { message: safeMessage || fallback, code };
     }
   }
 

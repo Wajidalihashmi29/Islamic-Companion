@@ -1,28 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowDown, ArrowLeft, ArrowRight, BookOpen, Calendar, Clock, Moon } from "lucide-react";
-import { features, getFeature } from "../config/features";
+import { ArrowDown, ArrowRight, BookOpen, Calendar, Clock, Moon } from "lucide-react";
+import { features, getFeature, getFeaturePath } from "../config/features";
 import { useAuth } from "../context/AuthContext";
 import { loadSettings } from "../utils/settingsStorage";
 import { formatHijriDate } from "../utils/hijriDate";
+import { getInterfaceLocale } from "../i18n/interfaceTranslations";
 import TopNav from "../components/TopNav";
-import PrayerTimesView from "../components/PrayerTimesView";
-import UnderConstructionModal from "../components/UnderConstructionModal";
 import GoldenSpiral from "../components/GoldenSpiral";
 import "./Home.css";
 
 export default function Home() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialView = searchParams.get("view") || "dashboard";
-  const [activeView, setActiveView] = useState(initialView);
-  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
   const { logout, user } = useAuth();
   const navigate = useNavigate();
-
-  const [currentDateString, setCurrentDateString] = useState("");
-  const [hijriDateString, setHijriDateString] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "soon">("all");
+  const requestedView = searchParams.get("view");
 
   useEffect(() => {
     // Disable native browser scroll restoration so it doesn't try to scroll down
@@ -33,25 +27,15 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // Sync view with URL query param if present
-    const viewParam = searchParams.get("view");
-    if (viewParam === "prayer") {
-      setActiveView("prayer");
-    } else if (!viewParam || viewParam === "dashboard") {
-      setActiveView("dashboard");
-    }
-  }, [searchParams]);
+    const legacyFeature = requestedView ? getFeature(requestedView) : undefined;
+    if (legacyFeature?.available) navigate(getFeaturePath(legacyFeature.id), { replace: true });
+  }, [navigate, requestedView]);
 
-  useEffect(() => {
-    // Always start at the top when rendering a new view or reloading the page
-    window.scrollTo(0, 0);
-  }, [activeView]);
-
-  const [settingsVersion, setSettingsVersion] = useState(0);
+  const [settings, setSettings] = useState(() => loadSettings());
 
   useEffect(() => {
     const handleSettingsUpdated = () => {
-      setSettingsVersion((v) => v + 1);
+      setSettings(loadSettings());
     };
     window.addEventListener("ic:settingsUpdated", handleSettingsUpdated);
     return () => {
@@ -59,21 +43,21 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    const settings = loadSettings();
+  const { currentDateString, hijriDateString } = useMemo(() => {
     const offset = settings.general.hijriAdjustment || 0;
+    const language = settings.general.appLanguage;
 
     const now = new Date();
-    const formatted = now.toLocaleDateString("en-US", {
+    return {
+      currentDateString: now.toLocaleDateString(getInterfaceLocale(language), {
       weekday: "long",
       year: "numeric",
       month: "long",
       day: "numeric",
-    });
-    setCurrentDateString(formatted);
-
-    setHijriDateString(formatHijriDate(now, offset));
-  }, [searchParams, settingsVersion]);
+      }),
+      hijriDateString: formatHijriDate(now, offset, language),
+    };
+  }, [settings.general.appLanguage, settings.general.hijriAdjustment]);
 
   const activeCount = features.filter((f) => f.available).length;
   const soonCount = features.length - activeCount;
@@ -92,47 +76,10 @@ export default function Home() {
   };
 
   const handleNavChange = (viewId: string) => {
-    if (viewId === "quran") {
-      navigate("/quran");
-    } else if (viewId === "dashboard") {
-      setActiveView("dashboard");
-      setSearchParams({});
-    } else if (viewId === "prayer") {
-      setActiveView("prayer");
-      setSearchParams({ view: "prayer" });
-    } else {
-      const feat = getFeature(viewId);
-      if (feat) {
-        setActiveModal(feat.label);
-      }
-    }
+    navigate(getFeaturePath(viewId));
   };
 
   const renderView = () => {
-    if (activeView === "prayer") {
-      return (
-        <div className="home-view">
-          <header className="home-view-header">
-            <button
-              className="home-back-btn"
-              onClick={() => {
-                setActiveView("dashboard");
-                setSearchParams({});
-              }}
-              aria-label="Back to dashboard"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <div>
-              <span className="home-eyebrow">Daily Schedule</span>
-              <h1>Prayer Times</h1>
-            </div>
-          </header>
-          <PrayerTimesView />
-        </div>
-      );
-    }
-
     return (
       <div className="home-main">
         {/* Welcome hero */}
@@ -180,7 +127,7 @@ export default function Home() {
               </span>
               <ArrowRight size={18} aria-hidden="true" />
             </Link>
-            <Link className="home-hero-featured" to="/?view=prayer">
+            <Link className="home-hero-featured" to="/prayer">
               <span className="home-hero-featured-icon" aria-hidden="true"><Clock size={22} /></span>
               <span className="home-hero-featured-copy">
                 <strong>Prayer Times</strong>
@@ -206,7 +153,7 @@ export default function Home() {
                   ["active", "Active", activeCount],
                   ["soon", "Coming soon", soonCount],
                 ] as const
-              ).map(([key, label, count]) => (
+              ).filter(([, , count]) => count > 0).map(([key, label, count]) => (
                 <button
                   key={key}
                   type="button"
@@ -229,13 +176,7 @@ export default function Home() {
                   style={{ "--i": i } as CSSProperties}
                   aria-label={`${label}${available ? "" : " (coming soon)"}`}
                   onClick={() => {
-                    if (id === "quran") {
-                      navigate("/quran");
-                    } else if (id === "prayer") {
-                      setActiveView("prayer");
-                    } else {
-                      setActiveModal(label);
-                    }
+                    if (available) navigate(getFeaturePath(id));
                   }}
                 >
                   <div className="home-card-header">
@@ -269,20 +210,13 @@ export default function Home() {
   return (
     <div className="home-page">
       <TopNav
-        activeView={activeView}
+        activeView="dashboard"
         onViewChange={handleNavChange}
         onLogout={handleLogout}
         onSettingsClick={() => navigate("/settings")}
       />
 
       <main className="home-content">{renderView()}</main>
-
-      {activeModal && (
-        <UnderConstructionModal
-          featureName={activeModal}
-          onClose={() => setActiveModal(null)}
-        />
-      )}
     </div>
   );
 }

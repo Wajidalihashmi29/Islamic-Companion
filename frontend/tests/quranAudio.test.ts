@@ -174,7 +174,7 @@ test("a failed next-Ayah preload leaves current audio playing and is retried wit
     assert.equal(warnings.length, 1);
     a.finish(); await settle();
     assert.equal(nextRequests, 2);
-    assert.equal(states.at(-1)?.error, "Recitation provider unavailable.");
+    assert.equal(states.at(-1)?.error, "Unable to play this recitation. Please try again or choose another reciter.");
     assert.equal(states.at(-1)?.playing, false);
     assert.equal(states.at(-1)?.verseKey, null);
   } finally { player.dispose(); console.warn = originalWarn; }

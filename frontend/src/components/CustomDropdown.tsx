@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useId } from "react";
 import { ChevronDown, Check, Star } from "lucide-react";
 import "./CustomDropdown.css";
 
@@ -32,7 +32,11 @@ export default function CustomDropdown<T extends string | number>({
   placeholder = "Select an option",
 }: CustomDropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
+  const [opensUp, setOpensUp] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const generatedId = useId();
+  const menuId = `${id ?? generatedId}-menu`;
 
   const selectedOption = options.find((o) => String(o.id) === String(value));
 
@@ -49,6 +53,14 @@ export default function CustomDropdown<T extends string | number>({
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    requestAnimationFrame(() => {
+      menuRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
+        ?.scrollIntoView({ block: "nearest" });
+    });
   }, [isOpen]);
 
   // Close on Escape key
@@ -71,14 +83,24 @@ export default function CustomDropdown<T extends string | number>({
     setIsOpen(false);
   };
 
+  const toggleDropdown = () => {
+    if (!isOpen && containerRef.current) {
+      const bounds = containerRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - bounds.bottom;
+      setOpensUp(spaceBelow < 320 && bounds.top > spaceBelow);
+    }
+    setIsOpen(previous => !previous);
+  };
+
   return (
-    <div className={`c-dropdown ${isOpen ? "is-open" : ""}`} ref={containerRef} id={id}>
+    <div className={`c-dropdown ${isOpen ? "is-open" : ""} ${opensUp ? "opens-up" : ""}`} ref={containerRef} id={id}>
       <button
         type="button"
-        className="c-dropdown-trigger"
-        onClick={() => setIsOpen((prev) => !prev)}
+        className={`c-dropdown-trigger ${selectedOption?.sub ? "has-sub" : ""}`}
+        onClick={toggleDropdown}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
+        aria-controls={menuId}
         aria-label={label}
       >
         <div className="c-dropdown-trigger-content">
@@ -91,15 +113,17 @@ export default function CustomDropdown<T extends string | number>({
             {selectedOption ? (
               <>
                 <div className="c-dropdown-selected-title">
-                  {selectedOption.recommended && (
-                    <span className="c-dropdown-star-badge" title="Recommended">
-                      <Star size={12} fill="#e0b84f" stroke="#c99a2e" />
-                      <span>Recommended</span>
-                    </span>
-                  )}
-                  {selectedOption.lang && (
-                    <span className="c-dropdown-lang-tag">[{selectedOption.lang}]</span>
-                  )}
+                  <div className="c-dropdown-badges">
+                    {selectedOption.recommended && (
+                      <span className="c-dropdown-star-badge" title="Recommended">
+                        <Star size={12} fill="#e0b84f" stroke="#c99a2e" />
+                        <span>Recommended</span>
+                      </span>
+                    )}
+                    {selectedOption.lang && (
+                      <span className="c-dropdown-lang-tag">[{selectedOption.lang}]</span>
+                    )}
+                  </div>
                   <span className="c-dropdown-selected-name">
                     {selectedOption.name}
                     {selectedOption.urduName && (
@@ -123,7 +147,7 @@ export default function CustomDropdown<T extends string | number>({
       </button>
 
       {isOpen && (
-        <div className="c-dropdown-menu" role="listbox">
+        <div className="c-dropdown-menu" role="listbox" id={menuId} aria-label={label} ref={menuRef}>
           <div className="c-dropdown-options-list">
             {options.map((option) => {
               const isSelected = String(option.id) === String(value);
@@ -134,20 +158,22 @@ export default function CustomDropdown<T extends string | number>({
                   role="option"
                   aria-selected={isSelected}
                   disabled={option.disabled}
-                  className={`c-dropdown-item ${isSelected ? "is-selected" : ""}`}
+                  className={`c-dropdown-item ${isSelected ? "is-selected" : ""} ${option.sub ? "has-sub" : ""}`}
                   onClick={() => handleSelect(option.id)}
                 >
                   <div className="c-dropdown-item-content">
                     <div className="c-dropdown-item-header">
-                      {option.recommended && (
-                        <span className="c-dropdown-star-badge">
-                          <Star size={11} fill="#e0b84f" stroke="#c99a2e" />
-                          <span>Recommended</span>
-                        </span>
-                      )}
-                      {option.lang && (
-                        <span className="c-dropdown-lang-tag">[{option.lang}]</span>
-                      )}
+                      <div className="c-dropdown-badges">
+                        {option.recommended && (
+                          <span className="c-dropdown-star-badge">
+                            <Star size={11} fill="#e0b84f" stroke="#c99a2e" />
+                            <span>Recommended</span>
+                          </span>
+                        )}
+                        {option.lang && (
+                          <span className="c-dropdown-lang-tag">[{option.lang}]</span>
+                        )}
+                      </div>
                       <span className="c-dropdown-item-name">
                         {option.name}
                         {option.urduName && (

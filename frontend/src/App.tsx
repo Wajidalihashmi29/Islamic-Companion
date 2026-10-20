@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import SettingsPage from "./pages/SettingsPage";
 import SessionWatcher from "./components/SessionWatcher";
 import QuranReaderPage from "./pages/QuranReaderPage";
+import FeaturePage from "./pages/FeaturePage";
 
 function App() {
   return (
@@ -15,6 +16,11 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/quran" element={<QuranReaderPage />} />
+        <Route path="/prayer" element={<FeaturePage featureId="prayer" />} />
+        <Route path="/qibla" element={<FeaturePage featureId="qibla" />} />
+        <Route path="/hadith" element={<FeaturePage featureId="hadith" />} />
+        <Route path="/zakat" element={<FeaturePage featureId="zakat" />} />
+        <Route path="/favorites" element={<FeaturePage featureId="favorites" />} />
         <Route path="/login" element={<AuthPage />} />
         <Route path="/register" element={<AuthPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />

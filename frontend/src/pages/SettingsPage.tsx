@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -35,8 +35,10 @@ import QuranText from "../components/QuranText";
 import CustomDropdown, { type DropdownOption } from "../components/CustomDropdown";
 import { useAuth } from "../context/AuthContext";
 import { changePassword, forgotPassword, parseApiError, resetPassword } from "../api/authApi";
-import { normalizeIndoPakText } from "../utils/quranTypography";
+import { getQuranLineHeightMultiplier, normalizeIndoPakText } from "../utils/quranTypography";
+import { QURAN_DEFAULT_FIT_WIDTH } from "../utils/quranScreens";
 import { formatHijriDate } from "../utils/hijriDate";
+import { getQuranTranslationForInterfaceLanguage } from "../i18n/contentLanguage";
 import {
   loadSettings,
   saveSettings,
@@ -67,8 +69,8 @@ const SETTINGS_TABS: SettingsTabConfig[] = [
 
 const LANGUAGE_OPTIONS: DropdownOption[] = [
   { id: "en", name: "English (US)", sub: "Default application interface" },
-  { id: "ur", name: "اردو — Urdu", sub: "مکمل اردو انٹرفیس (Coming soon)" },
-  { id: "hi", name: "हिन्दी — Hindi", sub: "सम्पूर्ण हिन्दी इंटरफेस (Coming soon)" },
+  { id: "ur", name: "اردو — Urdu", sub: "Complete Urdu application interface" },
+  { id: "hi", name: "हिन्दी — Hindi", sub: "Hindi interface with Urdu religious content where Hindi is unavailable" },
 ];
 
 interface PreviewVerseLine {
@@ -286,8 +288,20 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<AppSettings>(() => loadSettings(userIdentifier));
   const [savedNotice, setSavedNotice] = useState(false);
   const [previewVerseKey, setPreviewVerseKey] = useState<"kursi" | "fatiha">("kursi");
+  const previewPage = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
   const [syncingCloud, setSyncingCloud] = useState(false);
   const [cloudSyncedNotice, setCloudSyncedNotice] = useState(false);
+
+  useEffect(() => {
+    const page = previewPage.current;
+    if (!page) return;
+    const updateScale = () => setPreviewScale(Math.min(1, page.clientWidth / QURAN_DEFAULT_FIT_WIDTH));
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(page);
+    updateScale();
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -443,7 +457,8 @@ export default function SettingsPage() {
     setTimeout(() => setSavedNotice(false), 2000);
   };
 
-  const getLiveHijri = (offset: number) => formatHijriDate(new Date(), offset);
+  const getLiveHijri = (offset: number) =>
+    formatHijriDate(new Date(), offset, settings.general.appLanguage);
 
   const selectedLang =
     settings.quran.preferredTranslation.includes("-ur")
@@ -480,10 +495,7 @@ export default function SettingsPage() {
       <TopNav
         activeView="settings"
         onViewChange={(view) => {
-          if (view === "dashboard") navigate("/");
-          else if (view === "prayer") navigate("/?view=prayer");
-          else if (view === "quran") navigate("/quran");
-          else navigate(`/?view=${view}`);
+          navigate(view === "dashboard" ? "/" : `/${view}`);
         }}
         onLogout={handleLogout}
         onSettingsClick={() => {}}
@@ -560,60 +572,15 @@ export default function SettingsPage() {
         {/* Tab 1: Quran Preferences */}
         {activeTab === "quran" && (
           <section className="settings-section">
-            {/* Card 1: Page Format & Calligraphy */}
+            {/* Card 1: Quran Appearance & Calligraphy */}
             <div className="settings-card">
               <div className="settings-card-header">
                 <div className="settings-card-icon">
                   <BookOpen size={22} />
                 </div>
                 <div>
-                  <h2>Mushaf Page Format & Calligraphy</h2>
-                  <p>Configure traditional page layout, script styles, and text sizing for comfortable tilawat.</p>
-                </div>
-              </div>
-
-              {/* Mushaf Format */}
-              <div className="settings-field-group">
-                <label className="settings-label">
-                  <span>Mushaf Page Layout</span>
-                  <small>Standard printed page structure for tilawat and hifz</small>
-                </label>
-                <div className="selection-card-grid">
-                  <button
-                    type="button"
-                    className={`selection-option-card ${settings.quran.mushafLines === 16 ? "is-selected" : ""}`}
-                    onClick={() =>
-                      updateSettings((prev) => ({
-                        ...prev,
-                        quran: { ...prev.quran, mushafLines: 16 },
-                      }))
-                    }
-                  >
-                    <div className="selection-card-indicator">
-                      <span className="indicator-dot" />
-                    </div>
-                    <div className="selection-card-body">
-                      <div className="selection-card-title">16-Line Standard (Indo-Pak)</div>                  
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    className={`selection-option-card ${settings.quran.mushafLines === 15 ? "is-selected" : ""}`}
-                    onClick={() =>
-                      updateSettings((prev) => ({
-                        ...prev,
-                        quran: { ...prev.quran, mushafLines: 15 },
-                      }))
-                    }
-                  >
-                    <div className="selection-card-indicator">
-                      <span className="indicator-dot" />
-                    </div>
-                    <div className="selection-card-body">
-                      <div className="selection-card-title">15-Line Standard (Madani / Huffaz)</div>
-                    </div>
-                  </button>
+                  <h2>Quran Appearance & Calligraphy</h2>
+                  <p>Configure script styles and text sizing for the fixed whole-page reader.</p>
                 </div>
               </div>
 
@@ -703,7 +670,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="stepper-meta-text">
                       <span className="stepper-title">Arabic Qur'an Size</span>
-                      <span className="stepper-val-pill">{settings.quran.arabicFontSize}px</span>
+                      <span className="stepper-val-pill">{`${settings.quran.arabicFontSize}px`}</span>
                     </div>
                   </div>
                   <div className="stepper-controls-row">
@@ -768,7 +735,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="stepper-meta-text">
                       <span className="stepper-title">Translation Text Size</span>
-                      <span className="stepper-val-pill">{settings.quran.translationFontSize}px</span>
+                      <span className="stepper-val-pill">{`${settings.quran.translationFontSize}px`}</span>
                     </div>
                   </div>
                   <div className="stepper-controls-row">
@@ -846,8 +813,7 @@ export default function SettingsPage() {
                 <div className="settings-toggle-text">
                   <strong>Show Interlinear Translation</strong>
                   <p>
-                    When enabled, the translation appears directly under every line of Arabic text (
-                    <span className="urdu-text">سطر بہ سطر ترجمہ</span>).
+                    When enabled, the translation appears directly under every line of Arabic text.
                   </p>
                 </div>
                 <label className="settings-switch">
@@ -868,9 +834,7 @@ export default function SettingsPage() {
               {/* Preferred Translation */}
               <div className="settings-field-group">
                 <label className="settings-label" htmlFor="preferred-translation-select">
-                  <span>
-                    Preferred Translation (<span className="urdu-text">ترجمہ</span>)
-                  </span>
+                  <span>Preferred Translation</span>
                 </label>
                 <CustomDropdown
                   id="preferred-translation-select"
@@ -889,9 +853,7 @@ export default function SettingsPage() {
               {/* Preferred Tafseer */}
               <div className="settings-field-group">
                 <label className="settings-label" htmlFor="preferred-tafseer-select">
-                  <span>
-                    Preferred Tafseer (<span className="urdu-text">تفسیر</span>)
-                  </span>
+                  <span>Preferred Tafseer</span>
                 </label>
                 <CustomDropdown
                   id="preferred-tafseer-select"
@@ -910,9 +872,7 @@ export default function SettingsPage() {
               {/* Reciter */}
               <div className="settings-field-group">
                 <label className="settings-label" htmlFor="preferred-reciter-select">
-                  <span>
-                    Default Reciter (<span className="urdu-text">قاری</span>)
-                  </span>
+                  <span>Default Reciter</span>
                 </label>
                 <CustomDropdown
                   id="preferred-reciter-select"
@@ -935,8 +895,8 @@ export default function SettingsPage() {
                   <Sparkles size={22} />
                 </div>
                 <div>
-                  <h2>Mushaf Page Preview</h2>
-                  <p>Showing your selected calligraphy, interlinear translation.</p>
+                  <h2>Fixed-Page Preview</h2>
+                  <p>Matches the default whole-page mobile reader with your selected calligraphy and translation.</p>
                 </div>
               </div>
 
@@ -944,7 +904,7 @@ export default function SettingsPage() {
                 <div className="preview-header-bar">
                   <div className="preview-badge">
                     <Sparkles size={13} />
-                    <span>Live Interlinear Preview</span>
+                    <span>Live Fixed-Page Preview</span>
                   </div>
                   <div className="preview-verse-chips">
                     <button
@@ -965,18 +925,11 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="mushaf-interlinear-container">
-                  <div className="mushaf-page-frame">
+                  <div className="mushaf-page-frame" ref={previewPage}>
                     <div className="mushaf-frame-header">
                       <span className="mushaf-frame-title">{PREVIEW_VERSES[previewVerseKey].title}</span>
                       <span className="mushaf-frame-badge">
-                        {settings.quran.mushafLines}-Line Mushaf •{" "}
-                        {settings.quran.showTranslation ? (
-                          <>
-                            <span className="urdu-text">سطر بہ سطر ترجمہ</span> (Under Each Line)
-                          </>
-                        ) : (
-                          <span className="urdu-text">خالص تلاوت</span>
-                        )}
+                        {`Fixed whole page · ${settings.quran.showTranslation ? "Under each line" : "Arabic only"}`}
                       </span>
                     </div>
 
@@ -993,9 +946,15 @@ export default function SettingsPage() {
                               className={`mushaf-arabic-line ${
                                 settings.quran.arabicScript === "indopak" ? "font-indopak" : "font-uthmani"
                               }`}
-                              style={{ fontSize: `${settings.quran.arabicFontSize}px` }}
+                              lang="ar"
+                              data-no-translate
+                              style={{
+                                fontSize: `${settings.quran.arabicFontSize * previewScale}px`,
+                                lineHeight: `${settings.quran.arabicFontSize *
+                                  getQuranLineHeightMultiplier(settings.quran.arabicScript, true) * previewScale}px`,
+                              }}
                             >
-                              <span className="mushaf-arabic-content">
+                              <span className="mushaf-arabic-content" lang="ar">
                                 <QuranText text={settings.quran.arabicScript === "indopak"
                                   ? cleanIndoPakScript(lineItem.indopak)
                                   : lineItem.uthmani} script={settings.quran.arabicScript} />
@@ -1003,7 +962,7 @@ export default function SettingsPage() {
                                   <AyahMedallion
                                     number={lineItem.ayahNumber}
                                     isIndoPak={settings.quran.arabicScript === "indopak"}
-                                    size={Math.max(38, Math.round(settings.quran.arabicFontSize * 1.25))}
+                                    size={Math.max(32, settings.quran.arabicFontSize) * previewScale}
                                   />
                                 )}
                               </span>
@@ -1014,7 +973,7 @@ export default function SettingsPage() {
                               <div
                                 className={`mushaf-trans-line ${selectedLang}`}
                                 style={{
-                                  fontSize: `${settings.quran.translationFontSize}px`,
+                                  fontSize: `${settings.quran.translationFontSize * previewScale}px`,
                                 }}
                               >
                                 {translationText}
@@ -1647,12 +1606,20 @@ export default function SettingsPage() {
                   id="app-language-select"
                   value={settings.general.appLanguage}
                   options={LANGUAGE_OPTIONS}
-                  onChange={(val) =>
+                  onChange={(val) => {
+                    const appLanguage = String(val);
                     updateSettings((prev) => ({
                       ...prev,
-                      general: { ...prev.general, appLanguage: String(val) },
-                    }))
-                  }
+                      quran: {
+                        ...prev.quran,
+                        preferredTranslation: getQuranTranslationForInterfaceLanguage(
+                          appLanguage,
+                          prev.quran.preferredTranslation,
+                        ),
+                      },
+                      general: { ...prev.general, appLanguage },
+                    }));
+                  }}
                 />
               </div>
 
@@ -1668,8 +1635,8 @@ export default function SettingsPage() {
                   </strong>
                   <p>
                     {isAuthenticated && (user?.name || user?.email)
-                      ? `Reverts saved settings for ${user.name || user.email} to recommended defaults (Kanzul Iman translation hidden, 16-line Indo-Pak Mushaf, Sirat-ul-Jinan Tafseer, and Hanafi prayer timing).`
-                      : "Reverts all settings on this browser to default preferences (Kanzul Iman translation hidden, 16-line Indo-Pak Mushaf, Sirat-ul-Jinan Tafseer, and Hanafi prayer timing)."}
+                      ? `Reverts saved settings for ${user.name || user.email} to recommended defaults (Kanzul Iman translation hidden, Indo-Pak script, Sirat-ul-Jinan Tafseer, and Hanafi prayer timing).`
+                      : "Reverts all settings on this browser to default preferences (Kanzul Iman translation hidden, Indo-Pak script, Sirat-ul-Jinan Tafseer, and Hanafi prayer timing)."}
                   </p>
                 </div>
                 <button

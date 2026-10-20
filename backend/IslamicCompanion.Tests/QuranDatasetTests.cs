@@ -156,8 +156,11 @@ public sealed class QuranDatasetTests(QuranDatasetFixture fixture) : IClassFixtu
             service.GetTafseerAsync(1, 1, "ibn-kathir", CancellationToken.None));
         Assert.Equal(0, handler.Requests);
         Assert.NotEmpty((await service.GetTafseerAsync(1, 1, "sirat-ul-jinan", CancellationToken.None)).Text);
+        await Assert.ThrowsAsync<QuranOptionException>(() =>
+            service.GetAudioAsync(1, 1, "minshawi", CancellationToken.None));
+        Assert.Equal(0, handler.Requests);
         await Assert.ThrowsAsync<HttpRequestException>(() =>
-            service.GetAudioAsync(1, 1, "alafasy", CancellationToken.None));
+            service.GetAudioAsync(1, 1, "sudais", CancellationToken.None));
         Assert.Equal(1, handler.Requests);
         Assert.NotEmpty((await service.GetPageAsync(604, "kanzul-iman-en", 16, CancellationToken.None)).Lines);
     }

@@ -72,6 +72,7 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  size-adjust: 125%;
 }
 
 @font-face {
@@ -83,6 +84,7 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  size-adjust: 125%;
 }
 
 @font-face {
@@ -93,10 +95,115 @@
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+  size-adjust: 125%;
 }
 
 .quran-indopak-fallback {
   font-family: 'IndopakNastaleeq', 'AlQuran IndoPak by QuranWBW', serif;
+}
+
+html[lang="ur"] body {
+  font-family: var(--font-urdu, 'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', serif);
+  word-spacing: 0.26em;
+  font-synthesis: none;
+}
+
+html[lang="ur"] body :where(
+  h1, h2, h3, h4, h5, h6,
+  p, span, strong, small, label, a, button, li,
+  input, textarea, select, option
+):not([lang="ar"]):not(.ayah-num):not(.quran-reader *):not(.settings-preview-card *):not(.selection-card-preview-box *) {
+  font-family: var(--font-urdu, 'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', serif) !important;
+  font-synthesis: none;
+  line-height: 2.15;
+  letter-spacing: 0;
+  word-spacing: 0.26em;
+}
+
+html[lang="ur"] body :where(h1, h2, h3, h4, h5, h6):not(.quran-reader *) {
+  line-height: 1.9;
+}
+
+html[lang="ur"] .auth-hero-brand,
+html[lang="ur"] .auth-main-brand,
+html[lang="ur"] .auth-hero-copy em {
+  font-family: 'Inter', system-ui, sans-serif !important;
+  direction: ltr;
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+html[lang="ur"] .top-nav-logo {
+  line-height: normal;
+}
+
+html[lang="ur"] .top-nav {
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 10px;
+  --space-4: 16px;
+  --space-5: 26px;
+  --space-6: 42px;
+  --space-7: 68px;
+  --space-8: 110px;
+}
+
+html[lang="ur"] .top-nav-link span,
+html[lang="ur"] .top-nav-dropdown-item span,
+html[lang="ur"] .top-nav-actions span {
+  line-height: 1.85;
+  word-spacing: 0.2em;
+}
+
+html[lang="ur"] .top-nav-brand-text {
+  line-height: normal;
+  word-spacing: normal;
+}
+
+html[lang="ur"] .top-nav-title {
+  font-family: var(--font-display) !important;
+  font-size: 20.35px;
+  line-height: normal;
+  letter-spacing: 0.01em;
+  word-spacing: normal;
+}
+
+html[lang="ur"] .top-nav-subtitle {
+  font-size: 10.88px;
+  line-height: normal;
+  letter-spacing: 0.08em;
+  word-spacing: normal;
+}
+
+html[lang="ur"] input,
+html[lang="ur"] textarea,
+html[lang="ur"] select,
+html[lang="ur"] button {
+  font-family: inherit;
+}
+
+html[lang="ur"] [lang="ar"]:not([data-interface-language]),
+html[lang="ur"] [lang="ar"]:not([data-interface-language]) *,
+html[lang="ur"] [data-no-translate][lang="ar"],
+html[lang="ur"] [data-no-translate][lang="ar"] * {
+  word-spacing: normal !important;
+}
+
+html[lang="ur"] [data-interface-language],
+html[lang="ur"] [data-no-translate] [data-interface-language] {
+  font-family: var(--font-urdu, 'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', serif) !important;
+  line-height: 2.15;
+  word-spacing: 0.26em !important;
+}
+
+html[dir="rtl"] input[type="email"],
+html[dir="rtl"] input[type="password"],
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] input[type="date"],
+html[dir="rtl"] input[inputmode="numeric"],
+html[dir="rtl"] input[inputmode="decimal"] {
+  direction: ltr;
+  text-align: right;
 }
 
 /* Ensure Urdu characters anywhere inside Inter / sans-serif containers use Jameel Noori Nastaleeq */
@@ -124,7 +231,6 @@
 }
 
 /* All Urdu text across the application */
-:lang(ur),
 [lang="ur"],
 .urdu-text,
 .font-urdu,
@@ -133,7 +239,25 @@
 .mushaf-trans-line.urdu {
   font-family: var(--font-urdu, 'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', 'JameelNooriNastaliq', serif) !important;
   direction: rtl;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
+  word-spacing: 0.2em;
+}
+
+html[dir="rtl"] .loc-tabs-indicator {
+  right: 5px;
+  left: auto;
+}
+
+html[dir="rtl"] .loc-tabs[data-pos="1"] .loc-tabs-indicator {
+  transform: translateX(-100%);
+}
+
+html[dir="rtl"] .home-back-btn:hover {
+  transform: translateX(2px);
+}
+
+html[dir="rtl"] .home-card:hover .home-card-cta svg {
+  transform: translateX(-4px);
 }
 
 .urdu-text {

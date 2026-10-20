@@ -5,6 +5,7 @@ export interface QuranReadingPosition {
 }
 
 export const QURAN_PAGE_ASPECT_RATIO = 210 / 297;
+export const QURAN_DEFAULT_FIT_WIDTH = 720;
 
 export type QuranReaderPageNumber = number | "dua";
 

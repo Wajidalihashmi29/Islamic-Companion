@@ -6,8 +6,11 @@ import { getPrayerTimesByCity, getPrayerTimesByCoords } from "../api/prayerTimes
 import type { PrayerTimesResponse } from "../api/prayerTimesApi";
 import { loadSettings } from "../utils/settingsStorage";
 import { formatHijriDate } from "../utils/hijriDate";
+import { getContentLocale } from "../i18n/contentLanguage";
+import { getInterfaceLocale } from "../i18n/interfaceTranslations";
 import GoldenSpiral from "./GoldenSpiral";
 import { getFriendlyErrorMessage } from "../utils/friendlyError";
+import { normalizeRegion, saveRegion } from "../utils/regionalFormatting";
 import "./PrayerTimesView.css";
 
 const prayerIcons: Record<string, React.ElementType> = {
@@ -98,6 +101,7 @@ interface Place {
   label: string;
   lat: number | null;
   lon: number | null;
+  region: string | null;
 }
 
 interface GeoHit {
@@ -127,32 +131,38 @@ function shortName(address: Record<string, string> = {}): string {
 }
 
 /** Never throws: falls back to coordinates / the typed text if the lookup fails. */
-async function resolvePlace(location: ResolvedLocation): Promise<Place> {
+async function resolvePlace(location: ResolvedLocation, language: string): Promise<Place> {
   const base = "https://nominatim.openstreetmap.org";
+  const locale = getContentLocale(language);
   if (location.type === "coords") {
     const { latitude: lat, longitude: lon } = location;
     const fallback = formatCoords(lat, lon);
     try {
-      const hit = await fetchJson<GeoHit>(`${base}/reverse?format=jsonv2&zoom=10&accept-language=en&lat=${lat}&lon=${lon}`);
-      return { label: shortName(hit.address) || fallback, lat, lon };
+      const hit = await fetchJson<GeoHit>(`${base}/reverse?format=jsonv2&zoom=10&accept-language=${locale}&lat=${lat}&lon=${lon}`);
+      return { label: shortName(hit.address) || fallback, lat, lon, region: normalizeRegion(hit.address?.country_code) };
     } catch {
-      return { label: fallback, lat, lon };
+      return { label: fallback, lat, lon, region: null };
     }
   }
 
   const typed = `${location.city}, ${location.country}`;
   try {
     const hits = await fetchJson<GeoHit[]>(
-      `${base}/search?format=jsonv2&limit=1&addressdetails=1&accept-language=en&q=${encodeURIComponent(typed)}`
+      `${base}/search?format=jsonv2&limit=1&addressdetails=1&accept-language=${locale}&q=${encodeURIComponent(typed)}`
     );
     const hit = hits[0];
     if (hit?.lat && hit?.lon) {
-      return { label: shortName(hit.address) || typed, lat: Number(hit.lat), lon: Number(hit.lon) };
+      return {
+        label: shortName(hit.address) || typed,
+        lat: Number(hit.lat),
+        lon: Number(hit.lon),
+        region: normalizeRegion(hit.address?.country_code) ?? normalizeRegion(location.country),
+      };
     }
   } catch {
     /* fall through */
   }
-  return { label: typed, lat: null, lon: null };
+  return { label: typed, lat: null, lon: null, region: normalizeRegion(location.country) };
 }
 
 /* ------------------------------------------------------------------ */
@@ -205,12 +215,13 @@ export default function PrayerTimesView() {
         location.type === "coords"
           ? getPrayerTimesByCoords(location.latitude, location.longitude, method, apiSchool)
           : getPrayerTimesByCity(location.city, location.country, method, apiSchool),
-        resolvePlace(location),
+        resolvePlace(location, settings.general.appLanguage),
       ]);
       if (!response.data?.timings || typeof response.data.timings !== "object")
         throw new Error("Prayer times API returned an invalid response.");
       setData(response.data);
       setPlace(resolved);
+      saveRegion(resolved.region);
       setShowSelector(false);
     } catch (err) {
       console.error("Failed to fetch prayer times:", err);
@@ -299,8 +310,15 @@ export default function PrayerTimesView() {
             {/* Dates */}
             <div className="ptv-result-header">
               <div className="ptv-dates">
-                <span className="ptv-gregorian">{data.date}</span>
-                <span className="ptv-hijri">{formatHijriDate(now, settings.general.hijriAdjustment || 0)}</span>
+                <span className="ptv-gregorian">
+                  {new Intl.DateTimeFormat(getInterfaceLocale(settings.general.appLanguage), {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  }).format(now)}
+                </span>
+                <span className="ptv-hijri">{formatHijriDate(now, settings.general.hijriAdjustment || 0, settings.general.appLanguage)}</span>
               </div>
             </div>
 

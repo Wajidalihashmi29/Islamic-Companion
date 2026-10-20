@@ -121,7 +121,10 @@ export class QuranAudioPlayer {
 
   private fail(error: unknown) {
     this.stop();
-    this.publish(false, error instanceof Error ? error.message : "Unable to play this recitation.");
+    this.publish(false, getFriendlyErrorMessage(error, "Unable to play this recitation. Please try again or choose another reciter.", {
+      offlineMessage: "This recitation is not available offline yet. Reconnect to play it.",
+      online: typeof window === "undefined" ? true : undefined,
+    }));
   }
 
   private async playMedia(slot: AudioSlot, revision: number) {
@@ -203,3 +206,4 @@ export class QuranAudioPlayer {
     this.stop();
   }
 }
+import { getFriendlyErrorMessage } from "./friendlyError.ts";

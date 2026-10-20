@@ -1,6 +1,12 @@
 import { jwtDecode } from "jwt-decode";
 import { fetchCloudSettings, saveCloudSettings } from "../api/userSettingsApi";
 import { DEFAULT_QURAN_TYPOGRAPHY, normalizeQuranTypography } from "./quranTypography";
+import { getQuranTranslationForInterfaceLanguage } from "../i18n/contentLanguage";
+import { DEFAULT_QURAN_RECITER, normalizeReciter } from "./quranReciters";
+
+export { normalizeReciter, RECITERS_OPTIONS } from "./quranReciters";
+
+const FIXED_MUSHAF_LINES = 16 as const;
 
 export interface QuranPreferences {
   mushafLines: 16 | 15;
@@ -34,7 +40,7 @@ export interface AppSettings {
 }
 
 export const TRANSLATION_OPTIONS = [
-  { id: "kanzul-iman-ur", name: "Kanzul Iman — Ala Hazrat Imam Ahmad Raza Khan", urduName: "رحمۃ اللہ علیہ", lang: "Urdu", recommended: true, disabled: false },
+  { id: "kanzul-iman-ur", name: "Kanzul Iman — Ala Hazrat Imam Ahmad Raza Khan (May Allah have mercy on him)", lang: "Urdu", recommended: true, disabled: false },
   { id: "kanzul-iman-en", name: "The Treasure of Faith (Kanzul Iman English) — Prof. Shah Farid-ul-Haque", lang: "English", disabled: false },
   { id: "irfan-ul-quran-ur", name: "Irfan-ul-Quran — Dr. Muhammad Tahir-ul-Qadri", lang: "Urdu", disabled: false },
   { id: "kanzul-iman-hi", name: "Kanzul Iman (Hindi Devanagari) — Imam Ahmad Raza Khan", lang: "Hindi", disabled: true, sub: "Unavailable: authorized, verified dataset pending" },
@@ -42,14 +48,6 @@ export const TRANSLATION_OPTIONS = [
 
 export const TAFSEER_OPTIONS = [
   { id: "sirat-ul-jinan", name: "Sirat-ul-Jinan — Mufti Muhammad Qasim Attari", lang: "Urdu", disabled: false },
-];
-
-export const RECITERS_OPTIONS = [
-  { id: "alafasy", name: "Mishary Rashid Alafasy", sub: "Clear & Melodic" },
-  { id: "abdul-basit", name: "Abdul Basit Abdus Samad", sub: "Classic Mujawwad / Murattal" },
-  { id: "husary", name: "Mahmoud Khalil Al-Husary", sub: "Master of Tajweed" },
-  { id: "minshawi", name: "Muhammad Siddiq Al-Minshawi", sub: "Deep Spiritual Tone" },
-  { id: "shuraim", name: "Saud Al-Shuraim", sub: "Former Imam of Masjid al-Haram" },
 ];
 
 export const CALCULATION_METHODS = [
@@ -62,13 +60,13 @@ export const CALCULATION_METHODS = [
 
 export const DEFAULT_SETTINGS: AppSettings = {
   quran: {
-    mushafLines: 16,
+    mushafLines: FIXED_MUSHAF_LINES,
     showTranslation: false,
     preferredTranslation: "kanzul-iman-ur",
     preferredTafseer: "sirat-ul-jinan",
     arabicScript: "indopak",
     ...DEFAULT_QURAN_TYPOGRAPHY,
-    reciter: "shuraim",
+    reciter: DEFAULT_QURAN_RECITER,
   },
   prayer: {
     asrSchool: "hanafi",
@@ -192,13 +190,20 @@ export function loadSettings(userIdentifier?: string | null): AppSettings {
     }
 
     const parsed = JSON.parse(raw);
+    const general = { ...DEFAULT_SETTINGS.general, ...(parsed.general || {}) };
     const quran = { ...DEFAULT_SETTINGS.quran, ...(parsed.quran || {}), ...normalizeQuranTypography(parsed.quran || {}) };
+    quran.mushafLines = FIXED_MUSHAF_LINES;
     if (quran.preferredTafseer === "khazain-ul-irfan") quran.preferredTafseer = DEFAULT_SETTINGS.quran.preferredTafseer;
+    quran.reciter = normalizeReciter(quran.reciter);
+    quran.preferredTranslation = getQuranTranslationForInterfaceLanguage(
+      general.appLanguage,
+      quran.preferredTranslation,
+    );
 
     return {
       quran,
       prayer: { ...DEFAULT_SETTINGS.prayer, ...(parsed.prayer || {}) },
-      general: { ...DEFAULT_SETTINGS.general, ...(parsed.general || {}) },
+      general,
     };
   } catch {
     return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
@@ -223,10 +228,14 @@ function queueCloudSave(settings: AppSettings) {
  */
 export function saveSettings(settings: AppSettings, userIdentifier?: string | null): void {
   try {
+    const normalizedSettings: AppSettings = {
+      ...settings,
+      quran: { ...settings.quran, mushafLines: FIXED_MUSHAF_LINES, reciter: normalizeReciter(settings.quran.reciter) },
+    };
     const identifier =
       userIdentifier !== undefined ? userIdentifier : getActiveUserIdentifier();
     const key = getStorageKeyForUser(identifier);
-    const serialized = JSON.stringify(settings);
+    const serialized = JSON.stringify(normalizedSettings);
 
     localStorage.setItem(key, serialized);
 
@@ -237,20 +246,20 @@ export function saveSettings(settings: AppSettings, userIdentifier?: string | nu
     }
 
     // Keep legacy Asr school in sync for existing prayer components
-    if (settings.prayer?.asrSchool) {
-      localStorage.setItem("ic.asrSchool", settings.prayer.asrSchool);
+    if (normalizedSettings.prayer?.asrSchool) {
+      localStorage.setItem("ic.asrSchool", normalizedSettings.prayer.asrSchool);
     }
 
     // If authenticated user, automatically synchronize to the backend cloud database!
     if (identifier && localStorage.getItem("token")) {
-      queueCloudSave(settings);
+      queueCloudSave(normalizedSettings);
     }
 
     // Broadcast across windows / components
     window.dispatchEvent(
       new CustomEvent("ic:settingsUpdated", {
         detail: {
-          settings,
+          settings: normalizedSettings,
           userIdentifier: identifier,
           key,
         },
@@ -320,6 +329,12 @@ export async function syncCloudSettings(userIdentifier?: string | null): Promise
       };
       if (merged.quran.preferredTafseer === "khazain-ul-irfan")
         merged.quran.preferredTafseer = DEFAULT_SETTINGS.quran.preferredTafseer;
+      merged.quran.mushafLines = FIXED_MUSHAF_LINES;
+      merged.quran.reciter = normalizeReciter(merged.quran.reciter);
+      merged.quran.preferredTranslation = getQuranTranslationForInterfaceLanguage(
+        merged.general.appLanguage,
+        merged.quran.preferredTranslation,
+      );
       localStorage.setItem(key, JSON.stringify(merged));
       if (merged.prayer?.asrSchool) {
         localStorage.setItem("ic.asrSchool", merged.prayer.asrSchool);

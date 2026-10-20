@@ -49,7 +49,7 @@ export default function AyahMedallion({
   const yOffset = isIndoPak ? 49 : 50;
 
   const fontFamily = isIndoPak
-    ? "'IndopakNastaleeq', 'AlQuran IndoPak by QuranWBW', 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', serif"
+    ? "'IndopakNastaleeq', 'AlQuran IndoPak by QuranWBW', 'Jameel Noori Nastaleeq', serif"
     : "'Amiri', 'Amiri Quran', serif";
 
   return (

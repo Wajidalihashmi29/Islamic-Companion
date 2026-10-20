@@ -2,12 +2,10 @@ import type { LucideIcon } from "lucide-react";
 import {
   BookOpen,
   Calculator,
-  CalendarCheck,
   Clock,
   Compass,
   Heart,
   LayoutDashboard,
-  MapPin,
   ScrollText,
 } from "lucide-react";
 
@@ -17,7 +15,7 @@ export interface Feature {
   shortLabel: string;
   description: string;
   icon: LucideIcon;
-  /** Feature is live; otherwise it opens the "coming soon" dialog. */
+  /** Feature is live; otherwise it opens the unavailable-feature guidance. */
   available: boolean;
   /** Shown directly in the desktop nav bar (others live under "More"). */
   primary: boolean;
@@ -55,16 +53,16 @@ export const features: Feature[] = [
     shortLabel: "Qibla",
     description: "Direction to the Kaaba from wherever you are",
     icon: Compass,
-    available: false,
+    available: true,
     primary: true,
   },
   {
     id: "hadith",
     label: "Hadith Collection",
     shortLabel: "Hadith",
-    description: "Browse authentic hadith by book and chapter",
+    description: "Browse major hadith collections by book and chapter",
     icon: ScrollText,
-    available: false,
+    available: true,
     primary: true,
   },
   {
@@ -73,36 +71,20 @@ export const features: Feature[] = [
     shortLabel: "Zakat",
     description: "Work out what you owe this year",
     icon: Calculator,
-    available: false,
-    primary: false,
-  },
-  {
-    id: "fasting",
-    label: "Fasting Tracker",
-    shortLabel: "Fasting",
-    description: "Log your fasts and keep your streak",
-    icon: CalendarCheck,
-    available: false,
-    primary: false,
-  },
-  {
-    id: "mosque",
-    label: "Mosque Finder",
-    shortLabel: "Mosques",
-    description: "Nearby mosques and prayer halls",
-    icon: MapPin,
-    available: false,
+    available: true,
     primary: false,
   },
   {
     id: "favorites",
     label: "Favorites",
     shortLabel: "Favorites",
-    description: "Verses, duas, and hadith you've saved",
+    description: "Return to Surahs you've marked in the Quran reader",
     icon: Heart,
-    available: false,
+    available: true,
     primary: false,
   },
 ];
 
 export const getFeature = (id: string) => features.find((f) => f.id === id);
+
+export const getFeaturePath = (id: string) => id === "dashboard" ? "/" : `/${id}`;

@@ -17,3 +17,16 @@ test("network and server failures do not expose technical error text", () => {
   assert.equal(getFriendlyErrorMessage(new Error("database connection string"), "Please try again.", { online: true }),
     "Please try again.");
 });
+
+test("timeouts and browser network failures use actionable messages", () => {
+  assert.equal(getFriendlyErrorMessage(
+    { isAxiosError: true, code: "ECONNABORTED", response: { status: 400 } },
+    "Fallback",
+    { online: true },
+  ), "The request took too long. Please try again.");
+  assert.equal(getFriendlyErrorMessage(
+    new TypeError("Failed to fetch"),
+    "Fallback",
+    { online: true },
+  ), "We couldn't connect to the service. Check your internet connection and try again.");
+});

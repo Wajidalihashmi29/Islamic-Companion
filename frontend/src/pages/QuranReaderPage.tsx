@@ -1,6 +1,5 @@
 import { Fragment, useDeferredValue, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode, TouchEvent } from "react";
-import axios from "axios";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Download, Expand, Headphones, LoaderCircle,
   MoreHorizontal, PanelsTopLeft, Pause, Play, Settings2, SkipBack, SkipForward, Star, WifiOff, X, ZoomIn, ZoomOut } from "lucide-react";
@@ -9,7 +8,6 @@ import CustomDropdown from "../components/CustomDropdown";
 import AyahMedallion, { toArabicDigits, toUrduDigits } from "../components/AyahMedallion";
 import QuranText from "../components/QuranText";
 import QuranCompletionPage from "../components/QuranCompletionPage";
-import UnderConstructionModal from "../components/UnderConstructionModal";
 import { useAuth } from "../context/AuthContext";
 import { getQuranAudio, getQuranDirectory, getQuranPage, getQuranTafseer, getVersePage } from "../api/quranApi";
 import type { QuranDirectory, QuranPage, QuranSurah, QuranTafseer } from "../api/quranApi";
@@ -19,7 +17,7 @@ import { getQuranLineHeightMultiplier, getQuranTextRuns } from "../utils/quranTy
 import { getStorageKeyForUser, loadSettings, saveSettings, RECITERS_OPTIONS, TRANSLATION_OPTIONS, TAFSEER_OPTIONS } from "../utils/settingsStorage";
 import { loadQuranFavoriteSurahs, loadQuranReaderView, loadQuranReadingPage, normalizeQuranSearch, parseAyahReference,
   saveQuranFavoriteSurahs, saveQuranReaderView, saveQuranReadingPage } from "../utils/quranNavigation";
-import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, getZoomedQuranSwipeDirection, QURAN_PAGE_ASPECT_RATIO, startsInSystemGestureZone } from "../utils/quranScreens";
+import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection, getZoomedQuranSwipeDirection, QURAN_DEFAULT_FIT_WIDTH, QURAN_PAGE_ASPECT_RATIO, startsInSystemGestureZone } from "../utils/quranScreens";
 import type { QuranReaderPageNumber } from "../utils/quranScreens";
 import { getAdjacentQuranVerse, QuranAudioPlayer } from "../utils/quranAudio";
 import { getCanonicalQuranVerse, getReaderQuranVerse } from "../utils/quranFatihah";
@@ -41,10 +39,6 @@ const SURAH_COLOR_GLYPHS =
   "\uFBD3\uFBD4\uFBD6\uFBD7\uFBD9\uFBDA\uFBDC\uFBDD\uFBDF\uFBE0\uFBE2\uFBE3\uFBE5\uFBE6\uFBE8\uFBE9\uFBEB";
 
 function errorMessage(error: unknown, fallback: string) {
-  if (axios.isAxiosError<{ message?: string }>(error)) {
-    const status = error.response?.status;
-    if (status !== undefined && status < 500) return error.response?.data?.message || fallback;
-  }
   return getFriendlyErrorMessage(error, fallback, {
     offlineMessage: "This Quran content is not available offline yet. Reconnect once to download it.",
   });
@@ -216,7 +210,7 @@ function SurahBanner({ surah, page, settings }: { surah: QuranSurah; page: Quran
               className="quran-bismillah-glyph" label="بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيمِ" />
             <span aria-hidden="true">❊</span>
           </p>
-          {settings.showTranslation && <p lang={page.translationLanguage}
+          {settings.showTranslation && <p data-no-translate lang={page.translationLanguage}
             style={{ fontSize: settings.translationFontSize }}>{page.bismillahTranslation}</p>}
         </div>
       )}
@@ -291,7 +285,6 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const fontsReady = fonts.key === fontKey && !fonts.error;
   const pageError = error || (fonts.key === fontKey ? fonts.error : "");
   const [drawer, setDrawer] = useState<"index" | "listen" | "options" | "more" | "tafseer" | null>(null);
-  const [modal, setModal] = useState<string | null>(null);
   const [jump, setJump] = useState(String(pageNumber));
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
@@ -313,11 +306,11 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const [fitMode, setFitMode] = useState(resume.view.mode === "fit");
   const immersive = fitMode && mobileReader;
   const [controlsVisible, setControlsVisible] = useState(false);
-  const controlsShown = !immersive || controlsVisible || !!drawer || !!modal ||
+  const controlsShown = !immersive || controlsVisible || !!drawer ||
     !!pageError || !!readingError || !!audioError || !!navigationError;
   const controlsId = useId();
   const controlsToggle = useRef<HTMLButtonElement>(null);
-  const [fitWidth, setFitWidth] = useState(720);
+  const [fitWidth, setFitWidth] = useState(QURAN_DEFAULT_FIT_WIDTH);
   const [fitAspectRatio, setFitAspectRatio] = useState(QURAN_PAGE_ASPECT_RATIO);
   const [pageZoom, setPageZoom] = useState(1);
   const [browserZoomed, setBrowserZoomed] = useState(false);
@@ -370,13 +363,13 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   }, []);
 
   useEffect(() => {
-    if (!immersive || !controlsVisible || drawer || modal) return;
+    if (!immersive || !controlsVisible || drawer) return;
     const timeout = window.setTimeout(() => {
       if (frame.current?.querySelector(".home-view-header :focus-visible, .quran-controls :focus-visible")) return;
       setControlsVisible(false);
     }, 3500);
     return () => window.clearTimeout(timeout);
-  }, [immersive, controlsVisible, drawer, modal]);
+  }, [immersive, controlsVisible, drawer]);
 
   useEffect(() => {
     if (!params.has("page")) {
@@ -771,8 +764,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     if (!directoryReady || !audio.current || !bufferedAudio.current || !lookaheadAudio.current) return;
     const player = new QuranAudioPlayer([audio.current, bufferedAudio.current, lookaheadAudio.current], {
       source: async (key, reciter, signal) => {
-        try { return await getQuranAudio(key, reciter, signal); }
-        catch (error) { throw new Error(errorMessage(error, "Unable to load this recitation."), { cause: error }); }
+        return getQuranAudio(key, reciter, signal);
       },
       next: key => nextRecitationVerse(key),
       onState: state => updateRecitationState(state),
@@ -837,7 +829,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   }
   function turnPage(delta: -1 | 1) {
     if (completionPage) { changePage(getAdjacentQuranReaderPage(readerPage, delta), false, delta); return; }
-    if (!fitMode || !fitReady || loading || error || drawer || modal) return;
+    if (!fitMode || !fitReady || loading || error || drawer) return;
     changePage(getAdjacentQuranReaderPage(readerPage, delta), false, delta);
   }
   function openSurah(surah: QuranSurah) {
@@ -1093,8 +1085,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     <div className="home-page">
       {!fitMode && <TopNav activeView="quran" onViewChange={view => {
         if (view === "quran") return;
-        if (view === "dashboard" || view === "prayer") navigate(view === "prayer" ? "/?view=prayer" : "/");
-        else setModal(view);
+        navigate(view === "dashboard" ? "/" : `/${view}`);
       }} onLogout={() => { logout(); navigate("/"); }} onSettingsClick={() => navigate("/settings")} />}
       <main className={`quran-reader ${fitMode ? "quran-reader--fit" : ""}${immersive ? " quran-reader--immersive" : ""}${!controlsShown ? " quran-reader--controls-hidden" : ""}`} ref={frame}>
         <header className={`home-view-header${favoriteSurah ? " quran-reader-header--favorite" : ""}`} inert={!controlsShown}>
@@ -1206,7 +1197,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
                         </Fragment>
                       ))}
                     </div>
-                    {preferences.showTranslation && line.translation && <p className="quran-line-translation" lang={page.translationLanguage}
+                    {preferences.showTranslation && line.translation && <p data-no-translate className="quran-line-translation" lang={page.translationLanguage}
                       dir={page.translationLanguage === "ur" ? "rtl" : "ltr"}
                       style={{ fontSize: `${translationFontSize}px` }}>
                       <TranslationText text={line.translation} script={preferences.arabicScript} />
@@ -1431,9 +1422,10 @@ function QuranReader({ profileKey }: { profileKey: string }) {
             const arabic = key === "arabicFontSize";
             const min = arabic ? 24 : 12, max = arabic ? 64 : 56;
             const label = arabic ? "Arabic" : "Translation";
+            const textLabel = arabic ? "Arabic text" : "Translation text";
             const displayedSize = arabic ? preferences[key] : translationFontSize;
-            return <div key={key}><div className="quran-section-heading"><label htmlFor={`quran-${key}`}>{label} text</label>
-              <output htmlFor={`quran-${key}`}>{displayedSize}px</output></div>
+            return <div key={key}><div className="quran-section-heading"><label htmlFor={`quran-${key}`}>{textLabel}</label>
+              <output htmlFor={`quran-${key}`}>{`${displayedSize}px`}</output></div>
               <div className="quran-font-stepper">
                 <button type="button" aria-label={`Decrease ${label.toLowerCase()} font size`} disabled={preferences[key] <= min}
                   onClick={() => updatePreferences({ [key]: Math.max(min, preferences[key] - 2) })}>−</button>
@@ -1456,13 +1448,12 @@ function QuranReader({ profileKey }: { profileKey: string }) {
           <button type="button" onClick={() => openTafseer(tafseerKey)}>Try again</button><Link to="/settings">Settings</Link></p>
           : tafseer ? <section><h3>{tafseer.name}</h3>
             <p className="quran-menu-note">{tafseer.author}</p>
-            <p className="quran-tafseer" lang={tafseer.language} dir="rtl"
+            <p data-no-translate className="quran-tafseer" lang={tafseer.language} dir="rtl"
               style={{ fontSize: preferences.translationFontSize }}>{tafseer.text}</p>
             </section>
             : <p className="quran-directory-loading" role="status"><LoaderCircle className="quran-spinner" size={18} />Loading Sirat-ul-Jinan…</p>)}
       </ReaderDrawer>}
       </main>
-      {modal && <UnderConstructionModal featureName={modal} onClose={() => setModal(null)} />}
     </div>
   );
 }

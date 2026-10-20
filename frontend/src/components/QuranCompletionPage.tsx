@@ -81,7 +81,7 @@ function DuaPaper({ panel, index, fontSize, script, fitMode }: {
           transform: fitMode ? `scale(${layout.scale})` : undefined,
           visibility: fitMode && !layout.scale ? "hidden" : undefined }}>
         <header className="quran-surah-banner"><h2><QuranText text="دُعَاءُ خَتْمِ الْقُرْآنِ" script={script} />
-          <small lang="en" dir="ltr">{index ? "Continuation" : "Dua Khatm al-Quran"}</small></h2></header>
+          <small data-interface-language>{index ? "Continuation" : "Dua Khatm al-Quran"}</small></h2></header>
         {!index && <div className="quran-bismillah"><p><QuranText text="بِسْمِ اللَّهِ الرَّحْمٰنِ الرَّحِيمِ" script={script} /></p></div>}
         <div className="quran-arabic-stream quran-completion-text"
           style={{ lineHeight: `${lineHeight}px`, backgroundSize: `100% ${lineHeight}px` }}>
