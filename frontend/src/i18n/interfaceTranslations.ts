@@ -74,6 +74,8 @@ const translations: Record<string, TranslationPair> = {
   "Enable live compass": ["براہ راست قطب نما چلائیں", "लाइव कम्पास चालू करें"],
   "Requesting compass...": ["قطب نما کی اجازت لی جا رہی ہے۔۔۔", "कम्पास अनुमति माँगी जा रही है..."],
   "Live compass active": ["براہ راست قطب نما فعال ہے", "लाइव कम्पास सक्रिय है"],
+  "Live compass active and tracking movement": ["براہ راست قطب نما فعال ہے اور حرکت کے ساتھ سمت دکھا رہا ہے", "लाइव कम्पास सक्रिय है और हलचल के साथ दिशा दिखा रहा है"],
+  "Live compass needs calibration. Move your phone in a figure eight.": ["براہ راست قطب نما کو درست کرنے کی ضرورت ہے۔ فون کو آٹھ کی شکل میں حرکت دیں۔", "लाइव कम्पास को कैलिब्रेशन की आवश्यकता है। फ़ोन को आठ की आकृति में घुमाएँ।"],
   "Waiting for compass permission...": ["قطب نما کی اجازت کا انتظار ہے۔۔۔", "कम्पास अनुमति की प्रतीक्षा है..."],
   "Compass access was denied. You can still use the calculated bearing.": ["قطب نما کی اجازت نہیں ملی۔ آپ حساب شدہ زاویہ استعمال کر سکتے ہیں۔", "कम्पास की अनुमति नहीं मिली। आप गणना किए गए कोण का उपयोग कर सकते हैं।"],
   "Live compass isn't available on this device. Use the calculated bearing with true north.": ["اس آلے پر براہ راست قطب نما دستیاب نہیں۔ حساب شدہ زاویہ حقیقی شمال کے ساتھ استعمال کریں۔", "इस डिवाइस पर लाइव कम्पास उपलब्ध नहीं है। गणना किए गए कोण को वास्तविक उत्तर के साथ उपयोग करें।"],

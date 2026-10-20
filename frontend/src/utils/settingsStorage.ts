@@ -3,6 +3,8 @@ import { fetchCloudSettings, saveCloudSettings } from "../api/userSettingsApi";
 import { DEFAULT_QURAN_TYPOGRAPHY, normalizeQuranTypography } from "./quranTypography";
 import { getQuranTranslationForInterfaceLanguage } from "../i18n/contentLanguage";
 import { DEFAULT_QURAN_RECITER, normalizeReciter } from "./quranReciters";
+import { getQuranOfflineCompletionKey } from "./quranOffline";
+import { getOfflineQuranPreferencePatch } from "./offlineQuranPreferences";
 
 export { normalizeReciter, RECITERS_OPTIONS } from "./quranReciters";
 
@@ -207,6 +209,28 @@ export function loadSettings(userIdentifier?: string | null): AppSettings {
     };
   } catch {
     return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+  }
+}
+
+export function preserveOfflineQuranPreferencesForGuest(): void {
+  try {
+    const identifier = getActiveUserIdentifier();
+    if (!identifier) return;
+    const source = loadSettings(identifier);
+    const completionKey = getQuranOfflineCompletionKey(
+      source.quran.preferredTranslation,
+      source.quran.mushafLines,
+    );
+    if (localStorage.getItem(completionKey) !== "complete") return;
+    const guest = loadSettings(null);
+    const patch = getOfflineQuranPreferencePatch(source);
+    saveSettings({
+      ...guest,
+      quran: { ...guest.quran, ...patch.quran },
+      general: { ...guest.general, ...patch.general },
+    }, null);
+  } catch {
+    // Session logout must continue even when browser storage is unavailable.
   }
 }
 

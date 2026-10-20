@@ -20,6 +20,14 @@ export function unwrapDegrees(previous: number, next: number): number {
   return previous + difference;
 }
 
+export function smoothCompassHeading(previous: number | null, next: number): number {
+  if (previous === null) return normalizeDegrees(next);
+  const unwrapped = unwrapDegrees(previous, next);
+  const movement = Math.abs(unwrapped - previous);
+  const response = movement >= 45 ? .85 : movement >= 15 ? .6 : .3;
+  return previous + (unwrapped - previous) * response;
+}
+
 export function calculateQiblaBearing(latitude: number, longitude: number): number {
   const lat = toRadians(latitude);
   const kaabaLat = toRadians(KAABA.latitude);

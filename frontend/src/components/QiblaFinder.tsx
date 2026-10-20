@@ -6,7 +6,7 @@ import {
   getCompassDirection,
   getSmallestAngleDifference,
   normalizeDegrees,
-  unwrapDegrees,
+  smoothCompassHeading,
 } from "../utils/faithFeatures";
 
 function locationError(error: GeolocationPositionError) {
@@ -23,13 +23,19 @@ type CompassPermissionEvent = typeof DeviceOrientationEvent & {
 
 type CompassOrientationEvent = DeviceOrientationEvent & {
   webkitCompassHeading?: number;
+  webkitCompassAccuracy?: number;
 };
 
 type CompassStatus = "idle" | "requesting" | "active" | "denied" | "unavailable";
 
-function getDeviceHeading(event: CompassOrientationEvent): number | null {
-  if (typeof event.webkitCompassHeading === "number" && Number.isFinite(event.webkitCompassHeading))
-    return normalizeDegrees(event.webkitCompassHeading);
+function getDeviceHeading(event: CompassOrientationEvent) {
+  if (typeof event.webkitCompassHeading === "number" && Number.isFinite(event.webkitCompassHeading)) {
+    const accuracy = typeof event.webkitCompassAccuracy === "number" &&
+      Number.isFinite(event.webkitCompassAccuracy) && event.webkitCompassAccuracy >= 0
+      ? event.webkitCompassAccuracy
+      : null;
+    return { heading: normalizeDegrees(event.webkitCompassHeading), accuracy, preferred: true };
+  }
 
   if (typeof event.alpha !== "number" || !Number.isFinite(event.alpha) ||
     (!event.absolute && event.type !== "deviceorientationabsolute"))
@@ -37,7 +43,7 @@ function getDeviceHeading(event: CompassOrientationEvent): number | null {
 
   const screenAngle = window.screen.orientation?.angle ??
     (typeof window.orientation === "number" ? window.orientation : 0);
-  return normalizeDegrees(360 - event.alpha + screenAngle);
+  return { heading: normalizeDegrees(360 - event.alpha + screenAngle), accuracy: null, preferred: false };
 }
 
 export default function QiblaFinder() {
@@ -49,35 +55,41 @@ export default function QiblaFinder() {
   const [compassStatus, setCompassStatus] = useState<CompassStatus>(() =>
     "DeviceOrientationEvent" in window ? "idle" : "unavailable");
   const [heading, setHeading] = useState<number | null>(null);
+  const [headingAccuracy, setHeadingAccuracy] = useState<number | null>(null);
   const [continuousHeading, setContinuousHeading] = useState(0);
   const headingRef = useRef<number | null>(null);
+  const locationWatch = useRef<number | null>(null);
 
   useEffect(() => {
     if (!compassEnabled) return;
 
     let frame = 0;
-    let pendingHeading: number | null = null;
+    let pendingReading: ReturnType<typeof getDeviceHeading> = null;
     let hasReading = false;
+    let preferWebkitUntil = 0;
     const noReadingTimer = window.setTimeout(() => {
       if (!hasReading) setCompassStatus("unavailable");
     }, 3000);
 
     const updateHeading = () => {
       frame = 0;
-      if (pendingHeading === null) return;
-      const previous = headingRef.current;
-      const unwrapped = previous === null ? pendingHeading : unwrapDegrees(previous, pendingHeading);
-      headingRef.current = unwrapped;
-      setContinuousHeading(unwrapped);
-      setHeading(normalizeDegrees(unwrapped));
+      if (pendingReading === null) return;
+      const smoothed = smoothCompassHeading(headingRef.current, pendingReading.heading);
+      headingRef.current = smoothed;
+      setContinuousHeading(smoothed);
+      setHeading(normalizeDegrees(smoothed));
+      setHeadingAccuracy(pendingReading.accuracy);
       setCompassStatus("active");
     };
 
     const handleOrientation = (rawEvent: Event) => {
-      const nextHeading = getDeviceHeading(rawEvent as CompassOrientationEvent);
-      if (nextHeading === null) return;
+      const reading = getDeviceHeading(rawEvent as CompassOrientationEvent);
+      if (reading === null) return;
+      const now = performance.now();
+      if (reading.preferred) preferWebkitUntil = now + 1000;
+      else if (now < preferWebkitUntil) return;
       hasReading = true;
-      pendingHeading = nextHeading;
+      pendingReading = reading;
       if (!frame) frame = window.requestAnimationFrame(updateHeading);
     };
 
@@ -109,6 +121,7 @@ export default function QiblaFinder() {
       }
       headingRef.current = null;
       setHeading(null);
+      setHeadingAccuracy(null);
       setContinuousHeading(0);
       setCompassEnabled(true);
       setCompassSession(session => session + 1);
@@ -123,14 +136,15 @@ export default function QiblaFinder() {
       setError("Your browser doesn't support location detection.");
       return;
     }
+    if (locationWatch.current !== null) navigator.geolocation.clearWatch(locationWatch.current);
     setLoading(true);
-    navigator.geolocation.getCurrentPosition(position => {
+    locationWatch.current = navigator.geolocation.watchPosition(position => {
       setBearing(calculateQiblaBearing(position.coords.latitude, position.coords.longitude));
       setLoading(false);
     }, geoError => {
       setError(locationError(geoError));
       setLoading(false);
-    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 });
+    }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
   }, []);
 
   const locate = () => {
@@ -149,12 +163,18 @@ export default function QiblaFinder() {
     return () => window.clearTimeout(timer);
   }, [enableCompass, resolveLocation]);
 
+  useEffect(() => () => {
+    if (locationWatch.current !== null) navigator.geolocation.clearWatch(locationWatch.current);
+  }, []);
+
   const relativeBearing = bearing === null
     ? 0
     : heading === null
       ? bearing
       : calculateRelativeBearing(bearing, heading);
-  const isAligned = heading !== null && getSmallestAngleDifference(relativeBearing, 0) <= 5;
+  const compassNeedsCalibration = headingAccuracy !== null && headingAccuracy > 15;
+  const isAligned = heading !== null && !compassNeedsCalibration &&
+    getSmallestAngleDifference(relativeBearing, 0) <= 3;
 
   return <section className="faith-panel faith-qibla">
     <div className="faith-intro">
@@ -198,7 +218,9 @@ export default function QiblaFinder() {
       </div>
       <p className={`qibla-sensor-status is-${compassStatus}`} role="status">
         <span className="qibla-status-dot" />
-        {compassStatus === "active" && "Live compass active"}
+        {compassStatus === "active" && (compassNeedsCalibration
+          ? "Live compass needs calibration. Move your phone in a figure eight."
+          : "Live compass active and tracking movement")}
         {compassStatus === "requesting" && "Waiting for compass permission..."}
         {compassStatus === "denied" && "Compass access was denied. You can still use the calculated bearing."}
         {compassStatus === "unavailable" && "Live compass isn't available on this device. Use the calculated bearing with true north."}

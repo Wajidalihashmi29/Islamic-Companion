@@ -1,8 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { jwtDecode } from "jwt-decode";
-import { clearStoredSession, refreshSessionToken, revokeSession, SESSION_UPDATED_EVENT } from "../api/session";
-import { loadSettings, syncCloudSettings } from "../utils/settingsStorage";
+import {
+  clearStoredSession,
+  refreshSessionToken,
+  revokeSession,
+  SESSION_ENDING_EVENT,
+  SESSION_UPDATED_EVENT,
+} from "../api/session";
+import {
+  loadSettings,
+  preserveOfflineQuranPreferencesForGuest,
+  syncCloudSettings,
+} from "../utils/settingsStorage";
 
 export interface AuthUser {
   id?: string;
@@ -105,9 +115,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const storageSync = (event: StorageEvent) => {
       if (!event.key || ["token", "refreshToken", "userName"].includes(event.key)) sync();
     };
+    const preserveOfflineQuran = () => preserveOfflineQuranPreferencesForGuest();
+    window.addEventListener(SESSION_ENDING_EVENT, preserveOfflineQuran);
     window.addEventListener(SESSION_UPDATED_EVENT, sync);
     window.addEventListener("storage", storageSync);
     return () => {
+      window.removeEventListener(SESSION_ENDING_EVENT, preserveOfflineQuran);
       window.removeEventListener(SESSION_UPDATED_EVENT, sync);
       window.removeEventListener("storage", storageSync);
     };

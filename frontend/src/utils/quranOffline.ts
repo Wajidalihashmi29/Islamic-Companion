@@ -41,6 +41,10 @@ export function getQuranOfflineUrls(apiBaseUrl: string | undefined, origin: stri
 
 const activeDownloads = new Map<string, Promise<void>>();
 
+export function getQuranOfflineCompletionKey(translation: string, lines: number) {
+  return `ic.quranOffline.${OFFLINE_VERSION}.${translation}.${lines}`;
+}
+
 export function prepareQuranOffline(translation: string, lines: number) {
   const baseProgress = { translation, lines, completed: 0, total: TOTAL_QURAN_PAGES + 1 };
   if (import.meta.env.DEV) {
@@ -61,7 +65,7 @@ export function prepareQuranOffline(translation: string, lines: number) {
 
   const download = (async () => {
     const urls = getQuranOfflineUrls(import.meta.env.VITE_API_BASE_URL, window.location.origin, translation, lines);
-    const completionKey = `ic.quranOffline.${OFFLINE_VERSION}.${translation}.${lines}`;
+    const completionKey = getQuranOfflineCompletionKey(translation, lines);
     const cache = await caches.open(QURAN_CACHE);
     if (localStorage.getItem(completionKey) === "complete" &&
       await cache.match(urls[0]) && await cache.match(urls[1]) && await cache.match(urls.at(-1)!)) {

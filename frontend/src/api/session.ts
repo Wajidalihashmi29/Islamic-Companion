@@ -1,12 +1,14 @@
 import axios from "axios";
-import { getTokenExpiryMs } from "../utils/tokenUtils";
+import { getRotatedSessionToken, getTokenExpiryMs } from "../utils/tokenUtils";
 import type { AuthResponse } from "./authApi";
 
 export const SESSION_UPDATED_EVENT = "ic:sessionUpdated";
+export const SESSION_ENDING_EVENT = "ic:sessionEnding";
 const sessionClient = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || "/api", timeout: 15_000 });
 let pendingRefresh: Promise<string | null> | null = null;
 
 export function clearStoredSession() {
+  window.dispatchEvent(new Event(SESSION_ENDING_EVENT));
   localStorage.removeItem("token");
   localStorage.removeItem("refreshToken");
   localStorage.removeItem("userName");
@@ -33,8 +35,19 @@ export async function refreshSessionToken(rejectedToken?: string): Promise<strin
       window.dispatchEvent(new Event(SESSION_UPDATED_EVENT));
       return data.token;
     } catch (error) {
-      if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0) &&
-        localStorage.getItem("refreshToken") === refreshToken) clearStoredSession();
+      if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0)) {
+        // A reload or another tab may have rotated this one-time refresh token
+        // while this request was in flight. Give that successful request time to
+        // publish the replacement before treating the session as expired.
+        await new Promise(resolve => window.setTimeout(resolve, 1000));
+        const rotatedToken = getRotatedSessionToken(
+          refreshToken,
+          localStorage.getItem("refreshToken"),
+          localStorage.getItem("token"),
+        );
+        if (rotatedToken) return rotatedToken;
+        if (localStorage.getItem("refreshToken") === refreshToken) clearStoredSession();
+      }
       throw error;
     }
   };

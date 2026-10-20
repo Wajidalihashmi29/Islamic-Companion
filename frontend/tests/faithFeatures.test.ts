@@ -8,6 +8,7 @@ import {
   getHanafiNisabBasis,
   getSmallestAngleDifference,
   normalizeDegrees,
+  smoothCompassHeading,
   unwrapDegrees,
 } from "../src/utils/faithFeatures.ts";
 
@@ -24,6 +25,9 @@ test("live compass rotation stays stable across north", () => {
   assert.equal(getSmallestAngleDifference(358, 2), 4);
   assert.equal(unwrapDegrees(358, 2), 362);
   assert.equal(unwrapDegrees(2, 358), -2);
+  assert.equal(smoothCompassHeading(null, 358), 358);
+  assert(Math.abs(smoothCompassHeading(358, 2) - 359.2) < .001);
+  assert(Math.abs(smoothCompassHeading(10, 100) - 86.5) < .001);
 });
 
 test("Zakat is due only when net assets reach the selected nisab", () => {
