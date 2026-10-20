@@ -129,7 +129,7 @@
 .quran-dock-position strong { font-size: 13px; font-weight: 600; }
 .quran-dock-position strong span, .quran-dock-position small { color: #526b60; font-size: 11px; font-weight: 400; }
 .quran-dock-position small { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.quran-arabic-stream { width: 100%; text-align: justify; text-align-last: justify; text-justify: inter-word; word-spacing: .12rem; overflow: visible; overflow-wrap: break-word; padding-inline: 8px; }
+.quran-arabic-stream { width: 100%; text-align: justify; text-align-last: justify; text-justify: inter-word; word-spacing: .12rem; overflow: visible; overflow-wrap: break-word; padding-inline: 8px; -webkit-text-stroke: .2px currentColor; paint-order: stroke fill; }
 .quran-register .quran-arabic-stream { padding-block: .04em; border-bottom: 1px solid var(--quran-rule); }
 .quran-register .quran-arabic-stream--para-start { color: #fffdf9; background: #145550; border-radius: 3px; box-shadow: inset 0 0 0 1px #c4ab70; }
 .quran-arabic-stream--para-start .quran-verse:hover { background: rgba(255, 253, 249, .12); }
