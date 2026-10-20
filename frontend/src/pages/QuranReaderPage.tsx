@@ -59,7 +59,8 @@ function captureReadingPage(sheet: HTMLElement, viewport: HTMLElement) {
 function showReadingPage(surface: HTMLElement, snapshot: ReturnType<typeof captureReadingPage>) {
   Object.assign(surface.style, snapshot.bounds);
   surface.replaceChildren(snapshot.copy.cloneNode(true));
-  surface.classList.add("is-visible");
+  surface.classList.remove("is-turning");
+  surface.classList.add("is-holding");
 }
 
 function QuranGlyph({ text, script, className, label, alignment = "xMidYMax meet" }: {
@@ -557,22 +558,28 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     clearTimeout(transitionTimeout.current);
     if (completionPage || (pageError && !loading)) {
       retainedPage.current = null;
-      surface.classList.remove("is-visible");
+      surface.classList.remove("is-holding", "is-turning");
       surface.replaceChildren();
       return;
     }
     if (!pageReady) {
-      if (retainedPage.current) showReadingPage(surface, retainedPage.current);
+      if (retainedPage.current && !surface.classList.contains("is-holding")) {
+        showReadingPage(surface, retainedPage.current);
+      }
+      return;
+    }
+    if (!surface.classList.contains("is-holding")) {
       return;
     }
     let revealFrame = 0;
     const captureFrame = requestAnimationFrame(() => {
-      // Paint the complete incoming paper before revealing it beneath the retained page.
       revealFrame = requestAnimationFrame(() => {
-        if (paper.current && readingViewport.current)
-          retainedPage.current = captureReadingPage(paper.current, readingViewport.current);
-        surface.classList.remove("is-visible");
-        transitionTimeout.current = window.setTimeout(() => surface.replaceChildren(), 300);
+        surface.classList.remove("is-holding");
+        surface.classList.add("is-turning");
+        transitionTimeout.current = window.setTimeout(() => {
+          surface.classList.remove("is-turning");
+          surface.replaceChildren();
+        }, 320);
       });
     });
     return () => {
