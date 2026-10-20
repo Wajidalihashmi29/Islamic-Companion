@@ -51,7 +51,7 @@ public static class QuranPageLayout
                     Translation = string.Join(" ", translation[translationStart..translationEnd]),
                     EndsAyah = isEnd,
                     IsRukuEnd = isEnd && verse.IsRukuEnd,
-                    IsSajdah = isEnd && verse.IsSajdah
+                    IsSajdah = verse.IsSajdah
                 });
                 index = end;
                 used += take;

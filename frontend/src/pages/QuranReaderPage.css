@@ -102,17 +102,19 @@
 .quran-reader--fit .quran-register, .quran-reader--fit .quran-register .quran-arabic-stream { border-bottom-width: 2px; }
 .quran-reader--fit .quran-controls { position: static; flex-shrink: 0; width: 100%; max-width: none; margin-top: 6px; transform: none; box-shadow: none; }
 .quran-fit-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; }
-/* RTL Mushaf Page Turn Transition */
+/* ==========================================================================
+   RTL Mushaf Two-Container Page Turn Transition (Smooth, Physical, Zero-Flicker)
+   ========================================================================== */
 .quran-page-transition {
   position: fixed;
   z-index: 25;
   overflow: hidden;
   pointer-events: none;
   visibility: hidden;
-  border-radius: 4px;
   will-change: transform, opacity;
+  box-shadow: 0 10px 30px -5px rgba(17, 45, 42, 0.25);
   transition:
-    transform 280ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 280ms cubic-bezier(0.2, 0.85, 0.3, 1),
     opacity 280ms ease,
     visibility 0s linear 280ms;
 }
@@ -120,49 +122,27 @@
 .quran-page-transition.is-visible {
   visibility: visible;
   opacity: 1;
-  transform: translateX(0);
+  transform: translate3d(0, 0, 0);
   transition: none;
 }
 
 /* In RTL: Next page turns away to the RIGHT */
 .quran-page-transition[data-turn-dir="next"]:not(.is-visible) {
-  transform: translateX(102%);
-  opacity: 0.9;
-  box-shadow: -18px 0 36px -4px rgba(17, 45, 42, 0.32);
+  transform: translate3d(102%, 0, 0);
+  opacity: 0;
 }
 
 /* In RTL: Previous page turns away to the LEFT */
 .quran-page-transition[data-turn-dir="prev"]:not(.is-visible) {
-  transform: translateX(-102%);
-  opacity: 0.9;
-  box-shadow: 18px 0 36px -4px rgba(17, 45, 42, 0.32);
-}
-
-/* Book binding crease shadow along the turning edge */
-.quran-page-transition::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 28px;
-  pointer-events: none;
-  z-index: 5;
-  transition: opacity 280ms ease;
+  transform: translate3d(-102%, 0, 0);
   opacity: 0;
 }
 
-.quran-page-transition[data-turn-dir="next"]::before {
-  left: 0;
-  background: linear-gradient(to right, rgba(17, 45, 42, 0.22), transparent);
-}
-
-.quran-page-transition[data-turn-dir="prev"]::before {
-  right: 0;
-  background: linear-gradient(to left, rgba(17, 45, 42, 0.22), transparent);
-}
-
-.quran-page-transition:not(.is-visible)::before {
-  opacity: 1;
+@media (prefers-reduced-motion: reduce) {
+  .quran-page-transition {
+    transition: opacity 180ms ease, visibility 0s linear 180ms !important;
+    transform: none !important;
+  }
 }
 .quran-reading-viewport[aria-busy="false"] .quran-page-stage--opening { animation: quran-page-open 180ms ease-out; }
 @keyframes quran-page-open { from { opacity: 0; } to { opacity: 1; } }
@@ -195,15 +175,23 @@
 .quran-arabic-stream { width: 100%; text-align: justify; text-align-last: justify; text-justify: inter-word; word-spacing: .12rem; overflow: visible; overflow-wrap: break-word; padding-inline: 8px; -webkit-text-stroke: .2px currentColor; paint-order: stroke fill; }
 .quran-register .quran-arabic-stream { padding-block: .04em; border-bottom: 1px solid var(--quran-rule); }
 .quran-register .quran-arabic-stream--para-start { color: #fffdf9; background: #145550; border-radius: 3px; box-shadow: inset 0 0 0 1px #c4ab70; }
-.quran-arabic-stream--para-start .quran-verse:hover { background: rgba(255, 253, 249, .12); }
+.quran-arabic-stream--para-start .quran-verse:hover { background-color: rgba(255, 253, 249, .12); }
 .quran-arabic-stream--para-start .quran-verse.is-targeted,
-.quran-arabic-stream--para-start .quran-verse.is-reciting { background: rgba(232, 204, 117, .28); }
+.quran-arabic-stream--para-start .quran-verse.is-reciting { background-color: rgba(232, 204, 117, .28); }
 .quran-layout-probe { height: 0; border-block: 0; overflow: hidden; visibility: hidden; pointer-events: none; text-align: start; text-align-last: auto; contain: strict; }
 .quran-verse { cursor: pointer; border-radius: 4px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
-.quran-verse:hover { background: rgba(212, 175, 55, .08); }
-.quran-verse.is-targeted { background: rgba(212, 175, 55, .18); }
-.quran-verse.is-reciting { background: rgba(245, 158, 11, .15); }
-.quran-verse.is-sajdah { border-top: 2px solid currentColor; padding-top: 2px; }
+.quran-verse:hover { background-color: rgba(212, 175, 55, .08); }
+.quran-verse.is-targeted { background-color: rgba(212, 175, 55, .18); }
+.quran-verse.is-reciting { background-color: rgba(245, 158, 11, .15); }
+.quran-verse.is-sajdah {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 100% max(3.5px, 0.09em);
+  background-position: 0 0.29em;
+}
+.font-uthmani .quran-verse.is-sajdah {
+  background-position: 0 0.21em;
+}
 .quran-inline-markers { display: inline-flex; vertical-align: middle; align-items: center; white-space: nowrap; gap: 3px; line-height: 1; }
 .quran-ayah-seal { position: relative; display: inline-flex; padding: 0; border: 0; background: transparent; vertical-align: middle; cursor: pointer; color: inherit; font: inherit; line-height: 1; }
 .quran-ayah-seal .ayah-marker-wrapper { margin: 0 3px !important; }

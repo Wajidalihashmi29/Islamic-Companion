@@ -58,6 +58,9 @@ export interface QuranReaderView {
 }
 
 export function loadQuranReaderView(profileKey: string, defaultMode: QuranReaderView["mode"] = "scroll"): QuranReaderView {
+  if (defaultMode === "fit") {
+    return { mode: "fit", position: null };
+  }
   const saved = localStorage.getItem(`${profileKey}:quran-view`);
   if (saved === null) return { mode: defaultMode, position: null };
   const view: unknown = JSON.parse(saved);
@@ -66,9 +69,7 @@ export function loadQuranReaderView(profileKey: string, defaultMode: QuranReader
   {
     throw new Error("The saved Quran reading view is invalid.");
   }
-  const mode = view.mode === "screens" ||
-    (defaultMode === "fit" && view.mode === "scroll" && (!("version" in view) || view.version !== 2))
-    ? "fit" : view.mode;
+  const mode = view.mode === "screens" ? "fit" : view.mode;
   if (view.position === null) return { mode, position: null };
   const position = view.position;
   if (typeof position !== "object" || position === null ||

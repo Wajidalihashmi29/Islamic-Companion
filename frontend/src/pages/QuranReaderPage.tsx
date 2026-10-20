@@ -306,7 +306,10 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const [offlineProgress, setOfflineProgress] = useState<QuranOfflineProgress | null>(null);
   const navigationPending = navigationStatus !== null;
   const [verseTarget, setVerseTarget] = useState<{ key: string; page: number } | null>(null);
-  const [fitMode, setFitMode] = useState(resume.view.mode === "fit");
+  const [fitMode, setFitMode] = useState(() => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches) return true;
+    return resume.view.mode === "fit";
+  });
   const immersive = fitMode && mobileReader;
   const [controlsVisible, setControlsVisible] = useState(false);
   const controlsShown = !immersive || controlsVisible || !!drawer ||
@@ -824,13 +827,18 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     retainedPage.current = captureReadingPage(sheet, viewport);
     showReadingPage(surface, retainedPage.current);
     setHasPresentedPage(true);
-    // In RTL Mushaf: Next page turns away to the RIGHT, Previous page turns away to the LEFT
     surface.dataset.turnDir = direction >= 0 ? "next" : "prev";
   }
   function changePage(number: QuranReaderPageNumber, keepAudio = false,
-    direction = number === "dua" || number > pageNumber ? 1 : -1, favorite?: number | null) {
+    direction = number === "dua" || number > pageNumber ? 1 : -1, favorite?: number | null, isTurn = false) {
     if ((number !== "dua" && (number < 1 || number > 604)) || (number === readerPage && favorite === undefined)) return;
-    preservePageForTransition(direction);
+    const isSequentialTurn = isTurn || (typeof number === "number" && typeof readerPage === "number" && Math.abs(number - readerPage) === 1);
+    setHasPresentedPage(true);
+    if (isSequentialTurn) {
+      preservePageForTransition(direction);
+    } else {
+      setHasPresentedPage(false);
+    }
     setNavigationStatus(null);
     if (!keepAudio) {
       navigationRequest.current?.abort();
@@ -850,9 +858,9 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     window.scrollTo({ top: 0, behavior: "instant" });
   }
   function turnPage(delta: -1 | 1) {
-    if (completionPage) { changePage(getAdjacentQuranReaderPage(readerPage, delta), false, delta); return; }
+    if (completionPage) { changePage(getAdjacentQuranReaderPage(readerPage, delta), false, delta, undefined, true); return; }
     if (!fitMode || !fitReady || loading || error || drawer) return;
-    changePage(getAdjacentQuranReaderPage(readerPage, delta), false, delta);
+    changePage(getAdjacentQuranReaderPage(readerPage, delta), false, delta, undefined, true);
   }
   function openSurah(surah: QuranSurah) {
     changePage(surah.startPage, false, surah.startPage > pageNumber ? 1 : -1,
@@ -1164,7 +1172,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
                     event.preventDefault(); turnPage(event.key === "ArrowRight" ? 1 : -1);
                   }
                 }}>
-              {!hasPresentedPage && !pageReady && (
+              {(!pageReady && !hasPresentedPage) && (
                 <div className="quran-page-skeleton" role="status" aria-label="Loading Quran page">
                   <div className="quran-skeleton-sheet">
                     <header className="quran-skeleton-header">
@@ -1207,25 +1215,28 @@ function QuranReader({ profileKey }: { profileKey: string }) {
                   <span className="quran-loading-announcement">Preparing Quran page</span>
                 </div>
               )}
-              <div className={`quran-page-stage${hasPresentedPage ? "" : " quran-page-stage--opening"}`}
-                onAnimationEnd={event => {
-                  if (event.target === event.currentTarget && event.animationName === "quran-page-open")
-                    setHasPresentedPage(true);
-                }} style={fitMode ? {
-                width: pageFit.width * pageFit.scale * pageZoom,
-                height: pageFit.height * pageFit.scale * pageZoom,
+              <div className={`quran-page-stage${
+                hasPresentedPage ? "" : " quran-page-stage--opening"
+              }`}
+              onAnimationEnd={event => {
+                if (event.target === event.currentTarget && event.animationName === "quran-page-open") {
+                  setHasPresentedPage(true);
+                }
+              }} style={fitMode ? {
+                width: (pageFit.width || fitWidth) * (pageFit.scale > 0 ? pageFit.scale : 1) * pageZoom,
+                height: (pageFit.height || fitWidth / fitAspectRatio) * (pageFit.scale > 0 ? pageFit.scale : 1) * pageZoom,
               } : undefined}>
               {page && <article ref={paper} className={`quran-page ${arabicClass} ${pageNumber <= 2 ? "quran-page--opening" : ""}`}
                 inert={!pageReady}
                 style={{
                   fontSize: `${preferences.arabicFontSize}px`,
                   visibility: !pageReady ? "hidden" : undefined,
-                  opacity: !hasPresentedPage && !pageReady ? 0 : 1,
+                  opacity: (!hasPresentedPage && !pageReady) ? 0 : 1,
                   pointerEvents: !pageReady ? "none" : undefined,
-                  transition: !hasPresentedPage && pageReady ? "opacity 160ms ease-out" : "none",
+                  transition: (!hasPresentedPage && pageReady) ? "opacity 160ms ease-out" : "none",
                   ...(fitMode ? {
                   width: fitWidth, minHeight: fitWidth / fitAspectRatio,
-                  transform: `scale(${fitReady ? pageFit.scale * pageZoom : 1})`,
+                  transform: `scale(${(pageFit.scale > 0 ? pageFit.scale : 1) * pageZoom})`,
                 } : {}) }}>
               <header className="quran-page-margin" dir="rtl" lang="ar">
                 <span className="quran-margin-label">
@@ -1233,7 +1244,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
                   <QuranGlyph text={`j${String(page.juzNumber).padStart(3, "0")}`} script="juz-name"
                     className="quran-margin-juz" label={page.juzNameArabic} />
                 </span>
-                <span><QuranNumber value={pageNumber} script={preferences.arabicScript} /> / <span className="quran-latin-number">{pageNumber}</span></span>
+                <span><QuranNumber value={page.pageNumber} script={preferences.arabicScript} /> / <span className="quran-latin-number">{page.pageNumber}</span></span>
                 <span className="quran-margin-label">{currentSurah && <>
                   <QuranNumber value={currentSurah.number} script={preferences.arabicScript} />
                   <QuranGlyph text={SURAH_COLOR_GLYPHS[currentSurah.number - 1]} script="surah-name-color-v4"
@@ -1293,7 +1304,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
         <div id={controlsId} className="quran-controls" inert={!controlsShown}>
           <nav className="quran-page-navigation" aria-label="Page navigation and zoom">
             <button type="button" aria-label="Previous page" disabled={!pageReady}
-              onClick={() => changePage(getAdjacentQuranReaderPage(readerPage, -1), false, -1)}><ChevronLeft size={20} /></button>
+              onClick={() => changePage(getAdjacentQuranReaderPage(readerPage, -1), false, -1, undefined, true)}><ChevronLeft size={20} /></button>
             {completionPage ? <div className="quran-dock-position"><strong>Completion duas</strong><small>After page 604 · Next: Al-Fatihah</small></div>
               : fitMode ? <div className="quran-page-zoom">
               {pageZoom > 1 && <button type="button" aria-label="Zoom out" disabled={!fitReady}
@@ -1307,7 +1318,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
               <small>{currentSurah ? `${currentSurah.name} · Para ${page?.juzNumber}` : "Quran reader"}</small>
             </div>}
             <button type="button" aria-label="Next page" disabled={!pageReady}
-              onClick={() => changePage(getAdjacentQuranReaderPage(readerPage, 1), false, 1)}><ChevronRight size={20} /></button>
+              onClick={() => changePage(getAdjacentQuranReaderPage(readerPage, 1), false, 1, undefined, true)}><ChevronRight size={20} /></button>
           </nav>
           <nav className={`quran-toolbar${activeVerse ? " quran-toolbar--reciting" : ""}`} aria-label="Reader controls">
             {activeVerse && <button type="button" className="quran-playback-toggle"

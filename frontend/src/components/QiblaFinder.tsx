@@ -198,7 +198,7 @@ export default function QiblaFinder() {
       : calculateRelativeBearing(bearing, heading);
   const compassNeedsCalibration = headingAccuracy !== null && headingAccuracy > 15;
   const isAligned = heading !== null && !compassNeedsCalibration &&
-    getSmallestAngleDifference(relativeBearing, 0) <= 3;
+    getSmallestAngleDifference(relativeBearing, 0) <= 1;
 
   const lastTickHeading = useRef<number>(0);
   useEffect(() => {

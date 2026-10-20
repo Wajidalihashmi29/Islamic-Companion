@@ -23,6 +23,7 @@ public class QuranPageLayoutTests
         Assert.Equal(original.RukuNumberInJuz, lines[^1].Segments[^1].RukuNumberInJuz);
         Assert.Equal(original.RukuAyahCount, lines[^1].Segments[^1].RukuAyahCount);
         Assert.True(lines[^1].Segments[^1].IsSajdah);
+        Assert.All(lines.SelectMany(l => l.Segments), s => Assert.True(s.IsSajdah));
         Assert.Contains("﴿۷﴾", lines[^1].Translation);
     }
 
