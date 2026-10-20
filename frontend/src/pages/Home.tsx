@@ -122,7 +122,7 @@ export default function Home() {
   });
   const lastPage = useMemo(() => {
     try { return loadQuranReadingPage(profileKey) ?? 1; } catch { return 1; }
-  }, [profileKey]);
+  }, [profileKey, settings]);
   const [quranProgress, setQuranProgress] = useState<QuranProgressDetails | null>(null);
   const [quranProgressUnavailable, setQuranProgressUnavailable] = useState(false);
   const [locationLabel, setLocationLabel] = useState(() => {

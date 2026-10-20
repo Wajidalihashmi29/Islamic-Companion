@@ -1,0 +1,110 @@
+.chime-test-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 5px 14px 5px 6px;
+  border: 1px solid rgba(20, 85, 80, 0.22);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fbf7 100%);
+  color: #0d534c;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 5px -1px rgba(13, 53, 50, 0.08);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  width: fit-content;
+  margin-top: 6px;
+}
+
+.chime-test-btn:hover {
+  background: linear-gradient(135deg, #f0fbf7 0%, #e2f7ef 100%);
+  border-color: #0f6259;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -2px rgba(13, 53, 50, 0.16);
+  color: #083c37;
+}
+
+.chime-test-btn:active {
+  transform: scale(0.97);
+}
+
+.chime-test-btn.is-playing {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-color: #10b981;
+  color: #065f46;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22), 0 4px 12px -2px rgba(16, 185, 129, 0.2);
+}
+
+.chime-test-btn-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #0f524a;
+  color: #ffffff;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(13, 53, 50, 0.2);
+}
+
+.chime-test-btn:hover .chime-test-btn-icon {
+  background: #083c37;
+  transform: scale(1.05);
+}
+
+.chime-test-btn.is-playing .chime-test-btn-icon {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+/* Equalizer Bars Animation */
+.chime-equalizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  height: 12px;
+  width: 12px;
+}
+
+.chime-bar {
+  width: 2px;
+  background-color: currentColor;
+  border-radius: 1px;
+  animation: chime-pulse 0.75s ease-in-out infinite alternate;
+}
+
+.chime-bar-1 {
+  height: 8px;
+  animation-delay: 0.1s;
+}
+
+.chime-bar-2 {
+  height: 12px;
+  animation-delay: 0.25s;
+}
+
+.chime-bar-3 {
+  height: 6px;
+  animation-delay: 0.4s;
+}
+
+@keyframes chime-pulse {
+  0% {
+    height: 3px;
+  }
+  100% {
+    height: 11px;
+  }
+}
+
+.chime-test-btn-label {
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}

@@ -58,6 +58,8 @@ import {
 import { PRAYER_ALERT_NAMES, type PrayerAlertName } from "../utils/prayerAlerts";
 import { clearOfflineQuran, getOfflineQuranStorageInfo } from "../utils/quranOffline";
 import { deletePersonalData, exportPersonalData } from "../utils/personalLibrary";
+import { playPrayerChime } from "../utils/prayerChime";
+import ChimeTestButton from "../components/ChimeTestButton";
 import "./SettingsPage.css";
 
 type TabId = "quran" | "prayer" | "account" | "general";
@@ -1292,17 +1294,20 @@ export default function SettingsPage() {
                     <strong>Prayer Alert Chime</strong>
                   </div>
                   <p>Play a gentle alert chime at prayer entrance time.</p>
+                  <ChimeTestButton label="Test alert chime" />
                 </div>
                 <label className="settings-switch">
                   <input
                     type="checkbox"
                     checked={settings.prayer.soundEnabled}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const enabled = e.target.checked;
+                      if (enabled) void playPrayerChime();
                       updateSettings((prev) => ({
                         ...prev,
-                        prayer: { ...prev.prayer, soundEnabled: e.target.checked },
-                      }))
-                    }
+                        prayer: { ...prev.prayer, soundEnabled: enabled },
+                      }));
+                    }}
                   />
                   <span className="slider round"></span>
                 </label>

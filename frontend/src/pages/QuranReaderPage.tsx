@@ -95,7 +95,7 @@ function QuranGlyph({ text, script, className, label, alignment = "xMidYMax meet
   return (
     <svg className={className} viewBox={viewBox || undefined} preserveAspectRatio={alignment}
       role="img" aria-label={label} data-quran-glyph-ready={!!viewBox}
-      style={{ visibility: viewBox ? "visible" : "hidden" }}>
+      style={{ visibility: viewBox ? "inherit" : "hidden" }}>
       <text ref={ref} x="0" y="0" fill="currentColor" fontSize="32" direction="ltr"
         style={{ direction: "ltr", letterSpacing: "normal" }}>{text}</text>
     </svg>
@@ -419,22 +419,33 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   }, [search, directorySection]);
 
   useEffect(() => {
-    const sync = () => {
+    const sync = (event?: Event) => {
       setSettings(loadSettings());
       try { setFavorites({ surahs: loadQuranFavoriteSurahs(profileKey), error: "" }); }
       catch (error) {
         console.warn("Unable to reload favourite Surahs.", error);
         setFavorites(previous => ({ ...previous, error: "Favourite Surahs could not be loaded. Check browser storage." }));
       }
+      try { setPageNote(loadQuranPageNote(profileKey, pageNumber)); } catch {}
+
+      const customEvent = event as CustomEvent<{ fromCloud?: boolean }> | undefined;
+      if (customEvent?.detail?.fromCloud && !params.get("page")) {
+        const savedPage = loadQuranReadingPage(profileKey);
+        if (savedPage && savedPage !== pageNumber) {
+          changePage(savedPage, false, savedPage > pageNumber ? 1 : -1, null);
+        }
+      }
     };
     window.addEventListener("ic:settingsUpdated", sync);
+    window.addEventListener("ic:libraryUpdated", sync);
     window.addEventListener("storage", sync);
     return () => {
       window.removeEventListener("ic:settingsUpdated", sync);
+      window.removeEventListener("ic:libraryUpdated", sync);
       window.removeEventListener("storage", sync);
       navigationRequest.current?.abort();
     };
-  }, [profileKey]);
+  }, [profileKey, pageNumber, params]);
 
   useEffect(() => {
     const animation = requestAnimationFrame(() => setJump(String(pageNumber)));
@@ -813,8 +824,8 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     retainedPage.current = captureReadingPage(sheet, viewport);
     showReadingPage(surface, retainedPage.current);
     setHasPresentedPage(true);
-    frame.current?.style.setProperty("--quran-page-exit",
-      direction > 0 ? "inset(0 0 0 100%)" : "inset(0 100% 0 0)");
+    // In RTL Mushaf: Next page turns away to the RIGHT, Previous page turns away to the LEFT
+    surface.dataset.turnDir = direction >= 0 ? "next" : "prev";
   }
   function changePage(number: QuranReaderPageNumber, keepAudio = false,
     direction = number === "dua" || number > pageNumber ? 1 : -1, favorite?: number | null) {
@@ -1057,7 +1068,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
       else await frame.current?.requestFullscreen();
     } catch (error) { setNavigationError(errorMessage(error, "Fullscreen is not supported in this browser.")); }
   }
-  const currentSurah = directory?.surahs.find(surah => surah.number === page?.lines[0]?.segments[0]?.surahNumber);
+  const currentSurah = directory?.surahs.find(surah => surah.number === (page?.lines[0]?.segments[0]?.surahNumber ?? favoriteSurah));
   const arabicClass = preferences.arabicScript === "indopak" ? "font-indopak" : "font-uthmani";
   const arabicStyle = { fontSize: `${preferences.arabicFontSize}px`,
     lineHeight: `${preferences.arabicFontSize * getQuranLineHeightMultiplier(preferences.arabicScript, fitMode)}px` };
@@ -1122,9 +1133,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
         {readerError && <p className="quran-error" role="alert">{readerError}</p>}
         {readingError && <p className="quran-error" role="alert">{readingError}</p>}
         {favorites.error && drawer !== "index" && <p className="quran-error" role="alert">{favorites.error}</p>}
-        {navigationPending && drawer !== "index" && <p className="quran-navigation-status" role="status">
-          <LoaderCircle className="quran-spinner" size={20} />{navigationStatus.label}
-        </p>}
+        
         {completionPage ? <QuranCompletionPage fontSize={preferences.arabicFontSize} script={preferences.arabicScript}
           fitMode={fitMode} onTurn={turnPage} onToggleControls={immersive ? () => setControlsVisible(value => !value) : undefined} />
           : pageError && !loading ? <div className="quran-error" role="alert">{pageError} <button type="button" onClick={() => {
@@ -1155,7 +1164,49 @@ function QuranReader({ profileKey }: { profileKey: string }) {
                     event.preventDefault(); turnPage(event.key === "ArrowRight" ? 1 : -1);
                   }
                 }}>
-              {!pageReady && <span className="quran-loading-announcement" role="status">Preparing Quran page</span>}
+              {!hasPresentedPage && !pageReady && (
+                <div className="quran-page-skeleton" role="status" aria-label="Loading Quran page">
+                  <div className="quran-skeleton-sheet">
+                    <header className="quran-skeleton-header">
+                      <div className="quran-shimmer-bar quran-shimmer-badge" style={{ width: "68px" }} />
+                      <div className="quran-shimmer-bar quran-shimmer-badge" style={{ width: "46px" }} />
+                      <div className="quran-shimmer-bar quran-shimmer-badge" style={{ width: "76px" }} />
+                    </header>
+
+                    {favoriteSurah ? (
+                      <div className="quran-skeleton-surah-banner">
+                        <div className="quran-shimmer-bar quran-shimmer-side" />
+                        <div className="quran-shimmer-bar quran-shimmer-center" />
+                        <div className="quran-shimmer-bar quran-shimmer-side" />
+                      </div>
+                    ) : null}
+
+                    <div className="quran-skeleton-lines">
+                      {Array.from({ length: favoriteSurah ? 11 : 14 }).map((_, i) => {
+                        const widths = ["98%", "94%", "97%", "92%", "96%", "95%", "99%", "93%", "97%", "91%", "96%", "94%", "98%", "86%"];
+                        const width = widths[i % widths.length];
+                        const hasMedallion = (i % 2 === 1) || i === 13;
+                        return (
+                          <div key={i} className="quran-skeleton-line-row">
+                            <div className="quran-skeleton-arabic-tier">
+                              <div className="quran-shimmer-bar quran-shimmer-text" style={{ width }} />
+                              {hasMedallion && <div className="quran-shimmer-bar quran-shimmer-medallion" />}
+                            </div>
+                            {preferences.showTranslation && (
+                              <div className="quran-shimmer-bar quran-shimmer-translation" style={{ width: `${parseInt(width) - 12}%` }} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <footer className="quran-skeleton-footer">
+                      <div className="quran-shimmer-bar quran-shimmer-badge" style={{ width: "54px" }} />
+                    </footer>
+                  </div>
+                  <span className="quran-loading-announcement">Preparing Quran page</span>
+                </div>
+              )}
               <div className={`quran-page-stage${hasPresentedPage ? "" : " quran-page-stage--opening"}`}
                 onAnimationEnd={event => {
                   if (event.target === event.currentTarget && event.animationName === "quran-page-open")
@@ -1166,7 +1217,13 @@ function QuranReader({ profileKey }: { profileKey: string }) {
               } : undefined}>
               {page && <article ref={paper} className={`quran-page ${arabicClass} ${pageNumber <= 2 ? "quran-page--opening" : ""}`}
                 inert={!pageReady}
-                style={{ fontSize: `${preferences.arabicFontSize}px`, visibility: !pageReady ? "hidden" : undefined, ...(fitMode ? {
+                style={{
+                  fontSize: `${preferences.arabicFontSize}px`,
+                  visibility: !pageReady ? "hidden" : undefined,
+                  opacity: !hasPresentedPage && !pageReady ? 0 : 1,
+                  pointerEvents: !pageReady ? "none" : undefined,
+                  transition: !hasPresentedPage && pageReady ? "opacity 160ms ease-out" : "none",
+                  ...(fitMode ? {
                   width: fitWidth, minHeight: fitWidth / fitAspectRatio,
                   transform: `scale(${fitReady ? pageFit.scale * pageZoom : 1})`,
                 } : {}) }}>

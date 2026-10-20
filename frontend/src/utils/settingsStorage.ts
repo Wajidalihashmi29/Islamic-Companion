@@ -1,10 +1,12 @@
 import { jwtDecode } from "jwt-decode";
-import { fetchCloudSettings, saveCloudSettings } from "../api/userSettingsApi";
+import { fetchCloudSettings, saveCloudSettings, type CloudUserData } from "../api/userSettingsApi";
 import { DEFAULT_QURAN_TYPOGRAPHY, normalizeQuranTypography } from "./quranTypography";
 import { DEFAULT_QURAN_RECITER, normalizeReciter } from "./quranReciters";
 import { getQuranOfflineCompletionKey } from "./quranOffline";
 import { getOfflineQuranPreferencePatch } from "./offlineQuranPreferences";
 import { normalizePrayerAlertNames, PRAYER_ALERT_NAMES, type PrayerAlertName } from "./prayerAlerts";
+import type { SavedHadith, QuranPageNote } from "./personalLibrary";
+import type { QuranReaderView } from "./quranNavigation";
 
 export { normalizeReciter, RECITERS_OPTIONS } from "./quranReciters";
 
@@ -76,7 +78,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     timeFormat: "12h",
     calculationMethod: 1,
     notificationsEnabled: false,
-    soundEnabled: false,
+    soundEnabled: true,
     alertPrayers: [...PRAYER_ALERT_NAMES],
   },
   general: {
@@ -234,15 +236,169 @@ export function preserveOfflineQuranPreferencesForGuest(): void {
   }
 }
 
+/**
+ * Builds a complete user snapshot for cloud synchronization, including
+ * app settings, reading progress, favorite Surahs, and personal library items.
+ */
+export function buildCloudPayload(userIdentifier?: string | null): CloudUserData {
+  const identifier = userIdentifier !== undefined ? userIdentifier : getActiveUserIdentifier();
+  const profileKey = getStorageKeyForUser(identifier);
+  const settings = loadSettings(identifier);
+
+  let quranPage: number | undefined;
+  try {
+    const rawPage = localStorage.getItem(`${profileKey}:quran-page`);
+    if (rawPage) {
+      const parsed = JSON.parse(rawPage);
+      if (typeof parsed === "number" && parsed >= 1 && parsed <= 604) {
+        quranPage = parsed;
+      }
+    }
+  } catch {}
+
+  let quranView: QuranReaderView | undefined;
+  try {
+    const rawView = localStorage.getItem(`${profileKey}:quran-view`);
+    if (rawView) {
+      quranView = JSON.parse(rawView);
+    }
+  } catch {}
+
+  let favoriteSurahs: number[] | undefined;
+  try {
+    const rawFavs = localStorage.getItem(`${profileKey}:quran-favorite-surahs`);
+    if (rawFavs) {
+      const parsed = JSON.parse(rawFavs);
+      if (Array.isArray(parsed)) {
+        favoriteSurahs = parsed.filter(n => typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= 114);
+      }
+    }
+  } catch {}
+
+  let hadithBookmarks: SavedHadith[] | undefined;
+  try {
+    const raw = localStorage.getItem(`${profileKey}.hadithBookmarks`);
+    if (raw) hadithBookmarks = JSON.parse(raw);
+  } catch {}
+
+  let recentHadiths: SavedHadith[] | undefined;
+  try {
+    const raw = localStorage.getItem(`${profileKey}.recentHadiths`);
+    if (raw) recentHadiths = JSON.parse(raw);
+  } catch {}
+
+  let quranNotes: QuranPageNote[] | undefined;
+  try {
+    const raw = localStorage.getItem(`${profileKey}.quranNotes`);
+    if (raw) quranNotes = JSON.parse(raw);
+  } catch {}
+
+  let azkarFavorites: string[] | undefined;
+  try {
+    const raw = localStorage.getItem(`${profileKey}.azkarFavorites`);
+    if (raw) azkarFavorites = JSON.parse(raw);
+  } catch {}
+
+  let calendarReminders: string[] | undefined;
+  try {
+    const raw = localStorage.getItem(`${profileKey}.calendarReminders`);
+    if (raw) calendarReminders = JSON.parse(raw);
+  } catch {}
+
+  let tasbeeh: unknown;
+  try {
+    const raw = localStorage.getItem(`${profileKey}.tasbeeh`);
+    if (raw) tasbeeh = JSON.parse(raw);
+  } catch {}
+
+  return {
+    ...settings,
+    quranPage,
+    quranView,
+    favoriteSurahs: favoriteSurahs ?? [],
+    hadithBookmarks: hadithBookmarks ?? [],
+    recentHadiths: recentHadiths ?? [],
+    quranNotes: quranNotes ?? [],
+    azkarFavorites: azkarFavorites ?? [],
+    calendarReminders: calendarReminders ?? [],
+    tasbeeh,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Migrates local guest data (reading page, favorite surahs, library bookmarks)
+ * to an authenticated user profile key when first signing in on this browser.
+ */
+export function migrateGuestDataToUser(identifier: string): void {
+  try {
+    const userKey = getStorageKeyForUser(identifier);
+    const guestKey = GUEST_STORAGE_KEY;
+
+    if (!localStorage.getItem(`${userKey}:quran-page`)) {
+      const guestPage = localStorage.getItem(`${guestKey}:quran-page`) || localStorage.getItem("quran-page");
+      if (guestPage) localStorage.setItem(`${userKey}:quran-page`, guestPage);
+    }
+    if (!localStorage.getItem(`${userKey}:quran-view`)) {
+      const guestView = localStorage.getItem(`${guestKey}:quran-view`);
+      if (guestView) localStorage.setItem(`${userKey}:quran-view`, guestView);
+    }
+    if (!localStorage.getItem(`${userKey}:quran-favorite-surahs`)) {
+      const guestFavs = localStorage.getItem(`${guestKey}:quran-favorite-surahs`);
+      if (guestFavs) localStorage.setItem(`${userKey}:quran-favorite-surahs`, guestFavs);
+    }
+    if (!localStorage.getItem(`${userKey}.hadithBookmarks`)) {
+      const guestHadiths = localStorage.getItem(`${guestKey}.hadithBookmarks`);
+      if (guestHadiths) localStorage.setItem(`${userKey}.hadithBookmarks`, guestHadiths);
+    }
+    if (!localStorage.getItem(`${userKey}.quranNotes`)) {
+      const guestNotes = localStorage.getItem(`${guestKey}.quranNotes`);
+      if (guestNotes) localStorage.setItem(`${userKey}.quranNotes`, guestNotes);
+    }
+    if (!localStorage.getItem(`${userKey}.azkarFavorites`)) {
+      const guestAzkar = localStorage.getItem(`${guestKey}.azkarFavorites`);
+      if (guestAzkar) localStorage.setItem(`${userKey}.azkarFavorites`, guestAzkar);
+    }
+    if (!localStorage.getItem(`${userKey}.calendarReminders`)) {
+      const guestReminders = localStorage.getItem(`${guestKey}.calendarReminders`);
+      if (guestReminders) localStorage.setItem(`${userKey}.calendarReminders`, guestReminders);
+    }
+    if (!localStorage.getItem(`${userKey}.tasbeeh`)) {
+      const guestTasbeeh = localStorage.getItem(`${guestKey}.tasbeeh`);
+      if (guestTasbeeh) localStorage.setItem(`${userKey}.tasbeeh`, guestTasbeeh);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 let cloudSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
-function queueCloudSave(settings: AppSettings) {
+/**
+ * Debounced background cloud sync. Automatically bundles user settings, reading progress,
+ * favorite surahs, and personal library bookmarks to sync with the backend database.
+ */
+export function queueCloudSave(userIdentifierOrSettings?: string | null | AppSettings): void {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
+  const identifier =
+    typeof userIdentifierOrSettings === "string"
+      ? userIdentifierOrSettings
+      : getActiveUserIdentifier();
+  if (!identifier) return;
+
   if (cloudSaveTimeout) {
     clearTimeout(cloudSaveTimeout);
   }
   cloudSaveTimeout = setTimeout(() => {
-    saveCloudSettings(settings).catch(() => {});
-  }, 350);
+    try {
+      const payload = buildCloudPayload(identifier);
+      saveCloudSettings(payload).catch(() => {});
+    } catch {
+      // ignore
+    }
+  }, 400);
 }
 
 /**
@@ -276,7 +432,7 @@ export function saveSettings(settings: AppSettings, userIdentifier?: string | nu
 
     // If authenticated user, automatically synchronize to the backend cloud database!
     if (identifier && localStorage.getItem("token")) {
-      queueCloudSave(normalizedSettings);
+      queueCloudSave(identifier);
     }
 
     // Broadcast across windows / components
@@ -312,7 +468,7 @@ export function resetSettings(userIdentifier?: string | null): AppSettings {
     }
 
     if (identifier && localStorage.getItem("token")) {
-      queueCloudSave(defaults);
+      queueCloudSave(identifier);
     }
 
     window.dispatchEvent(
@@ -332,20 +488,26 @@ export function resetSettings(userIdentifier?: string | null): AppSettings {
 }
 
 /**
- * Synchronizes user settings with the backend database.
- * If the user logs in from any browser or device, this pulls their cloud settings and
- * updates the local storage cache so all their preferences follow them everywhere!
+ * Synchronizes user settings, reading progress, and personal library with the backend database.
+ * If the user logs in from any browser or device, this pulls their cloud data and
+ * updates the local storage cache so all their reading progress and favorites follow them everywhere!
  */
 export async function syncCloudSettings(userIdentifier?: string | null): Promise<AppSettings | null> {
   const token = localStorage.getItem("token");
   if (!token) return null;
 
   try {
-    const cloud = await fetchCloudSettings();
     const identifier = userIdentifier !== undefined ? userIdentifier : getActiveUserIdentifier();
+    if (!identifier) return null;
+
+    // Migrate any local guest customizations to this user profile if first time on this browser
+    migrateGuestDataToUser(identifier);
+
+    const cloud = await fetchCloudSettings();
     const key = getStorageKeyForUser(identifier);
 
     if (cloud) {
+      // 1. AppSettings
       const merged: AppSettings = {
         quran: { ...DEFAULT_SETTINGS.quran, ...(cloud.quran || {}), ...normalizeQuranTypography(cloud.quran || {}) },
         prayer: { ...DEFAULT_SETTINGS.prayer, ...(cloud.prayer || {}) },
@@ -359,6 +521,97 @@ export async function syncCloudSettings(userIdentifier?: string | null): Promise
       if (merged.prayer?.asrSchool) {
         localStorage.setItem("ic.asrSchool", merged.prayer.asrSchool);
       }
+
+      // 2. Quran Reading Page
+      if (typeof cloud.quranPage === "number" && cloud.quranPage >= 1 && cloud.quranPage <= 604) {
+        localStorage.setItem(`${key}:quran-page`, JSON.stringify(cloud.quranPage));
+      }
+
+      // 3. Quran View
+      if (cloud.quranView) {
+        localStorage.setItem(`${key}:quran-view`, JSON.stringify(cloud.quranView));
+      }
+
+      // 4. Favorite Surahs
+      if (Array.isArray(cloud.favoriteSurahs)) {
+        let localFavs: number[] = [];
+        try {
+          const raw = localStorage.getItem(`${key}:quran-favorite-surahs`);
+          if (raw) localFavs = JSON.parse(raw);
+        } catch {}
+        const mergedFavs = Array.from(new Set([...localFavs, ...cloud.favoriteSurahs]))
+          .filter(n => typeof n === "number" && Number.isInteger(n) && n >= 1 && n <= 114)
+          .sort((a, b) => a - b);
+        localStorage.setItem(`${key}:quran-favorite-surahs`, JSON.stringify(mergedFavs));
+      }
+
+      // 5. Hadith Bookmarks
+      if (Array.isArray(cloud.hadithBookmarks)) {
+        let localHadiths: SavedHadith[] = [];
+        try {
+          const raw = localStorage.getItem(`${key}.hadithBookmarks`);
+          if (raw) localHadiths = JSON.parse(raw);
+        } catch {}
+        const hadithMap = new Map<string, SavedHadith>();
+        cloud.hadithBookmarks.forEach(h => { if (h && h.id) hadithMap.set(h.id, h); });
+        localHadiths.forEach(h => { if (h && h.id && !hadithMap.has(h.id)) hadithMap.set(h.id, h); });
+        localStorage.setItem(`${key}.hadithBookmarks`, JSON.stringify(Array.from(hadithMap.values())));
+      }
+
+      // 6. Recent Hadiths
+      if (Array.isArray(cloud.recentHadiths)) {
+        let localRecent: SavedHadith[] = [];
+        try {
+          const raw = localStorage.getItem(`${key}.recentHadiths`);
+          if (raw) localRecent = JSON.parse(raw);
+        } catch {}
+        const recentMap = new Map<string, SavedHadith>();
+        cloud.recentHadiths.forEach(h => { if (h && h.id) recentMap.set(h.id, h); });
+        localRecent.forEach(h => { if (h && h.id && !recentMap.has(h.id)) recentMap.set(h.id, h); });
+        localStorage.setItem(`${key}.recentHadiths`, JSON.stringify(Array.from(recentMap.values()).slice(0, 20)));
+      }
+
+      // 7. Quran Notes
+      if (Array.isArray(cloud.quranNotes)) {
+        let localNotes: QuranPageNote[] = [];
+        try {
+          const raw = localStorage.getItem(`${key}.quranNotes`);
+          if (raw) localNotes = JSON.parse(raw);
+        } catch {}
+        const notesMap = new Map<number, QuranPageNote>();
+        cloud.quranNotes.forEach(n => { if (n && typeof n.page === "number") notesMap.set(n.page, n); });
+        localNotes.forEach(n => { if (n && typeof n.page === "number" && !notesMap.has(n.page)) notesMap.set(n.page, n); });
+        localStorage.setItem(`${key}.quranNotes`, JSON.stringify(Array.from(notesMap.values())));
+      }
+
+      // 8. Azkar Favorites
+      if (Array.isArray(cloud.azkarFavorites)) {
+        let localAzkar: string[] = [];
+        try {
+          const raw = localStorage.getItem(`${key}.azkarFavorites`);
+          if (raw) localAzkar = JSON.parse(raw);
+        } catch {}
+        const mergedAzkar = Array.from(new Set([...localAzkar, ...cloud.azkarFavorites]));
+        localStorage.setItem(`${key}.azkarFavorites`, JSON.stringify(mergedAzkar));
+      }
+
+      // 9. Calendar Reminders
+      if (Array.isArray(cloud.calendarReminders)) {
+        let localReminders: string[] = [];
+        try {
+          const raw = localStorage.getItem(`${key}.calendarReminders`);
+          if (raw) localReminders = JSON.parse(raw);
+        } catch {}
+        const mergedReminders = Array.from(new Set([...localReminders, ...cloud.calendarReminders]));
+        localStorage.setItem(`${key}.calendarReminders`, JSON.stringify(mergedReminders));
+      }
+
+      // 10. Tasbeeh
+      if (cloud.tasbeeh && typeof cloud.tasbeeh === "object") {
+        localStorage.setItem(`${key}.tasbeeh`, JSON.stringify(cloud.tasbeeh));
+      }
+
+      // Broadcast updates to all listeners
       window.dispatchEvent(
         new CustomEvent("ic:settingsUpdated", {
           detail: {
@@ -369,12 +622,14 @@ export async function syncCloudSettings(userIdentifier?: string | null): Promise
           },
         })
       );
+      window.dispatchEvent(new Event("ic:libraryUpdated"));
+
       return merged;
     } else {
-      // First time saving to cloud for this user: seed cloud with current settings
-      const local = loadSettings(identifier);
-      await saveCloudSettings(local);
-      return local;
+      // First time saving to cloud for this user: seed cloud with current settings & all local data
+      const payload = buildCloudPayload(identifier);
+      await saveCloudSettings(payload);
+      return loadSettings(identifier);
     }
   } catch (err) {
     console.warn("Cloud settings synchronization deferred:", err);

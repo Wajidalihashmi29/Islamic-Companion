@@ -1,3 +1,5 @@
+import { queueCloudSave } from "./settingsStorage";
+
 export interface SavedHadith {
   id: string;
   bookName: string;
@@ -38,6 +40,7 @@ export function toggleSavedHadith(profileKey: string, hadith: Omit<SavedHadith, 
     : [{ ...hadith, id, savedAt: new Date().toISOString() }, ...current];
   localStorage.setItem(key(profileKey, "hadithBookmarks"), JSON.stringify(next));
   window.dispatchEvent(new Event("ic:libraryUpdated"));
+  queueCloudSave();
   return !exists;
 }
 
@@ -49,6 +52,7 @@ export function saveRecentHadith(profileKey: string, hadith: Omit<SavedHadith, "
     ...current.filter(item => item.id !== id),
   ].slice(0, 20);
   localStorage.setItem(key(profileKey, "recentHadiths"), JSON.stringify(next));
+  queueCloudSave();
 }
 
 export function loadRecentHadiths(profileKey: string): SavedHadith[] {
@@ -71,6 +75,25 @@ export function saveQuranPageNote(profileKey: string, page: number, text: string
     : current;
   localStorage.setItem(key(profileKey, "quranNotes"), JSON.stringify(next));
   window.dispatchEvent(new Event("ic:libraryUpdated"));
+  queueCloudSave();
+}
+
+export function loadAzkarFavorites(profileKey: string): string[] {
+  return read<string[]>(key(profileKey, "azkarFavorites"), []);
+}
+
+export function saveAzkarFavorites(profileKey: string, favorites: string[]): void {
+  localStorage.setItem(key(profileKey, "azkarFavorites"), JSON.stringify(favorites));
+  window.dispatchEvent(new Event("ic:libraryUpdated"));
+  queueCloudSave();
+}
+
+export function toggleAzkarFavorite(profileKey: string, id: string): boolean {
+  const current = loadAzkarFavorites(profileKey);
+  const exists = current.includes(id);
+  const next = exists ? current.filter(item => item !== id) : [...current, id];
+  saveAzkarFavorites(profileKey, next);
+  return !exists;
 }
 
 export function exportPersonalData(profileKey: string) {
@@ -81,7 +104,7 @@ export function exportPersonalData(profileKey: string) {
     hadithBookmarks: loadSavedHadiths(profileKey),
     recentHadiths: loadRecentHadiths(profileKey),
     quranNotes: loadQuranNotes(profileKey),
-    azkarFavorites: read<string[]>(key(profileKey, "azkarFavorites"), []),
+    azkarFavorites: loadAzkarFavorites(profileKey),
     calendarReminders: read<string[]>(key(profileKey, "calendarReminders"), []),
   };
 }
@@ -96,4 +119,5 @@ export function deletePersonalData(profileKey: string) {
     key(profileKey, "calendarReminders"),
   ].forEach(storageKey => localStorage.removeItem(storageKey));
   window.dispatchEvent(new Event("ic:libraryUpdated"));
+  queueCloudSave();
 }

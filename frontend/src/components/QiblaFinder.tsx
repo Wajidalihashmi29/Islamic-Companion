@@ -46,6 +46,29 @@ function getDeviceHeading(event: CompassOrientationEvent) {
   return { heading: normalizeDegrees(360 - event.alpha + screenAngle), accuracy: null, preferred: false };
 }
 
+let compassAudioCtx: AudioContext | null = null;
+function playCompassTick() {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    if (!compassAudioCtx) compassAudioCtx = new AudioCtx();
+    if (compassAudioCtx.state === "suspended") {
+      void compassAudioCtx.resume();
+    }
+    const osc = compassAudioCtx.createOscillator();
+    const gain = compassAudioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(1400, compassAudioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(300, compassAudioCtx.currentTime + 0.012);
+    gain.gain.setValueAtTime(0.045, compassAudioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, compassAudioCtx.currentTime + 0.012);
+    osc.connect(gain);
+    gain.connect(compassAudioCtx.destination);
+    osc.start();
+    osc.stop(compassAudioCtx.currentTime + 0.012);
+  } catch {}
+}
+
 export default function QiblaFinder() {
   const orientationEvent = "DeviceOrientationEvent" in window
     ? DeviceOrientationEvent as CompassPermissionEvent
@@ -177,6 +200,26 @@ export default function QiblaFinder() {
   const isAligned = heading !== null && !compassNeedsCalibration &&
     getSmallestAngleDifference(relativeBearing, 0) <= 3;
 
+  const lastTickHeading = useRef<number>(0);
+  useEffect(() => {
+    if (heading !== null && Math.abs(continuousHeading - lastTickHeading.current) >= 3.5) {
+      playCompassTick();
+      lastTickHeading.current = continuousHeading;
+    }
+  }, [continuousHeading, heading]);
+
+  const wasAlignedRef = useRef(false);
+  useEffect(() => {
+    if (isAligned && !wasAlignedRef.current) {
+      if ("vibrate" in navigator) {
+        try {
+          navigator.vibrate([60, 40, 60]);
+        } catch {}
+      }
+    }
+    wasAlignedRef.current = isAligned;
+  }, [isAligned]);
+
   return <section className="faith-panel faith-qibla">
     <div className="faith-intro">
       <span className="faith-icon"><Compass /></span>
@@ -193,7 +236,7 @@ export default function QiblaFinder() {
           <span className="qibla-cardinal qibla-south">S</span>
           <span className="qibla-cardinal qibla-west">W</span>
         </div>
-        <div className="qibla-direction" style={{ transform: `rotate(${bearing - continuousHeading}deg)` }} aria-hidden="true">
+        <div className={`qibla-direction ${isAligned ? "is-aligned" : ""}`} style={{ transform: `rotate(${bearing - continuousHeading}deg)` }} aria-hidden="true">
           <Navigation size={38} fill="currentColor" />
         </div>
         <span className="qibla-kaaba" aria-hidden="true"><span className="qibla-kaaba-door" /></span>

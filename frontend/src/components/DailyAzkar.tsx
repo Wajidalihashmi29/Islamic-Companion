@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookHeart, Check, ChevronLeft, ChevronRight, Heart, RotateCcw } from "lucide-react";
 import { getStorageKeyForUser } from "../utils/settingsStorage";
 import { useAuth } from "../context/AuthContext";
+import { loadAzkarFavorites, saveAzkarFavorites } from "../utils/personalLibrary";
 
 const AZKAR = [
   {
@@ -154,7 +155,6 @@ const CATEGORIES = ["All", "Morning and evening", "After prayer", "Quran remembr
 export default function DailyAzkar({ language }: { language: string }) {
   const { userIdentifier } = useAuth();
   const profileKey = getStorageKeyForUser(userIdentifier);
-  const favoritesKey = `${profileKey}.azkarFavorites`;
   const countsKey = `${profileKey}.azkarCounts`;
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>("All");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -162,8 +162,17 @@ export default function DailyAzkar({ language }: { language: string }) {
     try { return JSON.parse(localStorage.getItem(countsKey) || "{}"); } catch { return {}; }
   });
   const [favorites, setFavorites] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem(favoritesKey) || "[]"); } catch { return []; }
+    try { return loadAzkarFavorites(profileKey); } catch { return []; }
   });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setFavorites(loadAzkarFavorites(profileKey));
+    };
+    window.addEventListener("ic:libraryUpdated", handleUpdate);
+    return () => window.removeEventListener("ic:libraryUpdated", handleUpdate);
+  }, [profileKey]);
+
   const items = useMemo(() => {
     const filtered = category === "All" ? [...AZKAR] : AZKAR.filter(item =>
       item.period === category || ("categories" in item && item.categories.some(value => value === category))
@@ -183,7 +192,7 @@ export default function DailyAzkar({ language }: { language: string }) {
   const toggleFavorite = () => {
     const next = favorites.includes(active.id) ? favorites.filter(id => id !== active.id) : [...favorites, active.id];
     setFavorites(next);
-    localStorage.setItem(favoritesKey, JSON.stringify(next));
+    saveAzkarFavorites(profileKey, next);
   };
 
   const move = (offset: number) => setActiveIndex(index => (index + offset + items.length) % items.length);

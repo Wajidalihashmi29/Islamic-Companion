@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, CalendarDays, ChevronLeft, ChevronRight, Moon, Sparkles } from "lucide-react";
-import { loadSettings } from "../utils/settingsStorage";
-import { formatHijriDate } from "../utils/hijriDate";
+import { loadSettings, queueCloudSave } from "../utils/settingsStorage";
+import { formatHijriDate, formatHijriMonthRange, getHijriParts } from "../utils/hijriDate";
 import { getInterfaceLocale } from "../i18n/interfaceTranslations";
 
 const EVENTS = [
@@ -14,26 +14,6 @@ const EVENTS = [
   { month: 10, day: 1, name: "Eid al-Fitr" },
   { month: 12, day: 10, name: "Eid al-Adha" },
 ];
-
-function hijriParts(date: Date, offset: number) {
-  const adjusted = new Date(date);
-  adjusted.setDate(adjusted.getDate() + offset);
-  const parts = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
-    day: "numeric", month: "numeric", year: "numeric",
-  }).formatToParts(adjusted);
-  const number = (type: string) => Number(parts.find(part => part.type === type)?.value);
-  return { day: number("day"), month: number("month"), year: number("year") };
-}
-
-function hijriMonthLabel(date: Date, offset: number, locale: string) {
-  const adjusted = new Date(date);
-  adjusted.setDate(adjusted.getDate() + offset);
-  return new Intl.DateTimeFormat(locale, {
-    calendar: "islamic-umalqura",
-    month: "long",
-    year: "numeric",
-  }).format(adjusted);
-}
 
 const dateInputValue = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -48,20 +28,28 @@ export default function IslamicCalendar({ storageKey }: { storageKey: string }) 
   const [reminders, setReminders] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(reminderKey) || "[]") as string[]; } catch { return []; }
   });
+  useEffect(() => {
+    const update = () => {
+      try { setReminders(JSON.parse(localStorage.getItem(reminderKey) || "[]") as string[]); } catch {}
+    };
+    window.addEventListener("ic:libraryUpdated", update);
+    return () => window.removeEventListener("ic:libraryUpdated", update);
+  }, [reminderKey]);
   const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const count = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0).getDate();
   const last = new Date(cursor.getFullYear(), cursor.getMonth(), count);
-  const firstHijriMonth = hijriMonthLabel(first, settings.general.hijriAdjustment, locale);
-  const lastHijriMonth = hijriMonthLabel(last, settings.general.hijriAdjustment, locale);
-  const hijriMonthRange = firstHijriMonth === lastHijriMonth
-    ? firstHijriMonth
-    : `${firstHijriMonth} – ${lastHijriMonth}`;
+  const hijriMonthRange = formatHijriMonthRange(
+    first,
+    last,
+    settings.general.hijriAdjustment || 0,
+    settings.general.appLanguage
+  );
   const days = Array.from({ length: count }, (_, index) => {
     const date = new Date(first.getFullYear(), first.getMonth(), index + 1);
-    const hijri = hijriParts(date, settings.general.hijriAdjustment);
+    const hijri = getHijriParts(date, settings.general.hijriAdjustment || 0);
     return { date, hijri, event: EVENTS.find(item => item.month === hijri.month && item.day === hijri.day) };
   });
-  const selectedHijri = hijriParts(selected, settings.general.hijriAdjustment);
+  const selectedHijri = getHijriParts(selected, settings.general.hijriAdjustment || 0);
   const selectedEvent = EVENTS.find(item => item.month === selectedHijri.month && item.day === selectedHijri.day);
   const weekdays = Array.from({ length: 7 }, (_, index) =>
     new Date(2026, 0, 4 + index).toLocaleDateString(locale, { weekday: "short" }));
@@ -82,6 +70,8 @@ export default function IslamicCalendar({ storageKey }: { storageKey: string }) 
     const next = removing ? reminders.filter(item => item !== name) : [...reminders, name];
     setReminders(next);
     localStorage.setItem(reminderKey, JSON.stringify(next));
+    window.dispatchEvent(new Event("ic:libraryUpdated"));
+    queueCloudSave();
   };
   const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 

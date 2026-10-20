@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import { Plus, RotateCcw, Trash2, Undo2 } from "lucide-react";
 import TasbeehIcon from "./icons/TasbeehIcon";
 import ConfirmDialog from "./ConfirmDialog";
+import { queueCloudSave } from "../utils/settingsStorage";
 
 interface ZikrPreset {
   id: string;
@@ -54,6 +55,7 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
   const [customLabel, setCustomLabel] = useState("");
   const [customText, setCustomText] = useState("");
   const [customTarget, setCustomTarget] = useState(33);
+  const [targetError, setTargetError] = useState("");
   const [pendingAction, setPendingAction] = useState<
     { type: "reset" } | { type: "delete-preset"; id: string; label: string } | null
   >(null);
@@ -76,6 +78,7 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
       totalCount: nextTotal,
       customPresets: nextCustom,
     }));
+    queueCloudSave();
   };
 
   const increment = () => {
@@ -139,6 +142,13 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
   };
   const applyTarget = (value: string) => {
     const parsed = Number(value);
+    if (parsed > 1000) {
+      setTargetError("Target cannot be more than 1,000 (capped at 1,000)");
+    } else if (parsed < 1 && value.trim() !== "") {
+      setTargetError("Target must be at least 1");
+    } else {
+      setTargetError("");
+    }
     const next = Number.isFinite(parsed) ? Math.min(1000, Math.max(1, Math.round(parsed))) : target;
     setTarget(next);
     setTargetInput(String(next));
@@ -218,7 +228,7 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
       <div className="tasbeeh-ring-panel">
         <strong className="tasbeeh-arabic" data-no-translate data-preserve-font lang="ar" dir="rtl">{preset.text}</strong>
         <small>{preset.label}</small>
-        <button type="button" className="tasbeeh-ring" onClick={increment} aria-label="Count one remembrance">
+        <button type="button" className="tasbeeh-ring" onClick={increment} onMouseDown={e => e.preventDefault()} aria-label="Count one remembrance">
           {Array.from({ length: beadCount }, (_, index) => {
             const angle = index / beadCount * Math.PI * 2 - Math.PI / 2;
             return <i className={`${index < completedBeads ? "is-complete " : ""}${index === completedBeads ? "is-current" : ""}`}
@@ -244,9 +254,19 @@ export default function TasbeehCounter({ storageKey }: { storageKey: string }) {
           {[33, 99, 100].map(value => <button type="button" className={target === value ? "is-active" : ""}
             key={value} onClick={() => applyTarget(String(value))}>{value}</button>)}
         </div><input aria-label="Custom target" type="number" min="1" max="1000" inputMode="numeric" value={targetInput}
-          onChange={event => setTargetInput(event.target.value.replace(/\D/g, "").slice(0, 4))}
+          onChange={event => {
+            const raw = event.target.value.replace(/\D/g, "");
+            setTargetInput(raw);
+            if (Number(raw) > 1000) {
+              setTargetError("Target cannot be more than 1,000");
+            } else {
+              setTargetError("");
+            }
+          }}
           onBlur={() => applyTarget(targetInput)}
-          onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} /></section>
+          onKeyDown={event => { if (event.key === "Enter") event.currentTarget.blur(); }} />
+          {targetError && <p className="tasbeeh-target-warning" role="alert">{targetError}</p>}
+        </section>
       </aside>
     </div>
   </section>;

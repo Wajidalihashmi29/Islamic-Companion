@@ -126,6 +126,8 @@ self.addEventListener("push", event => {
     badge: "/icon-192.png",
     tag: data.tag || "prayer-time",
     renotify: true,
+    silent: false,
+    vibrate: [250, 100, 250, 100, 400],
     data: { url: data.url || "/prayer" },
   }));
 });

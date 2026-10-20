@@ -25,6 +25,8 @@ import {
 } from "../api/prayerPushApi";
 import { getDateInTimeZone } from "../utils/locationTime";
 import { PRAYER_ALERT_NAMES, type PrayerAlertName } from "../utils/prayerAlerts";
+import { playPrayerChime } from "../utils/prayerChime";
+import ChimeTestButton from "./ChimeTestButton";
 import "./PrayerTimesView.css";
 
 const prayerIcons: Record<string, React.ElementType> = {
@@ -449,19 +451,7 @@ export default function PrayerTimesView() {
             icon: "/icon-192.png",
           });
           if (settings.prayer.soundEnabled) {
-            const AudioContextClass = window.AudioContext ||
-              (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-            if (AudioContextClass) {
-              const context = new AudioContextClass();
-              const oscillator = context.createOscillator();
-              const gain = context.createGain();
-              oscillator.frequency.value = 660;
-              gain.gain.setValueAtTime(0.08, context.currentTime);
-              gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 1.2);
-              oscillator.connect(gain).connect(context.destination);
-              oscillator.start();
-              oscillator.stop(context.currentTime + 1.2);
-            }
+            void playPrayerChime();
           }
         }, delay));
       });
@@ -681,10 +671,18 @@ export default function PrayerTimesView() {
                   <div className="ptv-alert-setting-row">
                     <div>
                       <strong><Volume2 size={17} /> Prayer Alert Chime</strong>
+                      <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: "var(--h-body, #5a736d)" }}>
+                        Play a gentle chime when prayer begins.
+                      </p>
+                      <ChimeTestButton label="Listen to alert chime" />
                     </div>
                     <label className="ptv-switch">
                       <input type="checkbox" checked={settings.prayer.soundEnabled}
-                        onChange={event => updatePrayerPreferences({ soundEnabled: event.target.checked })} />
+                        onChange={event => {
+                          const enabled = event.target.checked;
+                          if (enabled) void playPrayerChime();
+                          updatePrayerPreferences({ soundEnabled: enabled });
+                        }} />
                       <span aria-hidden="true" />
                     </label>
                   </div>
