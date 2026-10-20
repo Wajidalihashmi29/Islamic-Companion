@@ -1,16 +1,30 @@
-import { useEffect, useRef, useState } from "react";
-import { Check, CloudSun, MapPin, Moon, Sparkles, Star, Sun, Sunrise, Sunset } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Bell, CalendarDays, Check, ChevronLeft, ChevronRight, CloudSun, MapPin, Moon, Sparkles, Star, Sun, Sunrise, Sunset, Volume2, X } from "lucide-react";
 import LocationSelector from "./LocationSelector";
 import type { ResolvedLocation } from "./LocationSelector";
-import { getPrayerTimesByCity, getPrayerTimesByCoords } from "../api/prayerTimesApi";
+import {
+  getPrayerTimetableByCity,
+  getPrayerTimetableByCoords,
+  getPrayerTimesByCity,
+  getPrayerTimesByCoords,
+} from "../api/prayerTimesApi";
 import type { PrayerTimesResponse } from "../api/prayerTimesApi";
-import { loadSettings } from "../utils/settingsStorage";
+import { loadSettings, saveSettings } from "../utils/settingsStorage";
 import { formatHijriDate } from "../utils/hijriDate";
 import { getContentLocale } from "../i18n/contentLanguage";
 import { getInterfaceLocale } from "../i18n/interfaceTranslations";
 import GoldenSpiral from "./GoldenSpiral";
 import { getFriendlyErrorMessage } from "../utils/friendlyError";
 import { normalizeRegion, saveRegion } from "../utils/regionalFormatting";
+import { DISPLAY_TIMINGS, getPrayerSchedule, prayerTimeToSeconds } from "../utils/prayerSchedule";
+import {
+  disableClosedAppPrayerAlerts,
+  enableClosedAppPrayerAlerts,
+  syncClosedAppPrayerAlertSelection,
+} from "../api/prayerPushApi";
+import { getDateInTimeZone } from "../utils/locationTime";
+import { PRAYER_ALERT_NAMES, type PrayerAlertName } from "../utils/prayerAlerts";
 import "./PrayerTimesView.css";
 
 const prayerIcons: Record<string, React.ElementType> = {
@@ -22,9 +36,8 @@ const prayerIcons: Record<string, React.ElementType> = {
   Isha: Moon,
 };
 
-const MAIN_PRAYERS = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
-const DAY = 86400;
 const pad = (n: number) => String(n).padStart(2, "0");
+const dateInputValue = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
 /* ------------------------------------------------------------------ */
 /* Time helpers                                                        */
@@ -32,9 +45,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
 
 /** "HH:mm" or "HH:mm (EST)" -> minutes since midnight (NaN if unparseable). */
 function toMinutes(t?: string): number {
-  if (!t) return NaN;
-  const [h, m] = t.split(" ")[0].split(":").map(Number);
-  return h * 60 + m;
+  return prayerTimeToSeconds(t) / 60;
 }
 
 function formatTime(t: string, use12h: boolean): string {
@@ -51,37 +62,10 @@ function useNow(active: boolean) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     if (!active) return;
-    setNow(new Date());
     const id = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(id);
   }, [active]);
   return now;
-}
-
-function getSchedule(timings: Record<string, string> | undefined, now: Date) {
-  if (!timings) return null;
-  const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-  const list = MAIN_PRAYERS.map((name) => ({ name, sec: toMinutes(timings[name]) * 60 })).filter(
-    (p) => !Number.isNaN(p.sec)
-  );
-  if (!list.length) return null;
-
-  const idx = list.findIndex((p) => p.sec > nowSec);
-  const next = idx === -1 ? list[0] : list[idx];
-  const nextSec = idx === -1 ? next.sec + DAY : next.sec;
-  
-  const prevIdx = idx === -1 ? list.length - 1 : idx > 0 ? idx - 1 : list.length - 1;
-  const prev = list[prevIdx];
-  const prevSec = idx === -1 ? prev.sec : idx > 0 ? prev.sec : prev.sec - DAY;
-
-  const span = Math.max(1, nextSec - prevSec);
-  return {
-    current: prev.name,
-    next: next.name,
-    nowSec,
-    remaining: Math.max(0, nextSec - nowSec),
-    progress: Math.min(1, Math.max(0, (nowSec - prevSec) / span)),
-  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -177,6 +161,13 @@ export default function PrayerTimesView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showSelector, setShowSelector] = useState(true);
+  const [pushStatus, setPushStatus] = useState("");
+  const [showAlertSettings, setShowAlertSettings] = useState(false);
+  const [showTimetable, setShowTimetable] = useState(false);
+  const [timetableMonth, setTimetableMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  const [timetable, setTimetable] = useState<PrayerTimesResponse[]>([]);
+  const [timetableLoading, setTimetableLoading] = useState(false);
+  const [timetableError, setTimetableError] = useState("");
   const [settings, setSettings] = useState(() => loadSettings());
   const [use12h, setUse12h] = useState(() => settings.prayer.timeFormat === "12h");
   const [school, setSchool] = useState<AsrSchool>(() => {
@@ -202,14 +193,31 @@ export default function PrayerTimesView() {
     };
   }, []);
 
-  const now = useNow(Boolean(data));
+  useEffect(() => {
+    if (!showAlertSettings) return;
+    const previousOverflow = document.body.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowAlertSettings(false);
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [showAlertSettings]);
+
+  const actualNow = useNow(Boolean(data));
+  const now = useMemo(() => getDateInTimeZone(actualNow, data?.timeZone), [actualNow, data?.timeZone]);
 
   const handleResolve = async (location: ResolvedLocation, currentSchool = school) => {
     setLoading(true);
     setError("");
     setLastLocation(location);
+    setShowTimetable(false);
+    setTimetable([]);
     try {
-      const method = currentSchool === "hanafi" ? 1 : 2;
+      const method = settings.prayer.calculationMethod;
       const apiSchool = currentSchool === "hanafi" ? 1 : 0;
       const [response, resolved] = await Promise.all([
         location.type === "coords"
@@ -220,8 +228,34 @@ export default function PrayerTimesView() {
       if (!response.data?.timings || typeof response.data.timings !== "object")
         throw new Error("Prayer times API returned an invalid response.");
       setData(response.data);
+      try {
+        localStorage.setItem("ic.prayerLocation", JSON.stringify(location));
+        localStorage.setItem("ic.prayerLocationLabel", resolved.label);
+        localStorage.setItem("ic.prayerTimesSnapshot", JSON.stringify({
+          date: getDateInTimeZone(new Date(), response.data.timeZone).toDateString(),
+          timeZone: response.data.timeZone,
+          timings: response.data.timings,
+        }));
+      } catch {
+        /* Home screen prayer times remain unavailable when storage is blocked. */
+      }
       setPlace(resolved);
       saveRegion(resolved.region);
+      if (settings.prayer.notificationsEnabled && resolved.lat !== null && resolved.lon !== null) {
+        try {
+          setPushStatus(await enableClosedAppPrayerAlerts({
+            latitude: resolved.lat,
+            longitude: resolved.lon,
+            calculationMethod: method,
+            school: apiSchool,
+            timeZoneId: response.data.timeZone,
+            prayerNames: settings.prayer.alertPrayers,
+          }));
+        } catch (pushError) {
+          console.error("Unable to enable closed-app prayer alerts:", pushError);
+          setPushStatus("Prayer times loaded, but closed-app alerts could not be enabled. Check notification permission and sign-in.");
+        }
+      }
       setShowSelector(false);
     } catch (err) {
       console.error("Failed to fetch prayer times:", err);
@@ -246,13 +280,173 @@ export default function PrayerTimesView() {
     }
   };
 
-  const timings = data?.timings ?? {};
+  const updatePrayerPreferences = (patch: Partial<typeof settings.prayer>) => {
+    const next = { ...settings, prayer: { ...settings.prayer, ...patch } };
+    setSettings(next);
+    saveSettings(next);
+  };
+
+  const enableAlertsForCurrentLocation = async (prayerNames = settings.prayer.alertPrayers) => {
+    if (!data || place?.lat == null || place.lon == null) {
+      setPushStatus("Select a location before enabling prayer notifications.");
+      return;
+    }
+    setPushStatus(await enableClosedAppPrayerAlerts({
+      latitude: place.lat,
+      longitude: place.lon,
+      calculationMethod: settings.prayer.calculationMethod,
+      school: school === "hanafi" ? 1 : 0,
+      timeZoneId: data.timeZone,
+      prayerNames,
+    }));
+  };
+
+  const handleNotificationToggle = async (enabled: boolean) => {
+    if (enabled) {
+      if (!("Notification" in window)) {
+        setPushStatus("Prayer notifications are not supported by this browser.");
+        return;
+      }
+      const permission = Notification.permission === "default"
+        ? await Notification.requestPermission()
+        : Notification.permission;
+      if (permission !== "granted") {
+        setPushStatus("Prayer notifications are blocked. Allow them in your browser or device settings.");
+        return;
+      }
+      updatePrayerPreferences({ notificationsEnabled: true });
+      try {
+        await enableAlertsForCurrentLocation();
+      } catch (notificationError) {
+        console.error("Unable to enable prayer notifications:", notificationError);
+        setPushStatus("Prayer notification settings were saved, but closed-app alerts could not be enabled.");
+      }
+      return;
+    }
+
+    updatePrayerPreferences({ notificationsEnabled: false });
+    try {
+      await disableClosedAppPrayerAlerts();
+      setPushStatus("Prayer notifications are turned off.");
+    } catch (notificationError) {
+      console.error("Unable to disable prayer notifications:", notificationError);
+      setPushStatus("Prayer notifications were turned off, but the browser subscription could not be removed.");
+    }
+  };
+
+  const togglePrayerAlert = (prayer: PrayerAlertName) => {
+    const prayerNames = settings.prayer.alertPrayers.includes(prayer)
+      ? settings.prayer.alertPrayers.filter(name => name !== prayer)
+      : PRAYER_ALERT_NAMES.filter(name => settings.prayer.alertPrayers.includes(name) || name === prayer);
+    updatePrayerPreferences({ alertPrayers: prayerNames });
+    if (settings.prayer.notificationsEnabled) {
+      void syncClosedAppPrayerAlertSelection(prayerNames)
+        .then(() => setPushStatus("Prayer alert selection updated."))
+        .catch(notificationError => {
+          console.error("Unable to update prayer alert selection:", notificationError);
+          setPushStatus("Your selection was saved, but closed-app alerts could not be updated.");
+        });
+    }
+  };
+
+  const loadTimetable = async (month: Date) => {
+    if (!lastLocation) return;
+    setTimetableLoading(true);
+    setTimetableError("");
+    const method = settings.prayer.calculationMethod;
+    const apiSchool = school === "hanafi" ? 1 : 0;
+    try {
+      const response = lastLocation.type === "coords"
+        ? await getPrayerTimetableByCoords(
+          lastLocation.latitude, lastLocation.longitude, month.getFullYear(), month.getMonth() + 1, method, apiSchool)
+        : await getPrayerTimetableByCity(
+          lastLocation.city, lastLocation.country, month.getFullYear(), month.getMonth() + 1, method, apiSchool);
+      setTimetable(response.data);
+    } catch (timetableFailure) {
+      console.error("Failed to load prayer timetable:", timetableFailure);
+      setTimetableError(getFriendlyErrorMessage(
+        timetableFailure,
+        "We couldn't load the prayer timetable. Please try again.",
+        { offlineMessage: "The prayer timetable needs an internet connection." },
+      ));
+    } finally {
+      setTimetableLoading(false);
+    }
+  };
+
+  const changeTimetableMonth = (offset: number) => {
+    const next = new Date(timetableMonth.getFullYear(), timetableMonth.getMonth() + offset, 1);
+    setTimetableMonth(next);
+    void loadTimetable(next);
+  };
+  const goToTimetableDate = (date: Date) => {
+    const next = new Date(date.getFullYear(), date.getMonth(), 1);
+    setTimetableMonth(next);
+    void loadTimetable(next);
+  };
+
+  const timings = useMemo(() => data?.timings ?? {}, [data]);
   const applied = school === "hanafi";
 
-  const schedule = data ? getSchedule(timings, now) : null;
+  const schedule = data ? getPrayerSchedule(timings, now) : null;
   const hrs = schedule ? Math.floor(schedule.remaining / 3600) : 0;
   const mins = schedule ? Math.floor((schedule.remaining % 3600) / 60) : 0;
   const secs = schedule ? schedule.remaining % 60 : 0;
+
+  useEffect(() => {
+    if (!data || !settings.prayer.notificationsEnabled || !("Notification" in window) ||
+      Notification.permission !== "granted") return;
+    let cancelled = false;
+    const timers: number[] = [];
+    const scheduleFallback = async () => {
+      const pushSubscription = "serviceWorker" in navigator
+        ? await navigator.serviceWorker.ready.then(registration => registration.pushManager.getSubscription())
+        : null;
+      if (pushSubscription || cancelled) return;
+      DISPLAY_TIMINGS.filter(name =>
+        name !== "Sunrise" && settings.prayer.alertPrayers.includes(name)
+      ).forEach(name => {
+        const prayerSeconds = prayerTimeToSeconds(timings[name]);
+        const current = getDateInTimeZone(new Date(), data.timeZone);
+        const nowSeconds = current.getHours() * 3600 + current.getMinutes() * 60 + current.getSeconds();
+        const delay = (prayerSeconds - nowSeconds) * 1000;
+        if (!Number.isFinite(delay) || delay <= 0) return;
+        timers.push(window.setTimeout(() => {
+          new Notification(`${name} prayer time`, {
+            body: `${name} has begun for ${place?.label ?? "your selected location"}.`,
+            icon: "/icon-192.png",
+          });
+          if (settings.prayer.soundEnabled) {
+            const AudioContextClass = window.AudioContext ||
+              (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+            if (AudioContextClass) {
+              const context = new AudioContextClass();
+              const oscillator = context.createOscillator();
+              const gain = context.createGain();
+              oscillator.frequency.value = 660;
+              gain.gain.setValueAtTime(0.08, context.currentTime);
+              gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 1.2);
+              oscillator.connect(gain).connect(context.destination);
+              oscillator.start();
+              oscillator.stop(context.currentTime + 1.2);
+            }
+          }
+        }, delay));
+      });
+    };
+    void scheduleFallback();
+    return () => {
+      cancelled = true;
+      timers.forEach(timer => window.clearTimeout(timer));
+    };
+  }, [
+    data,
+    place?.label,
+    settings.prayer.alertPrayers,
+    settings.prayer.notificationsEnabled,
+    settings.prayer.soundEnabled,
+    timings,
+  ]);
 
   return (
     <div className="ptv-container" ref={topRef}>
@@ -274,11 +468,13 @@ export default function PrayerTimesView() {
 
                 <div className="ptv-next-info">
                   <span className="ptv-next-tag">
-                    <Sparkles size={14} aria-hidden="true" /> Now Ongoing
+                    <Sparkles size={14} aria-hidden="true" /> {schedule.current ? "Now Ongoing" : "Between Prayer Times"}
                   </span>
-                  <h2 className="ptv-next-title" title="Ongoing Prayer">{schedule.current}</h2>
+                  <h2 className="ptv-next-title" title={schedule.current ? "Ongoing prayer" : "No obligatory prayer is currently ongoing"}>
+                    {schedule.current ?? `Next: ${schedule.next}`}
+                  </h2>
                   <div className="ptv-next-subtitle">
-                    Next: <strong>{schedule.next}</strong> at {formatTime(timings[schedule.next], use12h)}
+                    {schedule.current && <>Next: </>}<strong>{schedule.next}</strong> at {formatTime(timings[schedule.next], use12h)}
                   </div>
                   {place && (
                     <span className="ptv-next-place" style={{ marginTop: "12px", color: "rgba(245, 247, 246, 0.85)" }}>
@@ -396,13 +592,95 @@ export default function PrayerTimesView() {
               <p className="ptv-note">
                 Prayer times are calculated and may differ slightly from local mosques, looking at the local mosque's timetable is recommended for accuracy.
               </p>
+              {pushStatus && <p className="ptv-note" role="status">{pushStatus}</p>}
             </section>
+
+            <button type="button" className="ptv-alert-settings-trigger"
+              onClick={() => setShowAlertSettings(true)} aria-haspopup="dialog"
+              aria-expanded={showAlertSettings}>
+              <span><Bell size={20} aria-hidden="true" /></span>
+              <span>
+                <strong>Prayer alert settings</strong>
+                <small>
+                  {settings.prayer.notificationsEnabled
+                    ? <><span data-no-translate data-preserve-font>{settings.prayer.alertPrayers.length}</span>{" "}
+                      <span>of 5 prayers selected</span></>
+                    : "Notifications are off"}
+                </small>
+              </span>
+              <ChevronRight size={20} aria-hidden="true" />
+            </button>
+
+            {showAlertSettings && createPortal(<div className="ptv-alert-drawer-layer"
+              onMouseDown={() => setShowAlertSettings(false)}>
+              <aside className="ptv-alert-drawer" role="dialog" aria-modal="true"
+                aria-labelledby="ptv-alert-settings-title"
+                onMouseDown={event => event.stopPropagation()}>
+                <header>
+                  <div>
+                    <span><Bell size={20} aria-hidden="true" /></span>
+                    <div><strong id="ptv-alert-settings-title">Prayer alert settings</strong>
+                      <small>Choose when you want to be notified.</small></div>
+                  </div>
+                  <button type="button" onClick={() => setShowAlertSettings(false)}
+                    aria-label="Close prayer alert settings" autoFocus><X size={20} /></button>
+                </header>
+
+                <div className="ptv-alert-drawer-content">
+                  <div className="ptv-alert-setting-row">
+                    <div>
+                      <strong><Bell size={17} /> Prayer Time Notifications</strong>
+                      <p>Receive prayer alerts even when the installed app is closed.</p>
+                    </div>
+                    <label className="ptv-switch">
+                      <input type="checkbox" checked={settings.prayer.notificationsEnabled}
+                        onChange={event => void handleNotificationToggle(event.target.checked)} />
+                      <span aria-hidden="true" />
+                    </label>
+                  </div>
+
+                  <fieldset className="ptv-alert-prayers" disabled={!settings.prayer.notificationsEnabled}>
+                    <legend>Choose prayer alerts</legend>
+                    <p>Select the prayers for which you want to receive a notification.</p>
+                    <div>
+                      {PRAYER_ALERT_NAMES.map(prayer => {
+                        const selected = settings.prayer.alertPrayers.includes(prayer);
+                        return <label className={selected ? "is-selected" : ""} key={prayer}>
+                          <input type="checkbox" checked={selected} onChange={() => togglePrayerAlert(prayer)} />
+                          <span>{prayer}</span>
+                          <Check size={15} aria-hidden="true" />
+                        </label>;
+                      })}
+                    </div>
+                    {settings.prayer.alertPrayers.length === 0 &&
+                      <small role="status">No prayer alerts selected.</small>}
+                  </fieldset>
+
+                  <div className="ptv-alert-setting-row">
+                    <div>
+                      <strong><Volume2 size={17} /> Prayer Alert Chime</strong>
+                      <p>Play a gentle alert chime at prayer entrance time.</p>
+                    </div>
+                    <label className="ptv-switch">
+                      <input type="checkbox" checked={settings.prayer.soundEnabled}
+                        onChange={event => updatePrayerPreferences({ soundEnabled: event.target.checked })} />
+                      <span aria-hidden="true" />
+                    </label>
+                  </div>
+                  {pushStatus && <p className="ptv-drawer-status" role="status">{pushStatus}</p>}
+                </div>
+              </aside>
+            </div>, document.body)}
 
             {/* Prayer timings */}
             <ul className="ptv-grid">
-              {Object.entries(timings).map(([name, time]) => {
+              {DISPLAY_TIMINGS.map(name => {
+                const time = timings[name];
+                if (!time) return null;
                 const Icon = prayerIcons[name] ?? Sun;
                 const sec = toMinutes(time) * 60;
+                const alertEnabled = settings.prayer.notificationsEnabled
+                  && settings.prayer.alertPrayers.some(prayer => prayer === name);
                 const state =
                   schedule?.next === name 
                     ? "next" 
@@ -414,6 +692,10 @@ export default function PrayerTimesView() {
 
                 return (
                   <li key={name} className={`ptv-prayer-card is-${state}`}>
+                    {alertEnabled && <span className="ptv-prayer-alert" title="Notification enabled">
+                      <Bell size={12} fill="currentColor" aria-hidden="true" />
+                      <span>Alert on</span>
+                    </span>}
                     <span className="ptv-prayer-icon" aria-hidden="true">
                       <Icon size={22} />
                     </span>
@@ -438,6 +720,51 @@ export default function PrayerTimesView() {
                 );
               })}
             </ul>
+
+            <section className="ptv-timetable">
+              <button type="button" className="ptv-timetable-toggle" aria-expanded={showTimetable} onClick={() => {
+                const next = !showTimetable;
+                setShowTimetable(next);
+                if (next && timetable.length === 0) void loadTimetable(timetableMonth);
+              }}>
+                <CalendarDays size={19} />
+                {showTimetable ? "Hide Namaz timetable" : "View monthly Namaz timetable"}
+              </button>
+              {showTimetable && <div className="ptv-timetable-panel">
+                <div className="ptv-timetable-header">
+                  <button type="button" aria-label="Previous timetable month" onClick={() => changeTimetableMonth(-1)}>
+                    <ChevronLeft />
+                  </button>
+                  <strong>{timetableMonth.toLocaleDateString(
+                    getInterfaceLocale(settings.general.appLanguage),
+                    { month: "long", year: "numeric" },
+                  )}</strong>
+                  <button type="button" aria-label="Next timetable month" onClick={() => changeTimetableMonth(1)}>
+                    <ChevronRight />
+                  </button>
+                </div>
+                <div className="ptv-timetable-jump">
+                  <button type="button" onClick={() => goToTimetableDate(new Date())}>Go to today</button>
+                  <label><span>Go to custom date</span><input type="date" value={dateInputValue(timetableMonth)} onChange={event => {
+                    if (!event.target.value) return;
+                    const [year, month, day] = event.target.value.split("-").map(Number);
+                    goToTimetableDate(new Date(year, month - 1, day));
+                  }} /></label>
+                </div>
+                {timetableError && <p className="ptv-error" role="alert">{timetableError}</p>}
+                {timetableLoading ? <p className="ptv-timetable-loading">Loading timetable…</p> : timetable.length > 0 && (
+                  <div className="ptv-timetable-scroll">
+                    <table>
+                      <thead><tr><th>Date</th>{DISPLAY_TIMINGS.map(name => <th key={name}>{name}</th>)}</tr></thead>
+                      <tbody>{timetable.map(day => <tr key={day.date}>
+                        <th scope="row"><span>{day.date}</span><small>{day.hijriDate}</small></th>
+                        {DISPLAY_TIMINGS.map(name => <td key={name}>{formatTime(day.timings[name] ?? "-", use12h)}</td>)}
+                      </tr>)}</tbody>
+                    </table>
+                  </div>
+                )}
+              </div>}
+            </section>
 
             <p className="ptv-note">
               {applied

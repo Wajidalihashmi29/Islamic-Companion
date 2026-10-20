@@ -5,9 +5,12 @@ import {
   Clock,
   Compass,
   Heart,
+  BookHeart,
+  CalendarDays,
   LayoutDashboard,
   ScrollText,
 } from "lucide-react";
+import TasbeehIcon from "../components/icons/TasbeehIcon";
 
 export interface Feature {
   id: string;
@@ -71,6 +74,33 @@ export const features: Feature[] = [
     shortLabel: "Zakat",
     description: "Work out what you owe this year",
     icon: Calculator,
+    available: true,
+    primary: false,
+  },
+  {
+    id: "azkar",
+    label: "Daily Duas & Azkar",
+    shortLabel: "Azkar",
+    description: "Morning, evening, and after-prayer remembrance",
+    icon: BookHeart,
+    available: true,
+    primary: false,
+  },
+  {
+    id: "calendar",
+    label: "Islamic Calendar",
+    shortLabel: "Calendar",
+    description: "Hijri dates, Islamic occasions, and Ramadan guidance",
+    icon: CalendarDays,
+    available: true,
+    primary: false,
+  },
+  {
+    id: "tasbeeh",
+    label: "Digital Tasbeeh",
+    shortLabel: "Tasbeeh",
+    description: "A modern counter for daily Dhikr",
+    icon: TasbeehIcon,
     available: true,
     primary: false,
   },

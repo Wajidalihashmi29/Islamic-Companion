@@ -7,11 +7,15 @@ import SettingsPage from "./pages/SettingsPage";
 import SessionWatcher from "./components/SessionWatcher";
 import QuranReaderPage from "./pages/QuranReaderPage";
 import FeaturePage from "./pages/FeaturePage";
+import AppStatusBar from "./components/AppStatusBar";
+import ArabicFontSync from "./components/ArabicFontSync";
 
 function App() {
   return (
     <>
       <SessionWatcher />
+      <ArabicFontSync />
+      <AppStatusBar />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/settings" element={<SettingsPage />} />
@@ -20,6 +24,9 @@ function App() {
         <Route path="/qibla" element={<FeaturePage featureId="qibla" />} />
         <Route path="/hadith" element={<FeaturePage featureId="hadith" />} />
         <Route path="/zakat" element={<FeaturePage featureId="zakat" />} />
+        <Route path="/azkar" element={<FeaturePage featureId="azkar" />} />
+        <Route path="/calendar" element={<FeaturePage featureId="calendar" />} />
+        <Route path="/tasbeeh" element={<FeaturePage featureId="tasbeeh" />} />
         <Route path="/favorites" element={<FeaturePage featureId="favorites" />} />
         <Route path="/login" element={<AuthPage />} />
         <Route path="/register" element={<AuthPage />} />

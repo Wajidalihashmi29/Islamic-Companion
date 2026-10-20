@@ -10,6 +10,7 @@ using System.Threading.RateLimiting;
 using IslamicCompanion.Application.Interfaces;
 using IslamicCompanion.Infrastructure.ExternalServices;
 using IslamicCompanion.Infrastructure.Quran;
+using IslamicCompanion.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRateLimiter(options =>
@@ -47,6 +48,7 @@ builder.Services.AddHttpClient<IMetalPriceService, MetalPriceService>(client =>
     client.DefaultRequestHeaders.UserAgent.ParseAdd("IslamicCompanion/1.0");
 });
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddHostedService<PrayerPushScheduler>();
 builder.Services.AddSingleton<IGoogleTokenValidator, GoogleTokenValidator>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

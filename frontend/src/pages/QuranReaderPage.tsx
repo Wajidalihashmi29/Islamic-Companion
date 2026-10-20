@@ -2,7 +2,7 @@ import { Fragment, useDeferredValue, useEffect, useEffectEvent, useId, useLayout
 import type { ReactNode, TouchEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Download, Expand, Headphones, LoaderCircle,
-  MoreHorizontal, PanelsTopLeft, Pause, Play, Settings2, SkipBack, SkipForward, Star, WifiOff, X, ZoomIn, ZoomOut } from "lucide-react";
+  MoreHorizontal, PanelsTopLeft, Pause, Play, Settings2, SkipBack, SkipForward, Star, StickyNote, WifiOff, X, ZoomIn, ZoomOut } from "lucide-react";
 import TopNav from "../components/TopNav";
 import CustomDropdown from "../components/CustomDropdown";
 import AyahMedallion, { toArabicDigits, toUrduDigits } from "../components/AyahMedallion";
@@ -26,6 +26,7 @@ import type { QuranOfflineProgress } from "../utils/quranOffline";
 import { getFriendlyErrorMessage } from "../utils/friendlyError";
 import type { AppSettings } from "../utils/settingsStorage";
 import type { RecitationState } from "../utils/quranAudio";
+import { loadQuranPageNote, saveQuranPageNote } from "../utils/personalLibrary";
 import "./Home.css";
 import "./QuranReaderPage.css";
 
@@ -286,6 +287,8 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const pageError = error || (fonts.key === fontKey ? fonts.error : "");
   const [drawer, setDrawer] = useState<"index" | "listen" | "options" | "more" | "tafseer" | null>(null);
   const [jump, setJump] = useState(String(pageNumber));
+  const [pageNote, setPageNote] = useState(() => loadQuranPageNote(profileKey, pageNumber));
+  const [noteSaved, setNoteSaved] = useState(false);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const searchPending = search !== deferredSearch;
@@ -328,6 +331,14 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const transitionTimeout = useRef(0);
   const retainedPage = useRef<ReturnType<typeof captureReadingPage> | null>(null);
   const pagePrefetch = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPageNote(loadQuranPageNote(profileKey, pageNumber));
+      setNoteSaved(false);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [pageNumber, profileKey]);
   const [hasPresentedPage, setHasPresentedPage] = useState(false);
   const frame = useRef<HTMLElement>(null);
   const navigationRequest = useRef<AbortController | null>(null);
@@ -1385,6 +1396,17 @@ function QuranReader({ profileKey }: { profileKey: string }) {
               <button type="submit" aria-label="Go to page">Go <ChevronRight size={16} /></button>
             </form>
           </section>
+          {!completionPage && <section className="quran-menu-section">
+            <div className="quran-section-heading"><h3>Page note</h3><span>Page {pageNumber}</span></div>
+            <label className="quran-field-label" htmlFor="quran-page-note">Personal reflection or saved reference</label>
+            <textarea id="quran-page-note" className="quran-page-note" rows={4} value={pageNote}
+              onChange={event => { setPageNote(event.target.value); setNoteSaved(false); }}
+              placeholder="Write a private note for this Quran page" />
+            <button type="button" className="quran-note-save" onClick={() => {
+              saveQuranPageNote(profileKey, pageNumber, pageNote);
+              setNoteSaved(true);
+            }}><StickyNote size={17} /> {noteSaved ? "Saved" : pageNote.trim() ? "Save note" : "Remove note"}</button>
+          </section>}
           <section className="quran-menu-section quran-menu-actions">
             <button type="button" onClick={() => { changePage("dua"); closeDrawer(); }}>
               <BookOpen size={20} /><span><strong>Completion duas</strong><small>Short and long Dua Khatm al-Quran</small></span><ChevronRight size={18} />

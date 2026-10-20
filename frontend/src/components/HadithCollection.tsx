@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { BookOpen, ExternalLink, Search } from "lucide-react";
+import { BookOpen, Bookmark, ExternalLink, Search } from "lucide-react";
 import { browseHadiths, getHadithBooks, searchHadiths } from "../api/hadithApi";
 import type { HadithBook, HadithSearchItem } from "../api/hadithApi";
 import { getFriendlyErrorMessage } from "../utils/friendlyError";
 import CustomDropdown from "./CustomDropdown";
+import { loadSavedHadiths, saveRecentHadith, toggleSavedHadith } from "../utils/personalLibrary";
 
 type SearchScope = "translation" | "arabic" | "number";
 type ResultMode = "search" | "browse";
 
-export default function HadithCollection({ language }: { language: string }) {
+export default function HadithCollection({ language, storageKey }: { language: string; storageKey: string }) {
   const [books, setBooks] = useState<HadithBook[]>([]);
   const [bookId, setBookId] = useState("all");
   const [scope, setScope] = useState<SearchScope>("translation");
@@ -21,6 +22,7 @@ export default function HadithCollection({ language }: { language: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [savedIds, setSavedIds] = useState(() => new Set(loadSavedHadiths(storageKey).map(item => item.id)));
 
   useEffect(() => {
     const controller = new AbortController();
@@ -135,11 +137,27 @@ export default function HadithCollection({ language }: { language: string }) {
       {resultMode === "browse" ? `${totalResults} Hadith loaded` : `${totalResults} results found`}
     </p>}
     {!loading && !error && <div className="hadith-list">
-      {results.map((hadith, index) => <article className="hadith-card"
+      {results.map((hadith, index) => {
+        const savedId = `${hadith.sourceUrl}:${hadith.hadithNumber}`;
+        const libraryItem = {
+          bookName: hadith.bookName,
+          hadithNumber: hadith.hadithNumber,
+          arabic: hadith.arabic,
+          translation: hadith.translation,
+          sourceUrl: hadith.sourceUrl,
+        };
+        return <article className="hadith-card"
         key={`${hadith.sourceUrl}:${hadith.hadithNumber}:${index}`}>
         <header>
           <span>{hadith.bookName} · Hadith {hadith.hadithNumber}</span>
-          <a href={hadith.sourceUrl} target="_blank" rel="noreferrer">Source <ExternalLink size={14} /></a>
+          <span className="hadith-card-actions">
+            <button type="button" aria-label="Save Hadith" aria-pressed={savedIds.has(savedId)} onClick={() => {
+              toggleSavedHadith(storageKey, libraryItem);
+              setSavedIds(new Set(loadSavedHadiths(storageKey).map(item => item.id)));
+            }}><Bookmark size={15} fill={savedIds.has(savedId) ? "currentColor" : "none"} /></button>
+            <a href={hadith.sourceUrl} target="_blank" rel="noreferrer"
+              onClick={() => saveRecentHadith(storageKey, libraryItem)}>Source <ExternalLink size={14} /></a>
+          </span>
         </header>
         <div className="hadith-text-columns">
           <section className="hadith-translation">
@@ -151,7 +169,8 @@ export default function HadithCollection({ language }: { language: string }) {
             <p data-no-translate lang="ar" dir="rtl">{hadith.arabic}</p>
           </section>
         </div>
-      </article>)}
+      </article>;
+      })}
       {hasSearched && !results.length && <p className="faith-empty">
         {resultMode === "browse" ? "No readable Hadith were returned for this collection." : "No Hadith matched your search."}
       </p>}

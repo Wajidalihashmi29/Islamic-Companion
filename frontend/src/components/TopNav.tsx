@@ -63,7 +63,9 @@ export default function TopNav({
         >
           <BrandMark size={36} />
           <div className="top-nav-brand-text">
-            <span className="top-nav-title">Islamic Companion</span>
+            <span className="top-nav-title" lang="en" data-preserve-font>
+              Islamic Companion
+            </span>
             <span className="top-nav-subtitle">Daily Faith Portal</span>
           </div>
         </button>

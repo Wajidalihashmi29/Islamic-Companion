@@ -1693,6 +1693,8 @@ html[lang="ur"] .hijri-live-badge {
   color: #7f1d1d;
   max-width: 600px;
 }
+.settings-data-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.settings-data-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
 
 .btn-reset {
   display: inline-flex;
@@ -2069,4 +2071,30 @@ html[lang="ur"] .hijri-live-badge {
   .preview-chip {
     width: 100%;
   }
+}
+.prayer-alert-selection {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--s-line);
+  border-radius: 16px;
+  background: #f8fbfa;
+}
+.prayer-alert-selection:disabled { opacity: .56; }
+.prayer-alert-selection legend { padding: 0 6px; color: var(--s-ink); font-size: .9rem; font-weight: 800; }
+.prayer-alert-selection > p { margin: 0; color: var(--s-body); font-size: .8rem; line-height: 1.5; }
+.prayer-alert-selection > div { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }
+.prayer-alert-selection label {
+  display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 9px;
+  border: 1px solid var(--s-line); border-radius: 11px; color: var(--s-body); background: #fff;
+  font-size: .78rem; font-weight: 750; cursor: pointer;
+}
+.prayer-alert-selection label.is-selected { color: #fff; border-color: var(--s-teal); background: var(--s-teal); }
+.prayer-alert-selection input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.prayer-alert-selection label svg { display: none; flex: none; }
+.prayer-alert-selection label.is-selected svg { display: block; }
+.prayer-alert-selection small { color: #a14535; font-weight: 700; }
+@media (max-width: 620px) {
+  .prayer-alert-selection > div { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }

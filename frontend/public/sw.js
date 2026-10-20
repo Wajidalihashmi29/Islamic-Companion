@@ -1,4 +1,4 @@
-const SHELL_CACHE = "islamic-companion-shell-v2";
+const SHELL_CACHE = "islamic-companion-shell-v3";
 const QURAN_CACHE = "islamic-companion-quran-v1";
 const DEVELOPMENT_HOST = self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
 
@@ -115,4 +115,30 @@ self.addEventListener("fetch", event => {
   if (["script", "style", "font", "image"].includes(request.destination)) {
     event.respondWith(cacheFirst(request));
   }
+});
+
+self.addEventListener("push", event => {
+  let data = {};
+  try { data = event.data?.json() || {}; } catch { data = { body: event.data?.text() }; }
+  event.waitUntil(self.registration.showNotification(data.title || "Prayer time", {
+    body: data.body || "A prayer time has begun.",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: data.tag || "prayer-time",
+    renotify: true,
+    data: { url: data.url || "/prayer" },
+  }));
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/prayer", self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(clients => {
+    const client = clients.find(item => item.url.startsWith(self.location.origin));
+    if (client) {
+      client.navigate(target);
+      return client.focus();
+    }
+    return self.clients.openWindow(target);
+  }));
 });

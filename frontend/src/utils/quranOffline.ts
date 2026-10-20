@@ -101,3 +101,26 @@ export function prepareQuranOffline(translation: string, lines: number) {
   activeDownloads.set(downloadKey, download);
   return download;
 }
+
+export async function getOfflineQuranStorageInfo() {
+  if (!("caches" in window)) return { supported: false, entries: 0, bytes: 0 };
+  const cache = await caches.open(QURAN_CACHE);
+  const requests = await cache.keys();
+  let bytes = 0;
+  for (const request of requests) {
+    const response = await cache.match(request);
+    const value = Number(response?.headers.get("content-length"));
+    if (Number.isFinite(value)) bytes += value;
+  }
+  return { supported: true, entries: requests.length, bytes };
+}
+
+export async function clearOfflineQuran() {
+  if ("caches" in window) await caches.delete(QURAN_CACHE);
+  for (let index = localStorage.length - 1; index >= 0; index--) {
+    const storageKey = localStorage.key(index);
+    if (storageKey?.startsWith(`ic.quranOffline.${OFFLINE_VERSION}.`)) {
+      localStorage.removeItem(storageKey);
+    }
+  }
+}

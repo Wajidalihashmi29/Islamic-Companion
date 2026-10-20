@@ -8,14 +8,3 @@ export function getTokenExpiryMs(token: string): number | null {
     return null;
   }
 }
-
-export function getRotatedSessionToken(
-  previousRefreshToken: string,
-  currentRefreshToken: string | null,
-  currentToken: string | null,
-  now = Date.now(),
-): string | null {
-  if (!currentRefreshToken || currentRefreshToken === previousRefreshToken || !currentToken) return null;
-  const expiry = getTokenExpiryMs(currentToken);
-  return expiry !== null && expiry > now ? currentToken : null;
-}

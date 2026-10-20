@@ -26,6 +26,9 @@ import {
   CircleAlert,
   CircleCheck,
   ShieldCheck,
+  Download,
+  HardDrive,
+  Trash2,
   X,
 } from "lucide-react";
 import TopNav from "../components/TopNav";
@@ -37,6 +40,7 @@ import { useAuth } from "../context/AuthContext";
 import { changePassword, forgotPassword, parseApiError, resetPassword } from "../api/authApi";
 import { getQuranLineHeightMultiplier, normalizeIndoPakText } from "../utils/quranTypography";
 import { QURAN_DEFAULT_FIT_WIDTH } from "../utils/quranScreens";
+import { disableClosedAppPrayerAlerts, syncClosedAppPrayerAlertSelection } from "../api/prayerPushApi";
 import { formatHijriDate } from "../utils/hijriDate";
 import { getQuranTranslationForInterfaceLanguage } from "../i18n/contentLanguage";
 import {
@@ -48,8 +52,12 @@ import {
   TAFSEER_OPTIONS,
   RECITERS_OPTIONS,
   CALCULATION_METHODS,
+  getStorageKeyForUser,
   type AppSettings,
 } from "../utils/settingsStorage";
+import { PRAYER_ALERT_NAMES, type PrayerAlertName } from "../utils/prayerAlerts";
+import { clearOfflineQuran, getOfflineQuranStorageInfo } from "../utils/quranOffline";
+import { deletePersonalData, exportPersonalData } from "../utils/personalLibrary";
 import "./SettingsPage.css";
 
 type TabId = "quran" | "prayer" | "account" | "general";
@@ -68,9 +76,9 @@ const SETTINGS_TABS: SettingsTabConfig[] = [
 ];
 
 const LANGUAGE_OPTIONS: DropdownOption[] = [
-  { id: "en", name: "English (US)", sub: "Default application interface" },
-  { id: "ur", name: "اردو — Urdu", sub: "Complete Urdu application interface" },
-  { id: "hi", name: "हिन्दी — Hindi", sub: "Hindi interface with Urdu religious content where Hindi is unavailable" },
+  { id: "en", name: "English (US)", sub: "Application language" },
+  { id: "ur", name: "اردو", sub: "ایپ کی مکمل زبان" },
+  { id: "hi", name: "हिन्दी", sub: "ऐप की भाषा" },
 ];
 
 interface PreviewVerseLine {
@@ -86,7 +94,7 @@ interface PreviewItem {
   lines: PreviewVerseLine[];
 }
 
-export function cleanIndoPakScript(text: string): string {
+function cleanIndoPakScript(text: string): string {
   return normalizeIndoPakText(text);
 }
 
@@ -292,6 +300,7 @@ export default function SettingsPage() {
   const [previewScale, setPreviewScale] = useState(1);
   const [syncingCloud, setSyncingCloud] = useState(false);
   const [cloudSyncedNotice, setCloudSyncedNotice] = useState(false);
+  const [offlineInfo, setOfflineInfo] = useState({ supported: true, entries: 0, bytes: 0 });
 
   useEffect(() => {
     const page = previewPage.current;
@@ -305,12 +314,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    void getOfflineQuranStorageInfo().then(setOfflineInfo);
   }, []);
 
   // When the authenticated user profile changes (login, logout, or session refresh),
   // automatically load that user's saved preferences
   useEffect(() => {
-    setSettings(loadSettings(userIdentifier));
+    const timer = window.setTimeout(() => setSettings(loadSettings(userIdentifier)), 0);
+    return () => window.clearTimeout(timer);
   }, [userIdentifier, isAuthenticated]);
 
   // Listen to cross-tab, cross-component, and cloud database updates
@@ -483,6 +494,57 @@ export default function SettingsPage() {
       setSavedNotice(true);
       setTimeout(() => setSavedNotice(false), 2500);
     }
+  };
+
+  const handleNotificationToggle = async (enabled: boolean) => {
+    if (enabled && "Notification" in window) {
+      const permission = Notification.permission === "default"
+        ? await Notification.requestPermission()
+        : Notification.permission;
+      if (permission !== "granted") {
+        window.alert("Prayer notifications are blocked. Allow notifications in your browser or device settings, then try again.");
+        return;
+      }
+    }
+    if (!enabled) {
+      try { await disableClosedAppPrayerAlerts(); }
+      catch (error) { console.error("Unable to remove the browser push subscription:", error); }
+    }
+    updateSettings(prev => ({ ...prev, prayer: { ...prev.prayer, notificationsEnabled: enabled } }));
+  };
+
+  const togglePrayerAlert = (prayer: PrayerAlertName) => {
+    const prayerNames = settings.prayer.alertPrayers.includes(prayer)
+      ? settings.prayer.alertPrayers.filter(name => name !== prayer)
+      : PRAYER_ALERT_NAMES.filter(name => settings.prayer.alertPrayers.includes(name) || name === prayer);
+    updateSettings(prev => ({
+      ...prev,
+      prayer: { ...prev.prayer, alertPrayers: prayerNames },
+    }));
+    if (settings.prayer.notificationsEnabled) {
+      void syncClosedAppPrayerAlertSelection(prayerNames).catch(error => {
+        console.error("Unable to update closed-app prayer alert selection:", error);
+        window.alert("Your selection was saved, but closed-app alerts will update after you reopen Prayer Times.");
+      });
+    }
+  };
+
+  const handleExportData = () => {
+    const profileKey = getStorageKeyForUser(userIdentifier);
+    const blob = new Blob([JSON.stringify(exportPersonalData(profileKey), null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `islamic-companion-data-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDeleteData = () => {
+    if (!window.confirm("Delete this profile's local settings, bookmarks, recent Hadith, and Quran notes from this device?")) return;
+    deletePersonalData(getStorageKeyForUser(userIdentifier));
+    const defaults = resetSettings(userIdentifier);
+    setSettings(defaults);
   };
 
   const handleLogout = () => {
@@ -1118,28 +1180,41 @@ export default function SettingsPage() {
                     <Bell size={16} />
                     <strong>Prayer Time Notifications</strong>
                   </div>
-                  <p>Receive notifications on your device when a prayer time arrives.</p>
+                  <p>Receive prayer alerts even when the installed app is closed. Enable this, then open Prayer Times and select your location.</p>
                 </div>
                 <label className="settings-switch">
                   <input
                     type="checkbox"
                     checked={settings.prayer.notificationsEnabled}
-                    onChange={(e) =>
-                      updateSettings((prev) => ({
-                        ...prev,
-                        prayer: { ...prev.prayer, notificationsEnabled: e.target.checked },
-                      }))
-                    }
+                    onChange={(e) => void handleNotificationToggle(e.target.checked)}
                   />
                   <span className="slider round"></span>
                 </label>
               </div>
 
+              <fieldset className="prayer-alert-selection" disabled={!settings.prayer.notificationsEnabled}>
+                <legend>Choose prayer alerts</legend>
+                <p>Select the prayers for which you want to receive a notification.</p>
+                <div>
+                  {PRAYER_ALERT_NAMES.map(prayer => {
+                    const selected = settings.prayer.alertPrayers.includes(prayer);
+                    return <label className={selected ? "is-selected" : ""} key={prayer}>
+                      <input type="checkbox" checked={selected}
+                        onChange={() => togglePrayerAlert(prayer)} />
+                      <span>{prayer}</span>
+                      <Check size={15} aria-hidden="true" />
+                    </label>;
+                  })}
+                </div>
+                {settings.prayer.alertPrayers.length === 0 &&
+                  <small role="status">No prayer alerts selected.</small>}
+              </fieldset>
+
               <div className="settings-toggle-row">
                 <div className="settings-toggle-text">
                   <div className="toggle-title-with-icon">
                     <Volume2 size={16} />
-                    <strong>Adhan / Alert Chime</strong>
+                    <strong>Prayer Alert Chime</strong>
                   </div>
                   <p>Play a gentle alert chime at prayer entrance time.</p>
                 </div>
@@ -1606,6 +1681,7 @@ export default function SettingsPage() {
                   id="app-language-select"
                   value={settings.general.appLanguage}
                   options={LANGUAGE_OPTIONS}
+                  translateOptions={false}
                   onChange={(val) => {
                     const appLanguage = String(val);
                     updateSettings((prev) => ({
@@ -1624,6 +1700,23 @@ export default function SettingsPage() {
               </div>
 
               <hr className="settings-divider" />
+
+              <div className="settings-reset-block">
+                <div><strong><HardDrive size={16} /> Offline Quran storage</strong>
+                  <p>{offlineInfo.entries} cached files{offlineInfo.bytes ? ` · ${(offlineInfo.bytes / 1024 / 1024).toFixed(1)} MB reported` : ""}.</p></div>
+                <button type="button" className="btn-reset" onClick={async () => {
+                  await clearOfflineQuran();
+                  setOfflineInfo(await getOfflineQuranStorageInfo());
+                }}>Remove download</button>
+              </div>
+
+              <div className="settings-reset-block">
+                <div><strong>Personal data</strong><p>Export your settings, bookmarks, Azkar favourites, calendar reminders, recent Hadith, and Quran page notes, or remove them from this device.</p></div>
+                <div className="settings-data-actions">
+                  <button type="button" className="btn-choice" onClick={handleExportData}><Download size={16} /> Export</button>
+                  <button type="button" className="btn-reset" onClick={handleDeleteData}><Trash2 size={16} /> Delete</button>
+                </div>
+              </div>
 
               {/* Reset to defaults */}
               <div className="settings-reset-block">

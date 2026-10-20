@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Globe, LocateFixed, MapPin, Search } from "lucide-react";
 import "./LocationSelector.css";
 
@@ -20,6 +20,8 @@ export default function LocationSelector({ onResolve, loading }: Props) {
   const [geoError, setGeoError] = useState("");
   const [detecting, setDetecting] = useState(false);
   const requestId = useRef(0);
+  const autoStarted = useRef(false);
+  const handleDetectRef = useRef<() => void>(() => {});
 
   // Ignore any geolocation callback that arrives after we unmount
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function LocationSelector({ onResolve, loading }: Props) {
     return "We couldn't work out your location right now. Make sure location services are on, or enter your city instead.";
   };
 
-  const handleDetect = () => {
+  const handleDetect = useCallback(() => {
     if (busy) return;
     setGeoError("");
     setDetecting(true);
@@ -75,6 +77,7 @@ export default function LocationSelector({ onResolve, loading }: Props) {
         if (error.code === error.PERMISSION_DENIED) {
           setDetecting(false);
           setGeoError(geoMessage(error));
+          setMode("manual");
           return;
         }
 
@@ -84,10 +87,12 @@ export default function LocationSelector({ onResolve, loading }: Props) {
             if (status.state === "prompt") {
               status.onchange = () => {
                 if (status.state === "granted") {
-                  handleDetect();
+                  setDetecting(false);
+                  window.setTimeout(() => handleDetectRef.current(), 0);
                 } else if (status.state === "denied") {
                   setDetecting(false);
                   setGeoError("Location access is blocked for this site.");
+                  setMode("manual");
                 }
               };
               return; 
@@ -111,7 +116,35 @@ export default function LocationSelector({ onResolve, loading }: Props) {
       },
       { enableHighAccuracy: false, timeout: 20000, maximumAge: 300000 }
     );
-  };
+  }, [busy, onResolve]);
+
+  useEffect(() => {
+    handleDetectRef.current = handleDetect;
+  }, [handleDetect]);
+
+  useEffect(() => {
+    if (autoStarted.current) return;
+    autoStarted.current = true;
+    const start = async () => {
+      if (!navigator.geolocation) {
+        setMode("manual");
+        setGeoError("Your browser doesn't support automatic location detection. Enter your city instead.");
+        return;
+      }
+      try {
+        const status = await navigator.permissions.query({ name: "geolocation" });
+        if (status.state === "denied") {
+          setMode("manual");
+          setGeoError("Location access is blocked for this site. Enter your city instead.");
+          return;
+        }
+      } catch {
+        // Browsers without the Permissions API still show their normal location prompt.
+      }
+      handleDetect();
+    };
+    void start();
+  }, [handleDetect]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();

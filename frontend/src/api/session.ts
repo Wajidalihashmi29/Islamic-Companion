@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getRotatedSessionToken, getTokenExpiryMs } from "../utils/tokenUtils";
+import { getTokenExpiryMs } from "../utils/tokenUtils";
 import type { AuthResponse } from "./authApi";
 
 export const SESSION_UPDATED_EVENT = "ic:sessionUpdated";
@@ -36,22 +36,12 @@ export async function refreshSessionToken(rejectedToken?: string): Promise<strin
       return data.token;
     } catch (error) {
       if (axios.isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0)) {
-        // A reload or another tab may have rotated this one-time refresh token
-        // while this request was in flight. Give that successful request time to
-        // publish the replacement before treating the session as expired.
-        await new Promise(resolve => window.setTimeout(resolve, 1000));
-        const rotatedToken = getRotatedSessionToken(
-          refreshToken,
-          localStorage.getItem("refreshToken"),
-          localStorage.getItem("token"),
-        );
-        if (rotatedToken) return rotatedToken;
         if (localStorage.getItem("refreshToken") === refreshToken) clearStoredSession();
       }
       throw error;
     }
   };
-  // Refresh tokens rotate once; serialize renewal across tabs as well as requests.
+  // Serialize renewal to avoid unnecessary duplicate refresh requests.
   pendingRefresh = navigator.locks ? navigator.locks.request("ic:refresh-session", renew) : renew();
   try { return await pendingRefresh; }
   finally { pendingRefresh = null; }

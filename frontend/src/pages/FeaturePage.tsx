@@ -7,6 +7,9 @@ import PrayerTimesView from "../components/PrayerTimesView";
 import QiblaFinder from "../components/QiblaFinder";
 import TopNav from "../components/TopNav";
 import ZakatCalculator from "../components/ZakatCalculator";
+import DailyAzkar from "../components/DailyAzkar";
+import IslamicCalendar from "../components/IslamicCalendar";
+import TasbeehCounter from "../components/TasbeehCounter";
 import { getFeature, getFeaturePath } from "../config/features";
 import { useAuth } from "../context/AuthContext";
 import { loadSettings, getStorageKeyForUser } from "../utils/settingsStorage";
@@ -33,8 +36,11 @@ export default function FeaturePage({ featureId }: { featureId: string }) {
     switch (feature.id) {
       case "prayer": return <PrayerTimesView />;
       case "qibla": return <QiblaFinder />;
-      case "hadith": return <HadithCollection language={settings.general.appLanguage} />;
+      case "hadith": return <HadithCollection language={settings.general.appLanguage} storageKey={storageKey} />;
       case "zakat": return <ZakatCalculator />;
+      case "azkar": return <DailyAzkar language={settings.general.appLanguage} />;
+      case "calendar": return <IslamicCalendar storageKey={storageKey} />;
+      case "tasbeeh": return <TasbeehCounter storageKey={storageKey} />;
       case "favorites": return <Favorites storageKey={storageKey} />;
       default: return null;
     }

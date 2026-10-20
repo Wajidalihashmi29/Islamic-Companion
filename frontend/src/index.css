@@ -1,4 +1,12 @@
 @font-face {
+  font-family: 'Mono45 Headline';
+  src: local('Mono45 Headline Regular'), local('Mono45 Headline');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Digital Khatt IndoPak';
   src: url('/fonts/digital-khatt-indopak.otf') format('opentype');
   font-weight: 400;
@@ -112,7 +120,7 @@ html[lang="ur"] body :where(
   h1, h2, h3, h4, h5, h6,
   p, span, strong, small, label, a, button, li,
   input, textarea, select, option
-):not([lang="ar"]):not(.ayah-num):not(.quran-reader *):not(.settings-preview-card *):not(.selection-card-preview-box *) {
+):not([lang="ar"]):not([data-preserve-font]):not(.ayah-num):not(.quran-reader *):not(.settings-preview-card *):not(.selection-card-preview-box *) {
   font-family: var(--font-urdu, 'Jameel Noori Nastaleeq Regular', 'Jameel Noori Nastaleeq', serif) !important;
   font-synthesis: none;
   line-height: 2.15;
@@ -151,6 +159,7 @@ html[lang="ur"] .top-nav {
 html[lang="ur"] .top-nav-link span,
 html[lang="ur"] .top-nav-dropdown-item span,
 html[lang="ur"] .top-nav-actions span {
+  font-size: 0.9rem;
   line-height: 1.85;
   word-spacing: 0.2em;
 }
@@ -386,6 +395,10 @@ html {
   scroll-behavior: smooth;
 }
 
+html[lang="ur"] {
+  font-size: 18.5px;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -398,6 +411,11 @@ body {
   overflow-x: hidden;
 }
 
+[lang="ar"],
+[dir="rtl"][lang="ar"] {
+  font-family: var(--font-arabic, "Amiri Quran", "Traditional Arabic", serif);
+}
+
 html, body, #root {
   width: 100%;
   min-height: 100vh;
@@ -406,6 +424,31 @@ html, body, #root {
 #root {
   display: flex;
   flex-direction: column;
+}
+
+.app-status-bar {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 11px 14px;
+  border: 1px solid rgba(20, 85, 80, .22);
+  border-radius: 14px;
+  color: var(--teal-950);
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 12px 32px rgba(13, 53, 50, .18);
+}
+.app-status-bar.is-offline { color: #704f08; background: #fff8df; border-color: #e0b84f; }
+.app-status-bar span { flex: 1; font-size: .84rem; line-height: 1.45; }
+.app-status-bar button { padding: 7px 11px; border: 0; border-radius: 9px; color: #fff; background: var(--teal-700); }
+.app-status-bar .app-status-dismiss { padding: 6px; color: inherit; background: transparent; }
+
+@media (max-width: 600px) {
+  .app-status-bar { right: 10px; bottom: 10px; left: 10px; max-width: none; }
 }
 
 /* Custom modern scrollbar */

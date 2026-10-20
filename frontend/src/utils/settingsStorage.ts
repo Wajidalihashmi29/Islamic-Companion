@@ -5,6 +5,7 @@ import { getQuranTranslationForInterfaceLanguage } from "../i18n/contentLanguage
 import { DEFAULT_QURAN_RECITER, normalizeReciter } from "./quranReciters";
 import { getQuranOfflineCompletionKey } from "./quranOffline";
 import { getOfflineQuranPreferencePatch } from "./offlineQuranPreferences";
+import { normalizePrayerAlertNames, PRAYER_ALERT_NAMES, type PrayerAlertName } from "./prayerAlerts";
 
 export { normalizeReciter, RECITERS_OPTIONS } from "./quranReciters";
 
@@ -28,6 +29,7 @@ export interface PrayerPreferences {
   calculationMethod: number;
   notificationsEnabled: boolean;
   soundEnabled: boolean;
+  alertPrayers: PrayerAlertName[];
 }
 
 export interface GeneralPreferences {
@@ -74,8 +76,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
     asrSchool: "hanafi",
     timeFormat: "12h",
     calculationMethod: 1,
-    notificationsEnabled: true,
+    notificationsEnabled: false,
     soundEnabled: false,
+    alertPrayers: [...PRAYER_ALERT_NAMES],
   },
   general: {
     hijriAdjustment: 0,
@@ -202,9 +205,12 @@ export function loadSettings(userIdentifier?: string | null): AppSettings {
       quran.preferredTranslation,
     );
 
+    const prayer = { ...DEFAULT_SETTINGS.prayer, ...(parsed.prayer || {}) };
+    prayer.alertPrayers = normalizePrayerAlertNames(parsed.prayer?.alertPrayers);
+
     return {
       quran,
-      prayer: { ...DEFAULT_SETTINGS.prayer, ...(parsed.prayer || {}) },
+      prayer,
       general,
     };
   } catch {

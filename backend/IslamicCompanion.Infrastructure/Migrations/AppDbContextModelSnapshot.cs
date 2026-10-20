@@ -67,6 +67,12 @@ namespace IslamicCompanion.Infrastructure.Migrations
                     b.Property<string>("PasswordHash")
                         .HasColumnType("text");
 
+                    b.Property<string>("PasswordResetCode")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PasswordResetCodeExpires")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("PasswordResetOtpExpiresAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -164,6 +170,72 @@ namespace IslamicCompanion.Infrastructure.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PrayerLogs");
+                });
+
+            modelBuilder.Entity("IslamicCompanion.Domain.Entities.PrayerPushSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("CalculationMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<string>("LastNotificationKey")
+                        .HasColumnType("text");
+
+                    b.Property<double>("Latitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Longitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("PrayerNames")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("School")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Endpoint")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PrayerPushSubscriptions");
                 });
 
             modelBuilder.Entity("IslamicCompanion.Domain.Entities.RefreshToken", b =>
@@ -342,6 +414,17 @@ namespace IslamicCompanion.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("IslamicCompanion.Domain.Entities.PrayerLog", b =>
+                {
+                    b.HasOne("IslamicCompanion.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("IslamicCompanion.Domain.Entities.PrayerPushSubscription", b =>
                 {
                     b.HasOne("IslamicCompanion.Domain.Entities.ApplicationUser", "User")
                         .WithMany()

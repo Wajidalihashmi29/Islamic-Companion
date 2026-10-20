@@ -43,7 +43,7 @@
 .ptv-next-tag { display: inline-flex; align-items: center; gap: 7px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--p-gold-soft); }
 .ptv-next-title { margin: 0; font-family: var(--p-display); font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.05; color: #ffffff; }
 .ptv-next-time {
-  font-family: var(--p-display); font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 700;
+  font-family: "Mono45 Headline", "mono45-headline", "Arial Narrow", "Aptos Narrow", sans-serif; font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 600;
   background: linear-gradient(120deg, #f3d27a, #e0b84f 60%, #c99a2e);
   -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
@@ -63,7 +63,7 @@
   border-radius: 16px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.1);
 }
-.ptv-countdown-boxes strong { font-size: clamp(1.7rem, 3vw, 2.2rem); line-height: 1; font-variant-numeric: tabular-nums; color: #ffffff; }
+.ptv-countdown-boxes strong { font-family: "Mono45 Headline", "mono45-headline", "Arial Narrow", "Aptos Narrow", sans-serif; font-size: clamp(1.7rem, 3vw, 2.2rem); font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; color: #ffffff; }
 .ptv-countdown-boxes small { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(245, 247, 246, 0.75); }
 .ptv-countdown-boxes > span { font-size: 1.6rem; font-weight: 700; color: var(--p-gold-soft); opacity: 0.7; }
 
@@ -106,8 +106,10 @@
 .ptv-prayer-card:hover { transform: translateY(-4px); border-color: rgba(201, 154, 46, 0.7); }
 
 .ptv-prayer-icon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 15px; color: #0f4d49; background: linear-gradient(145deg, #e6f1ee, #cfe3de); }
+.ptv-prayer-alert { position: absolute; top: 12px; right: 12px; display: inline-flex; align-items: center; gap: 4px; min-height: 24px; padding: 3px 8px; border-radius: 999px; color: #0f4d49; background: #e6f1ee; font-size: .66rem; font-weight: 800; line-height: 1; white-space: nowrap; }
+html[dir="rtl"] .ptv-prayer-alert { right: auto; left: 12px; }
 .ptv-prayer-name { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--p-body); }
-.ptv-prayer-time { font-family: var(--p-display); font-size: clamp(1.5rem, 2.6vw, 1.9rem); font-weight: 700; color: var(--p-ink); font-variant-numeric: tabular-nums; }
+.ptv-prayer-time { font-family: "Mono45 Headline", "mono45-headline", "Arial Narrow", "Aptos Narrow", sans-serif; font-size: clamp(1.5rem, 2.6vw, 1.9rem); font-weight: 600; color: var(--p-ink); font-variant-numeric: tabular-nums; }
 .ptv-prayer-state { display: inline-flex; align-items: center; gap: 5px; min-height: 22px; padding: 2px 12px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: #51655f; background: #eef1ee; }
 
 .ptv-prayer-card.is-passed .ptv-prayer-state { 
@@ -139,6 +141,7 @@
 .ptv-prayer-card.is-next .ptv-prayer-name { color: rgba(243, 239, 226, 0.85); }
 .ptv-prayer-card.is-next .ptv-prayer-time { color: var(--p-gold-soft); }
 .ptv-prayer-card.is-next .ptv-prayer-state { color: #1d1604; background: linear-gradient(135deg, #f6dc8c, #e0b84f); }
+.ptv-prayer-card.is-next .ptv-prayer-alert { color: #1d1604; background: var(--p-gold-soft); }
 
 /* ---------- Placeholder ---------- */
 .ptv-placeholder {
@@ -197,7 +200,67 @@
 
 .ptv-note { margin: 0; padding: 14px 16px; font-size: 0.85rem; line-height: 1.5; color: var(--p-body); background: rgba(255, 255, 255, 0.7); border: 1px dashed var(--p-line); border-radius: 14px; }
 
+.ptv-alert-settings-trigger { display: grid; grid-template-columns: 44px minmax(0,1fr) 20px; align-items: center; gap: 13px; width: 100%; padding: 14px 16px; border: 1px solid var(--p-line); border-radius: 17px; color: var(--p-ink); background: #fff; font: inherit; text-align: start; cursor: pointer; box-shadow: 0 12px 26px -24px rgba(13,53,50,.5); transition: border-color .2s ease, transform .2s ease; }.ptv-alert-settings-trigger:hover { transform: translateY(-1px); border-color: var(--p-gold); }.ptv-alert-settings-trigger > span:first-child { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; color: #fff; background: #0f4d49; }.ptv-alert-settings-trigger > span:nth-child(2) { display: grid; gap: 3px; min-width: 0; }.ptv-alert-settings-trigger strong { font-size: .95rem; }.ptv-alert-settings-trigger small { overflow: hidden; color: var(--p-body); font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }.ptv-alert-settings-trigger > svg { color: var(--p-body); }
+.ptv-alert-drawer-layer { position: fixed; z-index: 1000; inset: 0; display: flex; justify-content: flex-end; background: rgba(5,30,28,.44); backdrop-filter: blur(3px); animation: ptv-fade-in .2s ease both; }
+.ptv-alert-drawer { display: grid; grid-template-rows: auto minmax(0,1fr); width: min(440px,100%); height: 100%; background: #f5f8f7; box-shadow: -20px 0 50px rgba(5,30,28,.24); animation: ptv-drawer-in .24s ease both; }
+.ptv-alert-drawer > header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 18px 20px; border-bottom: 1px solid var(--p-line); background: #fff; }.ptv-alert-drawer > header > div { display: flex; align-items: center; gap: 11px; min-width: 0; }.ptv-alert-drawer > header > div > span { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 12px; color: #fff; background: #0f4d49; }.ptv-alert-drawer > header div div { display: grid; gap: 2px; }.ptv-alert-drawer > header strong { color: var(--p-ink); }.ptv-alert-drawer > header small { color: var(--p-body); font-size: .75rem; }.ptv-alert-drawer > header button { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border: 1px solid var(--p-line); border-radius: 12px; color: var(--p-ink); background: #fff; cursor: pointer; }
+.ptv-alert-drawer-content { overflow-y: auto; display: grid; align-content: start; gap: 13px; padding: 18px; }
+.ptv-alert-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px; border: 1px solid var(--p-line); border-radius: 15px; background: #f7faf9; }
+.ptv-alert-setting-row > div { min-width: 0; }.ptv-alert-setting-row strong { display: inline-flex; align-items: center; gap: 8px; color: var(--p-ink); }.ptv-alert-setting-row p { margin: 4px 0 0; color: var(--p-body); font-size: .82rem; line-height: 1.5; }
+.ptv-switch { position: relative; flex: none; width: 52px; height: 30px; cursor: pointer; }.ptv-switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }.ptv-switch > span { position: absolute; inset: 0; border-radius: 999px; background: #cbd8e6; transition: background .2s ease; }.ptv-switch > span::after { content: ""; position: absolute; top: 4px; left: 4px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(13,53,50,.2); transition: transform .2s ease; }.ptv-switch input:checked + span { background: var(--p-teal,#0f4d49); }.ptv-switch input:checked + span::after { transform: translateX(22px); }
+.ptv-alert-prayers { display: grid; gap: 8px; margin: 0; padding: 14px 16px 16px; border: 1px solid var(--p-line); border-radius: 15px; background: #f9fbfa; }.ptv-alert-prayers:disabled { opacity: .55; }.ptv-alert-prayers legend { padding: 0 6px; color: var(--p-ink); font-size: .9rem; font-weight: 800; }.ptv-alert-prayers > p { margin: 0; color: var(--p-body); font-size: .8rem; }.ptv-alert-prayers > div { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 8px; }.ptv-alert-prayers label { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 8px; border: 1px solid var(--p-line); border-radius: 11px; color: var(--p-body); background: #fff; font-size: .78rem; font-weight: 750; cursor: pointer; }.ptv-alert-prayers label.is-selected { color: #fff; border-color: #0f4d49; background: #0f4d49; }.ptv-alert-prayers label input { position: absolute; width: 1px; height: 1px; opacity: 0; }.ptv-alert-prayers label svg { display: none; }.ptv-alert-prayers label.is-selected svg { display: block; }.ptv-alert-prayers small { color: #a14535; font-weight: 700; }
+.ptv-alert-drawer .ptv-alert-prayers > div { grid-template-columns: repeat(2,minmax(0,1fr)); }.ptv-drawer-status { margin: 0; padding: 11px 13px; border-radius: 11px; color: var(--p-body); background: #fff; font-size: .8rem; line-height: 1.5; }
+html[dir="rtl"] .ptv-alert-settings-trigger > svg { transform: scaleX(-1); }
+html[dir="rtl"] .ptv-alert-drawer-layer { justify-content: flex-start; }
+html[dir="rtl"] .ptv-alert-drawer { box-shadow: 20px 0 50px rgba(5,30,28,.24); animation-name: ptv-drawer-in-rtl; }
+@keyframes ptv-fade-in { from { opacity: 0; } }
+@keyframes ptv-drawer-in { from { transform: translateX(100%); } }
+@keyframes ptv-drawer-in-rtl { from { transform: translateX(-100%); } }
+
+.ptv-timetable { display: grid; gap: 14px; }
+.ptv-timetable-toggle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 9px; justify-self: start;
+  min-height: 46px; padding: 0 18px; border: 1px solid var(--p-line); border-radius: 999px;
+  color: #f3efe2; background: linear-gradient(135deg, #145550, #0a2f2c); font: inherit; font-weight: 750; cursor: pointer;
+}
+.ptv-timetable-panel { display: grid; gap: 14px; padding: clamp(14px, 2.5vw, 22px); border: 1px solid var(--p-line); border-radius: 22px; background: #fff; }
+.ptv-timetable-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ptv-timetable-header strong { font-family: var(--p-display); font-size: 1.25rem; }
+.ptv-timetable-header button {
+  display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--p-line);
+  border-radius: 50%; color: var(--p-ink); background: #fff; cursor: pointer;
+}
+.ptv-timetable-jump { display: flex; flex-wrap: wrap; align-items: end; justify-content: center; gap: 10px; }
+.ptv-timetable-jump > button, .ptv-timetable-jump input {
+  min-height: 42px; padding: 0 14px; border: 1px solid var(--p-line); border-radius: 10px;
+  color: var(--p-ink); background: #fff; font: inherit; font-weight: 700;
+}
+.ptv-timetable-jump > button { cursor: pointer; }
+.ptv-timetable-jump label { display: grid; gap: 5px; color: var(--p-body); font-size: .75rem; font-weight: 700; }
+.ptv-timetable-loading { margin: 10px 0; text-align: center; color: var(--p-body); }
+.ptv-timetable-scroll { overflow-x: auto; border: 1px solid var(--p-line); border-radius: 14px; }
+.ptv-timetable table { width: 100%; min-width: 780px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.ptv-timetable th, .ptv-timetable td { padding: 11px 12px; border-bottom: 1px solid var(--p-line); text-align: center; white-space: nowrap; }
+.ptv-timetable thead th { position: sticky; top: 0; color: #f3efe2; background: #164d49; font-size: .78rem; }
+.ptv-timetable tbody th { text-align: left; color: var(--p-ink); background: #faf9f4; }
+.ptv-timetable tbody th span, .ptv-timetable tbody th small { display: block; }
+.ptv-timetable tbody th small { margin-top: 3px; color: var(--p-body); font-weight: 500; }
+.ptv-timetable tbody tr:last-child th, .ptv-timetable tbody tr:last-child td { border-bottom: 0; }
+
 @media (max-width: 700px) {
   .ptv-place-controls { width: 100%; }
   .ptv-change { width: 100%; }
+  .ptv-timetable-toggle { width: 100%; }
+  .ptv-timetable-jump { align-items: stretch; }
+  .ptv-timetable-jump > button, .ptv-timetable-jump label { flex: 1 1 180px; }
+  .ptv-timetable-jump input { width: 100%; }
+  .ptv-alert-prayers > div { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .ptv-alert-setting-row { align-items: flex-start; }
+}
+@media (max-width: 560px) {
+  .ptv-alert-drawer-layer { align-items: flex-end; }
+  .ptv-alert-drawer { width: 100%; height: min(78dvh,680px); border-radius: 22px 22px 0 0; box-shadow: 0 -20px 50px rgba(5,30,28,.24); animation-name: ptv-sheet-in; }
+  html[dir="rtl"] .ptv-alert-drawer { box-shadow: 0 -20px 50px rgba(5,30,28,.24); animation-name: ptv-sheet-in; }
+  .ptv-alert-drawer > header { border-radius: 22px 22px 0 0; }
+  @keyframes ptv-sheet-in { from { transform: translateY(100%); } }
 }

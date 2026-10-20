@@ -309,9 +309,7 @@ public class AuthController : ControllerBase
         if (existing == null || existing.IsRevoked || existing.ExpiresAt < DateTime.UtcNow)
             return Unauthorized(new { message = "Session expired. Please log in again." });
 
-        existing.IsRevoked = true; // one-time use — rotate on every refresh
-        var response = await IssueTokensAsync(existing.User!);
-        return Ok(response);
+        return Ok(CreateAuthResponse(existing.User!, existing.Token));
     }
 
     [HttpPost("logout")]
@@ -388,11 +386,7 @@ public class AuthController : ControllerBase
 
     private async Task<AuthResponse> IssueTokensAsync(ApplicationUser user)
     {
-        var accessExpiryMinutes = double.Parse(_config["Jwt:AccessTokenExpiryMinutes"]!);
         var refreshExpiryDays = double.Parse(_config["Jwt:RefreshTokenExpiryDays"]!);
-        var expiresAt = DateTime.UtcNow.AddMinutes(accessExpiryMinutes);
-
-        var accessToken = GenerateJwtToken(user, expiresAt);
         var refreshToken = GenerateRefreshToken();
 
         _db.RefreshTokens.Add(new RefreshToken
@@ -403,7 +397,18 @@ public class AuthController : ControllerBase
         });
         await _db.SaveChangesAsync();
 
-        return new AuthResponse(accessToken, refreshToken, expiresAt, user.FullName ?? "");
+        return CreateAuthResponse(user, refreshToken);
+    }
+
+    private AuthResponse CreateAuthResponse(ApplicationUser user, string refreshToken)
+    {
+        var accessExpiryMinutes = double.Parse(_config["Jwt:AccessTokenExpiryMinutes"]!);
+        var expiresAt = DateTime.UtcNow.AddMinutes(accessExpiryMinutes);
+        return new AuthResponse(
+            GenerateJwtToken(user, expiresAt),
+            refreshToken,
+            expiresAt,
+            user.FullName ?? "");
     }
 
     private string GenerateJwtToken(ApplicationUser user, DateTime expiresAt)

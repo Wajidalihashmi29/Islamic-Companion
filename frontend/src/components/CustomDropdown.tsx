@@ -20,6 +20,7 @@ interface CustomDropdownProps<T extends string | number> {
   onChange: (val: T) => void;
   icon?: React.ComponentType<{ size?: number; className?: string }>;
   placeholder?: string;
+  translateOptions?: boolean;
 }
 
 export default function CustomDropdown<T extends string | number>({
@@ -30,6 +31,7 @@ export default function CustomDropdown<T extends string | number>({
   onChange,
   icon: Icon,
   placeholder = "Select an option",
+  translateOptions = true,
 }: CustomDropdownProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [opensUp, setOpensUp] = useState(false);
@@ -109,7 +111,7 @@ export default function CustomDropdown<T extends string | number>({
               <Icon size={18} />
             </span>
           )}
-          <div className="c-dropdown-trigger-text">
+          <div className="c-dropdown-trigger-text" data-no-translate={translateOptions ? undefined : ""}>
             {selectedOption ? (
               <>
                 <div className="c-dropdown-selected-title">
@@ -161,7 +163,7 @@ export default function CustomDropdown<T extends string | number>({
                   className={`c-dropdown-item ${isSelected ? "is-selected" : ""} ${option.sub ? "has-sub" : ""}`}
                   onClick={() => handleSelect(option.id)}
                 >
-                  <div className="c-dropdown-item-content">
+                  <div className="c-dropdown-item-content" data-no-translate={translateOptions ? undefined : ""}>
                     <div className="c-dropdown-item-header">
                       <div className="c-dropdown-badges">
                         {option.recommended && (

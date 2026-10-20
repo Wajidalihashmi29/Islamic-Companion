@@ -5,10 +5,21 @@ public class AladhanResponse
     public AladhanData Data { get; set; } = new();
 }
 
+public class AladhanCalendarResponse
+{
+    public List<AladhanData> Data { get; set; } = [];
+}
+
 public class AladhanData
 {
     public Dictionary<string, string> Timings { get; set; } = new();
     public AladhanDate Date { get; set; } = new();
+    public AladhanMeta Meta { get; set; } = new();
+}
+
+public class AladhanMeta
+{
+    public string Timezone { get; set; } = string.Empty;
 }
 
 public class AladhanDate

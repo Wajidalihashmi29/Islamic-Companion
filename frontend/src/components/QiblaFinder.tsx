@@ -47,13 +47,17 @@ function getDeviceHeading(event: CompassOrientationEvent) {
 }
 
 export default function QiblaFinder() {
+  const orientationEvent = "DeviceOrientationEvent" in window
+    ? DeviceOrientationEvent as CompassPermissionEvent
+    : null;
+  const canStartWithoutGesture = orientationEvent !== null && !orientationEvent.requestPermission;
   const [bearing, setBearing] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [compassEnabled, setCompassEnabled] = useState(false);
+  const [compassEnabled, setCompassEnabled] = useState(canStartWithoutGesture);
   const [compassSession, setCompassSession] = useState(0);
   const [compassStatus, setCompassStatus] = useState<CompassStatus>(() =>
-    "DeviceOrientationEvent" in window ? "idle" : "unavailable");
+    orientationEvent === null ? "unavailable" : canStartWithoutGesture ? "requesting" : "idle");
   const [heading, setHeading] = useState<number | null>(null);
   const [headingAccuracy, setHeadingAccuracy] = useState<number | null>(null);
   const [continuousHeading, setContinuousHeading] = useState(0);
@@ -103,7 +107,7 @@ export default function QiblaFinder() {
     };
   }, [compassEnabled, compassSession]);
 
-  const enableCompass = useCallback(async () => {
+  const enableCompass = useCallback(async (automatic = false) => {
     setCompassStatus("requesting");
     if (!("DeviceOrientationEvent" in window)) {
       setCompassStatus("unavailable");
@@ -126,7 +130,7 @@ export default function QiblaFinder() {
       setCompassEnabled(true);
       setCompassSession(session => session + 1);
     } catch {
-      setCompassStatus("denied");
+      setCompassStatus(automatic ? "idle" : "denied");
     }
   }, []);
 
@@ -155,10 +159,7 @@ export default function QiblaFinder() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       resolveLocation();
-      if ("DeviceOrientationEvent" in window) {
-        const orientationEvent = DeviceOrientationEvent as CompassPermissionEvent;
-        if (!orientationEvent.requestPermission) void enableCompass();
-      }
+      if ("DeviceOrientationEvent" in window) void enableCompass(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [enableCompass, resolveLocation]);
