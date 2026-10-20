@@ -15,10 +15,15 @@ export function getQuranTextRuns(text: string, script: "indopak" | "uthmani"): {
 }
 
 export const DEFAULT_QURAN_TYPOGRAPHY = {
-  arabicFontSize: 44,
-  translationFontSize: 32,
-  typographyVersion: 2,
+  arabicFontSize: 52,
+  translationFontSize: 36,
+  typographyVersion: 5,
 };
+
+export function getQuranLineHeightMultiplier(script: "indopak" | "uthmani", fitMode: boolean) {
+  if (script === "indopak") return fitMode ? 1.55 : 1.85;
+  return fitMode ? 2.2 : 2.65;
+}
 
 export function normalizeQuranTypography(saved: {
   arabicFontSize?: number; translationFontSize?: number; preferredTranslation?: string; typographyVersion?: number;
@@ -29,14 +34,20 @@ export function normalizeQuranTypography(saved: {
     throw new Error("Quran text sizes must be finite numbers.");
   if (saved.typographyVersion !== DEFAULT_QURAN_TYPOGRAPHY.typographyVersion) {
     if (arabic === 34) arabic = DEFAULT_QURAN_TYPOGRAPHY.arabicFontSize;
-    if (saved.translationFontSize !== undefined && (saved.preferredTranslation ?? "kanzul-iman-ur").endsWith("-ur")) {
+    if (saved.typographyVersion === 2 && arabic === 44) arabic = DEFAULT_QURAN_TYPOGRAPHY.arabicFontSize;
+    if (saved.typographyVersion === 3 && arabic === 48) arabic = DEFAULT_QURAN_TYPOGRAPHY.arabicFontSize;
+    if (saved.typographyVersion !== undefined && saved.typographyVersion >= 2 && translation === 32)
+      translation = DEFAULT_QURAN_TYPOGRAPHY.translationFontSize;
+    if ((saved.typographyVersion === undefined || saved.typographyVersion < 2) &&
+      saved.translationFontSize !== undefined &&
+      (saved.preferredTranslation ?? "kanzul-iman-ur").endsWith("-ur")) {
       // Older Urdu sizes were stored before a hidden 25% optical enlargement.
       translation = translation === 28 ? DEFAULT_QURAN_TYPOGRAPHY.translationFontSize : Math.round(translation * 1.25);
     }
   }
   return {
-    arabicFontSize: Math.max(24, Math.min(52, arabic)),
-    translationFontSize: Math.max(12, Math.min(48, translation)),
+    arabicFontSize: Math.max(24, Math.min(64, arabic)),
+    translationFontSize: Math.max(12, Math.min(56, translation)),
     typographyVersion: DEFAULT_QURAN_TYPOGRAPHY.typographyVersion,
   };
 }

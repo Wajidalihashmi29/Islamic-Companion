@@ -728,7 +728,7 @@ export default function SettingsPage() {
                     <input
                       type="range"
                       min="24"
-                      max="52"
+                      max="64"
                       step="2"
                       value={settings.quran.arabicFontSize}
                       onChange={(e) =>
@@ -749,7 +749,7 @@ export default function SettingsPage() {
                           ...prev,
                           quran: {
                             ...prev.quran,
-                            arabicFontSize: Math.min(52, prev.quran.arabicFontSize + 2),
+                            arabicFontSize: Math.min(64, prev.quran.arabicFontSize + 2),
                           },
                         }));
                       }}
@@ -793,7 +793,7 @@ export default function SettingsPage() {
                     <input
                       type="range"
                       min="12"
-                      max="48"
+                      max="56"
                       step="1"
                       value={settings.quran.translationFontSize}
                       onChange={(e) =>
@@ -815,7 +815,7 @@ export default function SettingsPage() {
                           ...prev,
                           quran: {
                             ...prev.quran,
-                            translationFontSize: Math.min(48, prev.quran.translationFontSize + 2),
+                            translationFontSize: Math.min(56, prev.quran.translationFontSize + 2),
                           },
                         }));
                       }}

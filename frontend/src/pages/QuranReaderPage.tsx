@@ -2,8 +2,8 @@ import { Fragment, useDeferredValue, useEffect, useEffectEvent, useId, useLayout
 import type { ReactNode, TouchEvent } from "react";
 import axios from "axios";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight, Expand, Headphones, LoaderCircle, MoreHorizontal,
-  PanelsTopLeft, Pause, Play, Settings2, SkipBack, SkipForward, Star, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Download, Expand, Headphones, LoaderCircle,
+  MoreHorizontal, PanelsTopLeft, Pause, Play, Settings2, SkipBack, SkipForward, Star, WifiOff, X, ZoomIn, ZoomOut } from "lucide-react";
 import TopNav from "../components/TopNav";
 import CustomDropdown from "../components/CustomDropdown";
 import AyahMedallion, { toArabicDigits, toUrduDigits } from "../components/AyahMedallion";
@@ -15,7 +15,7 @@ import { getQuranAudio, getQuranDirectory, getQuranPage, getQuranTafseer, getVer
 import type { QuranDirectory, QuranPage, QuranSurah, QuranTafseer } from "../api/quranApi";
 import { layoutQuranLines } from "../utils/quranLayout";
 import type { QuranReadingLine, QuranReadingSegment } from "../utils/quranLayout";
-import { getQuranTextRuns } from "../utils/quranTypography";
+import { getQuranLineHeightMultiplier, getQuranTextRuns } from "../utils/quranTypography";
 import { getStorageKeyForUser, loadSettings, saveSettings, RECITERS_OPTIONS, TRANSLATION_OPTIONS, TAFSEER_OPTIONS } from "../utils/settingsStorage";
 import { loadQuranFavoriteSurahs, loadQuranReaderView, loadQuranReadingPage, normalizeQuranSearch, parseAyahReference,
   saveQuranFavoriteSurahs, saveQuranReaderView, saveQuranReadingPage } from "../utils/quranNavigation";
@@ -23,6 +23,8 @@ import { getAdjacentQuranPage, getAdjacentQuranReaderPage, getQuranPageScale, ge
 import type { QuranReaderPageNumber } from "../utils/quranScreens";
 import { getAdjacentQuranVerse, QuranAudioPlayer } from "../utils/quranAudio";
 import { getCanonicalQuranVerse, getReaderQuranVerse } from "../utils/quranFatihah";
+import { prepareQuranOffline, subscribeQuranOfflineProgress } from "../utils/quranOffline";
+import type { QuranOfflineProgress } from "../utils/quranOffline";
 import type { AppSettings } from "../utils/settingsStorage";
 import type { RecitationState } from "../utils/quranAudio";
 import "./Home.css";
@@ -299,6 +301,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const [tafseerRetry, setTafseerRetry] = useState(0);
   const [navigationError, setNavigationError] = useState("");
   const [navigationStatus, setNavigationStatus] = useState<{ label: string; page: number | null } | null>(null);
+  const [offlineProgress, setOfflineProgress] = useState<QuranOfflineProgress | null>(null);
   const navigationPending = navigationStatus !== null;
   const [verseTarget, setVerseTarget] = useState<{ key: string; page: number } | null>(null);
   const [fitMode, setFitMode] = useState(resume.view.mode === "fit");
@@ -435,6 +438,28 @@ function QuranReader({ profileKey }: { profileKey: string }) {
     });
     return () => controller.abort();
   }, [retry]);
+
+  useEffect(() => {
+    const prepare = () => {
+      void prepareQuranOffline(preferences.preferredTranslation, preferences.mushafLines)
+        .catch((error: unknown) => console.warn("Quran offline download paused and will resume later.", error));
+    };
+    const unsubscribe = subscribeQuranOfflineProgress(progress => {
+      if (progress.translation === preferences.preferredTranslation && progress.lines === preferences.mushafLines)
+        setOfflineProgress(progress);
+    });
+    const offline = () => setOfflineProgress(previous => previous ? {
+      ...previous, state: previous.state === "ready" ? "ready" : "paused",
+    } : null);
+    prepare();
+    window.addEventListener("online", prepare);
+    window.addEventListener("offline", offline);
+    return () => {
+      unsubscribe();
+      window.removeEventListener("online", prepare);
+      window.removeEventListener("offline", offline);
+    };
+  }, [preferences.preferredTranslation, preferences.mushafLines]);
 
   useEffect(() => {
     let disposed = false;
@@ -1000,7 +1025,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const currentSurah = directory?.surahs.find(surah => surah.number === page?.lines[0]?.segments[0]?.surahNumber);
   const arabicClass = preferences.arabicScript === "indopak" ? "font-indopak" : "font-uthmani";
   const arabicStyle = { fontSize: `${preferences.arabicFontSize}px`,
-    lineHeight: `${preferences.arabicFontSize * (preferences.arabicScript === "indopak" ? 1.85 : 2.65)}px` };
+    lineHeight: `${preferences.arabicFontSize * getQuranLineHeightMultiplier(preferences.arabicScript, fitMode)}px` };
   const searchTerm = normalizeQuranSearch(search);
   const deferredSearchTerm = normalizeQuranSearch(deferredSearch);
   const isAyahSearch = searchTerm.includes(":");
@@ -1015,6 +1040,15 @@ function QuranReader({ profileKey }: { profileKey: string }) {
   const directoryCount = directorySection === "juzs" ? matchingJuzs.length : matchingSurahs.length;
   const translationFontSize = preferences.translationFontSize;
   const readerError = (drawer !== "index" && navigationError) || (drawer !== "listen" && audioError);
+  const offlineLabel = offlineProgress?.state === "ready"
+    ? navigator.onLine ? "Quran ready offline" : "Reading offline"
+    : offlineProgress?.state === "downloading"
+      ? `Preparing offline Quran · ${Math.round(offlineProgress.completed / offlineProgress.total * 100)}%`
+      : offlineProgress?.state === "paused"
+        ? "Connect to finish offline setup"
+        : offlineProgress?.state === "error"
+          ? "Offline setup will retry"
+          : offlineProgress?.state === "unsupported" ? "Offline reading unavailable" : "";
   const drawerDetails = drawer && {
     index: { title: "Browse Quran", description: "Find a Surah, Para or specific Ayah.", icon: <BookOpen size={20} /> },
     listen: { title: "Listen", description: "Choose a reciter and control your recitation.", icon: <Headphones size={20} /> },
@@ -1035,6 +1069,11 @@ function QuranReader({ profileKey }: { profileKey: string }) {
           <Link className="home-back-btn" to="/" aria-label="Back to dashboard"><ArrowLeft size={20} /></Link>
           <div><span className="home-eyebrow">Read & reflect</span><h1>Qur&apos;an Reader</h1></div>
           <span className="quran-reader-location">{completionPage ? "Completion duas" : <>Page <strong>{pageNumber}</strong> / 604</>}</span>
+          {offlineLabel && <span className={`quran-offline-status is-${offlineProgress?.state}`} role="status" aria-live="polite">
+            {offlineProgress?.state === "ready" ? <CheckCircle2 size={16} /> :
+              offlineProgress?.state === "paused" ? <WifiOff size={16} /> : <Download size={16} />}
+            {offlineLabel}
+          </span>}
           {immersive && <button type="button" className="quran-icon-button" aria-label="Hide reader controls"
             disabled={!!pageError || !!readingError || !!audioError || !!navigationError}
             onClick={() => {
@@ -1358,7 +1397,7 @@ function QuranReader({ profileKey }: { profileKey: string }) {
           <h3>Text size</h3>
           {(["arabicFontSize", "translationFontSize"] as const).map(key => {
             const arabic = key === "arabicFontSize";
-            const min = arabic ? 24 : 12, max = arabic ? 52 : 48;
+            const min = arabic ? 24 : 12, max = arabic ? 64 : 56;
             const label = arabic ? "Arabic" : "Translation";
             const displayedSize = arabic ? preferences[key] : translationFontSize;
             return <div key={key}><div className="quran-section-heading"><label htmlFor={`quran-${key}`}>{label} text</label>

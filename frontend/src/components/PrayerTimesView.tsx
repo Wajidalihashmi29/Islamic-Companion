@@ -54,7 +54,8 @@ function useNow(active: boolean) {
   return now;
 }
 
-function getSchedule(timings: Record<string, string>, now: Date) {
+function getSchedule(timings: Record<string, string> | undefined, now: Date) {
+  if (!timings) return null;
   const nowSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
   const list = MAIN_PRAYERS.map((name) => ({ name, sec: toMinutes(timings[name]) * 60 })).filter(
     (p) => !Number.isNaN(p.sec)
@@ -205,6 +206,8 @@ export default function PrayerTimesView() {
           : getPrayerTimesByCity(location.city, location.country, method, apiSchool),
         resolvePlace(location),
       ]);
+      if (!response.data?.timings || typeof response.data.timings !== "object")
+        throw new Error("Prayer times API returned an invalid response.");
       setData(response.data);
       setPlace(resolved);
       setShowSelector(false);
@@ -229,7 +232,7 @@ export default function PrayerTimesView() {
     }
   };
 
-  const timings = data ? data.timings : {};
+  const timings = data?.timings ?? {};
   const applied = school === "hanafi";
 
   const schedule = data ? getSchedule(timings, now) : null;

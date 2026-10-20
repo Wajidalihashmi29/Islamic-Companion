@@ -3,7 +3,7 @@ import { getTokenExpiryMs } from "../utils/tokenUtils";
 import type { AuthResponse } from "./authApi";
 
 export const SESSION_UPDATED_EVENT = "ic:sessionUpdated";
-const sessionClient = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL, timeout: 15_000 });
+const sessionClient = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || "/api", timeout: 15_000 });
 let pendingRefresh: Promise<string | null> | null = null;
 
 export function clearStoredSession() {

@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import QuranText from "./QuranText";
 import { getQuranPageScale, getQuranPageWidth, getQuranSwipeDirection } from "../utils/quranScreens";
+import { getQuranLineHeightMultiplier } from "../utils/quranTypography";
 
 // Transcribed from the two consecutive panels at Islamic Academy's supplied source.
 // Traditional supplication, not Quran verses or a fixed prophetic completion formula.
@@ -31,7 +32,7 @@ function DuaPaper({ panel, index, fontSize, script, fitMode }: {
   const container = useRef<HTMLDivElement>(null);
   const paper = useRef<HTMLElement>(null);
   const [layout, setLayout] = useState({ width: 720, height: 0, scale: 0 });
-  const lineHeight = fontSize * (script === "indopak" ? 1.85 : 2.65);
+  const lineHeight = fontSize * getQuranLineHeightMultiplier(script, fitMode);
   useLayoutEffect(() => {
     const sheet = paper.current, holder = container.current, view = holder?.parentElement;
     if (!sheet || !holder || !view || !fitMode) return;

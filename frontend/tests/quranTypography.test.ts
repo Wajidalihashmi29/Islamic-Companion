@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getQuranTextRuns, normalizeQuranTypography } from "../src/utils/quranTypography.ts";
+import { getQuranLineHeightMultiplier, getQuranTextRuns, normalizeQuranTypography } from "../src/utils/quranTypography.ts";
 
 test("Indo-Pak maddah and sukun use supported marks without stripping vowels or changing Uthmani", () => {
   const source = "لَا\u06E4 اِلٰهَ ال\u06E1قَيُّو\u06E1مُ";
@@ -20,21 +20,31 @@ test("unsupported Indo-Pak letters and internal pause signs use whole-word fallb
   assert.deepEqual(getQuranTextRuns(source, "uthmani"), [{ text: source, fallback: false }]);
 });
 
-test("previous defaults migrate to 44px Arabic and actual 32px Urdu without enlarging them again on reload", () => {
+test("previous defaults migrate to 52px Arabic and 36px translation without enlarging them again on reload", () => {
   const migrated = normalizeQuranTypography({ arabicFontSize: 34, translationFontSize: 28 });
-  assert.deepEqual(migrated, { arabicFontSize: 44, translationFontSize: 32, typographyVersion: 2 });
+  assert.deepEqual(migrated, { arabicFontSize: 52, translationFontSize: 36, typographyVersion: 5 });
   assert.deepEqual(normalizeQuranTypography(migrated), migrated);
   assert.deepEqual(normalizeQuranTypography({}), migrated);
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 44, translationFontSize: 32, typographyVersion: 2 }), migrated);
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 48, translationFontSize: 32, typographyVersion: 3 }), migrated);
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 52, translationFontSize: 32, typographyVersion: 4 }), migrated);
 });
 
 test("custom text sizes survive migration and small user-selected sizes are retained on subsequent loads", () => {
   assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 52, translationFontSize: 20, preferredTranslation: "irfan-ul-quran-ur" }),
-    { arabicFontSize: 52, translationFontSize: 25, typographyVersion: 2 });
+    { arabicFontSize: 52, translationFontSize: 25, typographyVersion: 5 });
   assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 32, translationFontSize: 18, preferredTranslation: "kanzul-iman-en" }),
-    { arabicFontSize: 32, translationFontSize: 18, typographyVersion: 2 });
-  const custom = { arabicFontSize: 34, translationFontSize: 12, typographyVersion: 2 };
+    { arabicFontSize: 32, translationFontSize: 18, typographyVersion: 5 });
+  const custom = { arabicFontSize: 34, translationFontSize: 12, typographyVersion: 5 };
   assert.deepEqual(normalizeQuranTypography(custom), custom);
-  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 100, translationFontSize: 100, typographyVersion: 2 }),
-    { arabicFontSize: 52, translationFontSize: 48, typographyVersion: 2 });
+  assert.deepEqual(normalizeQuranTypography({ arabicFontSize: 100, translationFontSize: 100, typographyVersion: 5 }),
+    { arabicFontSize: 64, translationFontSize: 56, typographyVersion: 5 });
   assert.throws(() => normalizeQuranTypography({ translationFontSize: NaN }), /finite/);
+});
+
+test("fit-page line spacing is tighter so Arabic letters remain larger on small screens", () => {
+  assert.equal(getQuranLineHeightMultiplier("indopak", false), 1.85);
+  assert.equal(getQuranLineHeightMultiplier("indopak", true), 1.55);
+  assert.equal(getQuranLineHeightMultiplier("uthmani", false), 2.65);
+  assert.equal(getQuranLineHeightMultiplier("uthmani", true), 2.2);
 });

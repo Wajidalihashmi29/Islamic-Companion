@@ -8,10 +8,17 @@
   color: #112d2a;
 }
 .quran-reader:fullscreen { overflow-y: auto; max-width: none; background: #f5f6f2; }
-.quran-reader .home-view-header { margin-bottom: 24px; }
+.quran-reader .home-view-header { flex-wrap: wrap; margin-bottom: 24px; }
 .quran-reader .home-view-header h1 { margin: 2px 0 0; }
 .quran-reader-location { margin-left: auto; color: #526b60; font-size: 12px; white-space: nowrap; }
 .quran-reader-location strong { color: #145550; font-variant-numeric: tabular-nums; }
+.quran-offline-status { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 5px 10px; border: 1px solid #cbd8d1; border-radius: 18px; color: #36594e; background: #fffdf9; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.quran-offline-status svg { flex-shrink: 0; }
+.quran-offline-status.is-ready { border-color: #a9cbb7; color: #145550; background: #eaf4ec; }
+.quran-offline-status.is-paused, .quran-offline-status.is-error { border-color: #dfc88e; color: #765a17; background: #fff8df; }
+@media (max-width: 600px) {
+  .quran-offline-status { width: 100%; justify-content: center; }
+}
 .quran-reader .quran-reader-header--favorite { flex-wrap: wrap; }
 .quran-favorite-reading { display: flex; flex-basis: 100%; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; padding-top: 4px; font-size: 11px; color: #526b60; }
 .quran-favorite-reading > span { display: inline-flex; align-items: center; gap: 5px; }
@@ -88,6 +95,7 @@
 .quran-reader--fit .quran-surah-banner h2 { font-size: .8em; }
 .quran-reader--fit .quran-surah-stat { font-size: .53em; }
 .quran-reader--fit .quran-page-footer { margin-top: auto; padding: 6px 0 2px; font-size: .5em; }
+.quran-reader--fit .quran-register { padding-block: 1px; }
 .quran-reader--fit .quran-register, .quran-reader--fit .quran-register .quran-arabic-stream { border-bottom-width: 2px; }
 .quran-reader--fit .quran-controls { position: static; flex-shrink: 0; width: 100%; max-width: none; margin-top: 6px; transform: none; box-shadow: none; }
 .quran-fit-status { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 14px; }
