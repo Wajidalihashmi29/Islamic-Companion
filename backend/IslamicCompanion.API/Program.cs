@@ -32,6 +32,7 @@ builder.Services.AddRateLimiter(options =>
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<QuranDataset>();

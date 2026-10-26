@@ -1,0 +1,1294 @@
+/* ==========================================================================
+   Islamic Companion — Offline Quran PDF Reader
+   Matching QuranReaderPage design system (warm ivory, emerald teal #145550 & gold)
+   ========================================================================== */
+
+/* 1. Immersive Root Container */
+.quran-pdf-immersive-root {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  background-color: #fffdf9;
+  color: #112d2a;
+  font-family: var(--font-sans, "Inter", system-ui, -apple-system, sans-serif);
+  overflow: hidden !important;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y pinch-zoom;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  direction: ltr !important;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+}
+
+/* 2. Fullscreen Immersive Viewport */
+.quran-pdf-immersive-viewport {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden !important;
+  cursor: pointer;
+  background-color: #fffdf9;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+}
+
+/* 4. Screen-Fitting Canvas Holder */
+.quran-pdf-canvas-holder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  background: #fffdf9;
+  overflow: hidden !important;
+  transform-origin: center center;
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.28s ease;
+}
+
+.quran-pdf-render-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: fill !important;
+  display: block !important;
+  pointer-events: none;
+}
+
+/* Page Turn Animations */
+.turn-next,
+.turn-forward {
+  animation: quranTurnNext 0.28s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+@keyframes quranTurnNext {
+  0% {
+    transform: perspective(1400px) rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: perspective(1400px) rotateY(16deg) scale(0.975);
+    opacity: 0.85;
+  }
+  100% {
+    transform: perspective(1400px) rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.turn-prev,
+.turn-backward {
+  animation: quranTurnPrev 0.28s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+@keyframes quranTurnPrev {
+  0% {
+    transform: perspective(1400px) rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: perspective(1400px) rotateY(-16deg) scale(0.975);
+    opacity: 0.85;
+  }
+  100% {
+    transform: perspective(1400px) rotateY(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+/* 4. Minimal Floating '...' Button (Positioned at bottom of page) */
+.quran-pdf-floating-menu-btn {
+  position: absolute;
+  bottom: env(safe-area-inset-bottom, 22px);
+  right: env(safe-area-inset-right, 20px);
+  bottom: 22px;
+  right: 20px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid #cbd8d1;
+  background: rgba(255, 253, 249, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #145550;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 50;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px) scale(0.92);
+  transition: opacity 0.25s ease, transform 0.25s ease, background 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 4px 18px rgba(18, 53, 43, 0.2);
+}
+
+.quran-pdf-floating-menu-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.quran-pdf-floating-menu-btn:hover {
+  background: #145550;
+  border-color: #145550;
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* 5. Page Number Pill Removed from Bottom */
+.quran-pdf-floating-pill {
+  display: none !important;
+}
+
+/* 6. User-Friendly Center Loader */
+.quran-pdf-center-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 246, 242, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 40;
+  padding: 24px;
+  color: #112d2a;
+  text-align: center;
+}
+
+.quran-pdf-spinner {
+  width: 48px;
+  height: 48px;
+  border: 3.5px solid rgba(20, 85, 80, 0.15);
+  border-top-color: #145550;
+  border-radius: 50%;
+  animation: quranPdfSpin 0.85s linear infinite;
+  margin-bottom: 18px;
+}
+
+@keyframes quranPdfSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.quran-pdf-center-loader h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-display, "Amiri", Georgia, serif);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #145550;
+}
+
+.quran-pdf-center-loader p {
+  margin: 0 0 16px;
+  font-size: 0.92rem;
+  color: #526b60;
+}
+
+.quran-pdf-loader-bar {
+  width: 220px;
+  max-width: 80%;
+  height: 5px;
+  background: rgba(20, 85, 80, 0.12);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.quran-pdf-loader-bar > div {
+  height: 100%;
+  background: #145550;
+  border-radius: inherit;
+  transition: width 0.25s ease;
+}
+
+/* 7. Non-Intrusive Floating Error Toast (Auto-Dismissing, Top-Anchored) */
+.quran-pdf-floating-notice {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92%, 460px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #fff8df;
+  border: 1px solid #dfc88e;
+  border-radius: 12px;
+  color: #765a17;
+  font-size: 0.88rem;
+  font-weight: 600;
+  z-index: 95;
+  box-shadow: 0 6px 24px rgba(118, 90, 23, 0.18);
+  animation: quranSlideDown 0.25s ease both;
+}
+
+.quran-pdf-notice-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.quran-pdf-notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.quran-pdf-notice-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid #dfc88e;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #765a17;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quran-pdf-notice-actions button:hover {
+  background: #fbf2ce;
+}
+
+.quran-pdf-notice-actions .quran-pdf-notice-close {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: #987321;
+}
+
+/* 8. Download Progress Strip (Matching .quran-offline-status) */
+.quran-pdf-download-strip {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92%, 460px);
+  background: #eaf4ec;
+  border: 1px solid #a9cbb7;
+  border-radius: 14px;
+  box-shadow: 0 6px 24px rgba(20, 85, 80, 0.15);
+  padding: 10px 16px;
+  z-index: 85;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: quranSlideDown 0.25s ease both;
+}
+
+@keyframes quranSlideDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.quran-pdf-download-strip-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.quran-pdf-download-strip-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #145550;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.quran-pdf-pulse {
+  animation: quranPulseIcon 1.2s infinite ease-in-out;
+  color: #145550;
+}
+
+@keyframes quranPulseIcon {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(3px);
+    opacity: 0.6;
+  }
+}
+
+.quran-pdf-download-strip-pct {
+  color: #145550;
+  font-size: 0.88rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.quran-pdf-download-strip-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(20, 85, 80, 0.15);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.quran-pdf-download-strip-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #145550 0%, #29807a 100%);
+  border-radius: inherit;
+  transition: width 0.25s ease;
+}
+
+/* 9. Settings & Navigation Drawer (Opened via '...') */
+.quran-pdf-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 45, 42, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: quranFadeIn 0.2s ease both;
+}
+
+@keyframes quranFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (min-width: 641px) {
+  .quran-pdf-modal-backdrop {
+    align-items: center;
+    padding: 24px;
+  }
+}
+
+.quran-pdf-menu-sheet {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  border: 1px solid #cbd8d1;
+  box-shadow: 0 -12px 48px rgba(18, 53, 43, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 90vh;
+  animation: quranSlideUp 0.25s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+@media (min-width: 641px) {
+  .quran-pdf-menu-sheet {
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(18, 53, 43, 0.25);
+  }
+}
+
+@keyframes quranSlideUp {
+  from {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.quran-pdf-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2ece7;
+  background: #fbfcf9;
+}
+
+.quran-pdf-sheet-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #145550;
+}
+
+.quran-pdf-sheet-title h3 {
+  margin: 0;
+  font-family: var(--font-display, "Amiri", Georgia, serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #145550;
+}
+
+.quran-pdf-icon-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #cbd8d1;
+  background: #ffffff;
+  color: #526b60;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quran-pdf-icon-close:hover {
+  background: #eaf4ec;
+  color: #145550;
+}
+
+.quran-pdf-sheet-juz-info {
+  padding: 14px 24px;
+  background: #f4f8f6;
+  border-bottom: 1px solid #e2ece7;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quran-pdf-sheet-juz-info > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  color: #145550;
+}
+
+.quran-pdf-sheet-juz-info small {
+  font-size: 0.8rem;
+  color: #526b60;
+}
+
+.quran-pdf-sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 24px;
+  overflow-y: auto;
+}
+
+.quran-pdf-sheet-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid #cbd8d1;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #112d2a;
+  font: inherit;
+  font-size: 0.94rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.quran-pdf-sheet-btn:hover {
+  background: #eaf4ec;
+  border-color: #a9cbb7;
+  color: #145550;
+}
+
+.quran-pdf-sheet-btn.download-all-btn {
+  background: #fbf8ef;
+  border-color: #dfc88e;
+  color: #765a17;
+}
+
+.quran-pdf-sheet-btn.download-all-btn:hover {
+  background: #f7f1de;
+  border-color: #987321;
+}
+
+.quran-pdf-sheet-btn-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quran-pdf-sheet-btn-col small {
+  font-size: 0.74rem;
+  color: #526b60;
+  font-weight: 500;
+}
+
+.quran-pdf-sheet-btn.back-home {
+  background: #fdf5f5;
+  border-color: #f1cfcf;
+  color: #9e2a2b;
+}
+
+.quran-pdf-sheet-btn.back-home:hover {
+  background: #fce8e8;
+}
+
+.quran-pdf-sheet-divider {
+  height: 1px;
+  background: #e8eee9;
+  margin: 6px 0;
+}
+
+.quran-pdf-sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  font-size: 0.9rem;
+  color: #112d2a;
+  font-weight: 600;
+}
+
+.quran-pdf-toggle-group {
+  display: inline-flex;
+  border-radius: 10px;
+  background: #f0f4f2;
+  border: 1px solid #cbd8d1;
+  padding: 3px;
+  gap: 3px;
+}
+
+.quran-pdf-toggle-group button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #526b60;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quran-pdf-toggle-group button.active {
+  background: #145550;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(20, 85, 80, 0.15);
+}
+
+.quran-pdf-zoom-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quran-pdf-zoom-buttons button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd8d1;
+  background: #ffffff;
+  color: #145550;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quran-pdf-zoom-buttons button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.quran-pdf-zoom-buttons button:hover:not(:disabled) {
+  background: #eaf4ec;
+  border-color: #a9cbb7;
+}
+
+/* 10. One-Time Download Ask Dialog (Offering Complete Quran or Single Juz) */
+.quran-pdf-prompt-modal {
+  width: 100%;
+  max-width: 500px;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #cbd8d1;
+  padding: 32px 28px;
+  box-shadow: 0 20px 60px rgba(18, 53, 43, 0.2);
+  text-align: center;
+  animation: quranSlideUp 0.28s ease both;
+}
+
+.quran-pdf-prompt-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  background: #eaf4ec;
+  border: 1.5px solid #a9cbb7;
+  color: #145550;
+  margin-bottom: 18px;
+}
+
+.quran-pdf-prompt-modal h2 {
+  margin: 0 0 10px;
+  font-family: var(--font-display, "Amiri", Georgia, serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #145550;
+}
+
+.quran-pdf-prompt-modal p {
+  margin: 0 0 20px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #526b60;
+}
+
+.quran-pdf-script-selector {
+  text-align: left;
+  margin-bottom: 22px;
+}
+
+.quran-pdf-script-selector > label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #526b60;
+  margin-bottom: 10px;
+}
+
+.quran-pdf-script-options {
+  display: grid;
+  gap: 10px;
+}
+
+.quran-pdf-script-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1.5px solid #cbd8d1;
+  background: #fffdf9;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quran-pdf-script-card:hover {
+  border-color: #145550;
+  background: #f7faf8;
+}
+
+.quran-pdf-script-card.is-selected {
+  border-color: #145550;
+  background: #eaf4ec;
+  box-shadow: 0 4px 14px rgba(20, 85, 80, 0.1);
+}
+
+.quran-pdf-script-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quran-pdf-script-title strong {
+  font-size: 0.96rem;
+  color: #145550;
+}
+
+.quran-pdf-script-title svg {
+  color: #145550;
+}
+
+.quran-pdf-script-card small {
+  font-size: 0.78rem;
+  color: #526b60;
+}
+
+.quran-pdf-prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.quran-pdf-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 24px;
+  border-radius: 14px;
+  border: 0;
+  background: #145550;
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(20, 85, 80, 0.2);
+}
+
+.quran-pdf-btn-primary:hover {
+  background: #0d3834;
+}
+
+.quran-pdf-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px solid #cbd8d1;
+  background: #ffffff;
+  color: #145550;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quran-pdf-btn-secondary:hover {
+  background: #eaf4ec;
+}
+
+.quran-pdf-btn-text {
+  background: none;
+  border: none;
+  color: #526b60;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 6px;
+  text-decoration: underline;
+}
+
+.quran-pdf-btn-text:hover {
+  color: #145550;
+}
+
+/* 11. Juz Selector Modal (1 to 30) */
+.quran-pdf-juz-modal {
+  width: 100%;
+  max-width: 600px;
+  max-height: 82vh;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #cbd8d1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(18, 53, 43, 0.25);
+  animation: quranSlideUp 0.25s ease both;
+}
+
+.quran-pdf-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2ece7;
+  background: #fbfcf9;
+}
+
+.quran-pdf-drawer-header h3 {
+  margin: 0;
+  font-family: var(--font-display, "Amiri", Georgia, serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #145550;
+}
+
+.quran-pdf-juz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  padding: 18px 24px;
+  overflow-y: auto;
+}
+
+.quran-pdf-juz-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid #cbd8d1;
+  background: #fffdf9;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* 11. Para / Surah / Favorite Index Modal */
+.quran-pdf-index-modal {
+  width: 100%;
+  max-width: 540px;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #cbd8d1;
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(18, 53, 43, 0.25);
+  animation: quranJumpPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.quran-pdf-index-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #eef3f0;
+}
+
+.quran-pdf-index-header h3 {
+  margin: 0;
+  font-family: var(--font-display, "Amiri", Georgia, serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #145550;
+}
+
+.quran-pdf-index-tabs {
+  display: flex;
+  background: #f2f7f4;
+  padding: 4px;
+  margin: 12px 18px 8px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.quran-pdf-index-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 0;
+  background: transparent;
+  color: #526b60;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quran-pdf-index-tab.active {
+  background: #ffffff;
+  color: #145550;
+  box-shadow: 0 2px 8px rgba(18, 53, 43, 0.12);
+}
+
+.quran-pdf-index-search {
+  margin: 4px 18px 12px;
+  position: relative;
+}
+
+.quran-pdf-index-search input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px 10px 38px;
+  border-radius: 12px;
+  border: 1.5px solid #d5e2dc;
+  background: #fcfdfc;
+  font: inherit;
+  font-size: 0.9rem;
+  color: #145550;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.quran-pdf-index-search input:focus {
+  border-color: #145550;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(20, 85, 80, 0.12);
+}
+
+.quran-pdf-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #7b948b;
+  pointer-events: none;
+}
+
+.quran-pdf-index-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quran-pdf-index-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e8efe9;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  gap: 12px;
+  text-align: left;
+}
+
+.quran-pdf-index-row:hover {
+  background: #f4f9f6;
+  border-color: #145550;
+  transform: translateY(-1px);
+}
+
+.quran-pdf-index-row.active {
+  background: #eaf4f0;
+  border-color: #145550;
+}
+
+.quran-pdf-index-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.quran-pdf-index-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(20, 85, 80, 0.1);
+  color: #145550;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quran-pdf-index-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.quran-pdf-index-info strong {
+  font-size: 0.95rem;
+  color: #112d2a;
+  line-height: 1.25;
+}
+
+.quran-pdf-index-info small {
+  font-size: 0.74rem;
+  color: #5e7a71;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quran-pdf-index-row-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.quran-pdf-index-arabic {
+  font-family: var(--font-display, "Amiri", Georgia, serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #145550;
+  direction: rtl;
+  text-align: right;
+}
+
+.quran-pdf-star-btn {
+  background: transparent;
+  border: 0;
+  padding: 6px;
+  border-radius: 50%;
+  color: #9ab3a9;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.quran-pdf-star-btn:hover {
+  color: #d4af37;
+  transform: scale(1.15);
+}
+
+.quran-pdf-star-btn.is-favorite {
+  color: #d4af37;
+}
+
+/* 12. Jump to Page Dialog */
+.quran-pdf-modal-backdrop.for-jump {
+  position: fixed;
+  inset: 0;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding-top: max(20px, env(safe-area-inset-top, 20px) + 16px) !important;
+  padding-inline: 16px !important;
+  overflow-y: auto !important;
+  box-sizing: border-box;
+}
+
+.quran-pdf-jump-dialog {
+  width: 100% !important;
+  max-width: 380px !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+  background: #ffffff;
+  border-radius: 20px;
+  border: 1px solid #cbd8d1;
+  padding: 22px 20px;
+  box-shadow: 0 20px 60px rgba(18, 53, 43, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: quranJumpPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes quranJumpPop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.quran-pdf-jump-dialog h4 {
+  margin: 0;
+  font-family: var(--font-display, "Amiri", Georgia, serif);
+  font-size: 1.35rem;
+  color: #145550;
+  text-align: center;
+}
+
+.quran-pdf-jump-tabs {
+  display: flex;
+  background: rgba(20, 85, 80, 0.08);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.quran-pdf-jump-tab {
+  flex: 1;
+  padding: 8px 8px;
+  border-radius: 9px;
+  border: 0;
+  background: transparent;
+  color: #526b60;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.quran-pdf-jump-tab.active {
+  background: #ffffff;
+  color: #145550;
+  box-shadow: 0 2px 6px rgba(18, 53, 43, 0.12);
+}
+
+.quran-pdf-jump-hint {
+  font-size: 0.8rem;
+  color: #145550;
+  background: rgba(20, 85, 80, 0.06);
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.quran-pdf-jump-row {
+  display: flex;
+  gap: 10px;
+}
+
+.quran-pdf-jump-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quran-pdf-jump-field label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #526b60;
+}
+
+.quran-pdf-jump-field select,
+.quran-pdf-jump-field input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #cbd8d1;
+  font: inherit;
+  font-size: 0.95rem;
+  color: #145550;
+  background: #ffffff;
+  outline: none;
+}
+
+.quran-pdf-jump-dialog input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid #cbd8d1;
+  font: inherit;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #145550;
+  outline: none;
+  text-align: center;
+}
+
+.quran-pdf-jump-dialog input:focus,
+.quran-pdf-jump-field select:focus {
+  border-color: #145550;
+  box-shadow: 0 0 0 3px rgba(20, 85, 80, 0.15);
+}
+
+.quran-pdf-jump-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.quran-pdf-jump-actions button {
+  flex: 1;
+}
+
+/* Disable tap highlight flicker across the entire reader */
+.quran-pdf-immersive-root,
+.quran-pdf-immersive-root *,
+.quran-pdf-immersive-viewport,
+.quran-pdf-immersive-viewport *,
+.quran-pdf-canvas-holder,
+.quran-pdf-render-canvas {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-touch-callout: none !important;
+  outline: none !important;
+}
+
+/* 13. Complete Edge-to-Edge Screen Fill (Zero Scrolling, Zero Blue Flicker) */
+@media (max-width: 768px) {
+  .quran-pdf-immersive-root {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fffdf9 !important;
+    overflow: hidden !important;
+  }
+
+  .quran-pdf-immersive-viewport {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100vw !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    background: #fffdf9 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .quran-pdf-canvas-holder {
+    width: 100vw !important;
+    height: 100% !important;
+    max-width: 100vw !important;
+    max-height: 100% !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #fffdf9 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .quran-pdf-render-canvas {
+    width: 100vw !important;
+    height: 100% !important;
+    max-width: 100vw !important;
+    max-height: 100% !important;
+    object-fit: fill !important;
+    display: block !important;
+    margin: 0 !important;
+  }
+
+  .quran-pdf-floating-menu-btn {
+    bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+    right: 16px !important;
+    top: auto !important;
+    width: 44px;
+    height: 44px;
+  }
+
+  .quran-pdf-floating-pill {
+    display: none !important;
+  }
+
+  .quran-pdf-prompt-modal {
+    padding: 26px 20px;
+    border-radius: 20px;
+  }
+
+  .quran-pdf-juz-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 14px;
+  }
+}

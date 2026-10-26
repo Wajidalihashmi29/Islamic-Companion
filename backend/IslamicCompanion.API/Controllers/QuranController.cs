@@ -34,6 +34,62 @@ public sealed class QuranController(IQuranService service, ILogger<QuranControll
     public Task<IActionResult> Tafseer(int surah, int ayah, CancellationToken token, [FromQuery] string tafseer = "sirat-ul-jinan") =>
         Execute(() => service.GetTafseerAsync(surah, ayah, tafseer, token));
 
+    [HttpGet("pdf/{script}/{juz:int}")]
+    public async Task<IActionResult> GetPdfJuz(
+        string script,
+        int juz,
+        [FromQuery] bool refresh,
+        [FromServices] IHttpClientFactory httpClientFactory,
+        CancellationToken token)
+    {
+        if (juz is < 1 or > 30) return BadRequest(new { message = "Juz must be between 1 and 30." });
+
+        bool isMadina = string.Equals(script, "madina", StringComparison.OrdinalIgnoreCase);
+        string url = isMadina
+            ? $"https://islamicstudies.info/quran/mushaf/Quran-Al-Madina-Juz-{juz}.pdf"
+            : $"https://islamicstudies.info/quran/juz/{juz}.pdf";
+
+        var cacheDir = Path.Combine(AppContext.BaseDirectory, "QuranPdfs", isMadina ? "madina" : "indopak");
+        System.IO.Directory.CreateDirectory(cacheDir);
+        var filePath = Path.Combine(cacheDir, $"{juz}.pdf");
+
+        if (!refresh && System.IO.File.Exists(filePath) && new FileInfo(filePath).Length > 50000)
+        {
+            var stream = System.IO.File.OpenRead(filePath);
+            return File(stream, "application/pdf");
+        }
+
+        try
+        {
+            var client = httpClientFactory.CreateClient();
+            client.Timeout = TimeSpan.FromMinutes(3);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+            var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
+            if (!response.IsSuccessStatusCode)
+                return StatusCode((int)response.StatusCode, new { message = "Failed to fetch PDF from IslamicStudies." });
+
+            var tempPath = filePath + ".tmp";
+            await using (var remoteStream = await response.Content.ReadAsStreamAsync(token))
+            await using (var fileStream = System.IO.File.Create(tempPath))
+            {
+                await remoteStream.CopyToAsync(fileStream, token);
+            }
+
+            if (System.IO.File.Exists(tempPath) && new FileInfo(tempPath).Length > 50000)
+            {
+                System.IO.File.Move(tempPath, filePath, overwrite: true);
+            }
+
+            var returnStream = System.IO.File.OpenRead(filePath);
+            return File(returnStream, "application/pdf");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to download Quran PDF for Juz {Juz} ({Script})", juz, script);
+            return StatusCode(502, new { message = "Unable to fetch Quran PDF. Please try again." });
+        }
+    }
+
     private async Task<IActionResult> Execute<T>(Func<Task<T>> action)
     {
         try { return Ok(await action()); }

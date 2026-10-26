@@ -6,6 +6,7 @@ import Home from "./pages/Home";
 import SettingsPage from "./pages/SettingsPage";
 import SessionWatcher from "./components/SessionWatcher";
 import QuranReaderPage from "./pages/QuranReaderPage";
+import QuranPdfPage from "./pages/QuranPdfPage";
 import FeaturePage from "./pages/FeaturePage";
 import AppStatusBar from "./components/AppStatusBar";
 import ArabicFontSync from "./components/ArabicFontSync";
@@ -20,6 +21,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/quran" element={<QuranReaderPage />} />
+        <Route path="/quran-pdf" element={<QuranPdfPage />} />
         <Route path="/prayer" element={<FeaturePage featureId="prayer" />} />
         <Route path="/qibla" element={<FeaturePage featureId="qibla" />} />
         <Route path="/hadith" element={<FeaturePage featureId="hadith" />} />

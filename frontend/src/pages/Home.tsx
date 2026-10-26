@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ArrowRight, BookOpen, Check, Circle, CloudSun, MapPin, Moon, Sparkles, Star, Sun, Sunset,
+  ArrowRight, BookOpen, BookOpenText, Check, Circle, CloudSun, MapPin, Moon, Sparkles, Star, Sun, Sunset,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -423,6 +423,15 @@ export default function Home() {
               </small>
               <b>Continue <ArrowRight size={15} /></b></div>
             <BookOpen aria-hidden="true" />
+          </Link>
+
+          <Link className="dashboard-last-read dashboard-quran-offline" to="/quran-pdf">
+            <div><span>Offline Reader</span><strong>Qur'an Offline</strong>
+              <small className="dashboard-reading-details">
+                <span>Read the complete Qur'an as a PDF — no internet needed</span>
+              </small>
+              <b>Open <ArrowRight size={15} /></b></div>
+            <BookOpenText aria-hidden="true" />
           </Link>
 
           <section className="dashboard-tracker">

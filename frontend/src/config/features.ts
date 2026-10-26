@@ -9,6 +9,7 @@ import {
   CalendarDays,
   LayoutDashboard,
   ScrollText,
+  BookOpenText,
 } from "lucide-react";
 import TasbeehIcon from "../components/icons/TasbeehIcon";
 
@@ -49,6 +50,15 @@ export const features: Feature[] = [
     icon: BookOpen,
     available: true,
     primary: true,
+   },
+  {
+    id: "quran-pdf",
+    label: "Qur'an PDF",
+    shortLabel: "Qur'an PDF",
+    description: "Read the Holy Qur'an offline as a PDF with page turning",
+    icon: BookOpenText,
+    available: true,
+    primary: false,
   },
   {
     id: "qibla",

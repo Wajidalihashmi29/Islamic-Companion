@@ -29,7 +29,7 @@ export default function FeaturePage({ featureId }: { featureId: string }) {
     return () => window.removeEventListener("ic:settingsUpdated", updateSettings);
   }, []);
 
-  if (!feature?.available || feature.id === "quran") return <Navigate to="/" replace />;
+  if (!feature?.available || feature.id === "quran" || feature.id === "quran-pdf") return <Navigate to="/" replace />;
 
   const storageKey = getStorageKeyForUser(userIdentifier);
   const featureContent = (() => {
