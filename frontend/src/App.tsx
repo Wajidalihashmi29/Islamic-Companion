@@ -10,12 +10,14 @@ import QuranPdfPage from "./pages/QuranPdfPage";
 import FeaturePage from "./pages/FeaturePage";
 import AppStatusBar from "./components/AppStatusBar";
 import ArabicFontSync from "./components/ArabicFontSync";
+import PrayerAlarmManager from "./components/PrayerAlarmManager";
 
 function App() {
   return (
     <>
       <SessionWatcher />
       <ArabicFontSync />
+      <PrayerAlarmManager />
       <AppStatusBar />
       <Routes>
         <Route path="/" element={<Home />} />

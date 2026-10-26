@@ -25,7 +25,7 @@ import {
 } from "../api/prayerPushApi";
 import { getDateInTimeZone } from "../utils/locationTime";
 import { PRAYER_ALERT_NAMES, type PrayerAlertName } from "../utils/prayerAlerts";
-import { playPrayerChime } from "../utils/prayerChime";
+import { playPrayerChime, unlockPrayerChimeAudio } from "../utils/prayerChime";
 import ChimeTestButton from "./ChimeTestButton";
 import "./PrayerTimesView.css";
 
@@ -427,48 +427,7 @@ export default function PrayerTimesView() {
 
   const schedule = data ? getPrayerSchedule(timings, now) : null;
 
-  useEffect(() => {
-    if (!data || !settings.prayer.notificationsEnabled || !("Notification" in window) ||
-      Notification.permission !== "granted") return;
-    let cancelled = false;
-    const timers: number[] = [];
-    const scheduleFallback = async () => {
-      const pushSubscription = "serviceWorker" in navigator
-        ? await navigator.serviceWorker.ready.then(registration => registration.pushManager.getSubscription())
-        : null;
-      if (pushSubscription || cancelled) return;
-      DISPLAY_TIMINGS.filter(name =>
-        name !== "Sunrise" && settings.prayer.alertPrayers.includes(name)
-      ).forEach(name => {
-        const prayerSeconds = prayerTimeToSeconds(timings[name]);
-        const current = getDateInTimeZone(new Date(), data.timeZone);
-        const nowSeconds = current.getHours() * 3600 + current.getMinutes() * 60 + current.getSeconds();
-        const delay = (prayerSeconds - nowSeconds) * 1000;
-        if (!Number.isFinite(delay) || delay <= 0) return;
-        timers.push(window.setTimeout(() => {
-          new Notification(`${name} prayer time`, {
-            body: `${name} has begun for ${place?.label ?? "your selected location"}.`,
-            icon: "/icon-192.png",
-          });
-          if (settings.prayer.soundEnabled) {
-            void playPrayerChime();
-          }
-        }, delay));
-      });
-    };
-    void scheduleFallback();
-    return () => {
-      cancelled = true;
-      timers.forEach(timer => window.clearTimeout(timer));
-    };
-  }, [
-    data,
-    place?.label,
-    settings.prayer.alertPrayers,
-    settings.prayer.notificationsEnabled,
-    settings.prayer.soundEnabled,
-    timings,
-  ]);
+  // Global prayer alarm & chime scheduling is actively managed app-wide by PrayerAlarmManager
 
   return (
     <div className="ptv-container" ref={topRef}>
@@ -680,7 +639,7 @@ export default function PrayerTimesView() {
                       <input type="checkbox" checked={settings.prayer.soundEnabled}
                         onChange={event => {
                           const enabled = event.target.checked;
-                          if (enabled) void playPrayerChime();
+                          if (enabled) { unlockPrayerChimeAudio(); void playPrayerChime(0.6); }
                           updatePrayerPreferences({ soundEnabled: enabled });
                         }} />
                       <span aria-hidden="true" />

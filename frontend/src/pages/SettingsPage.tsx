@@ -58,7 +58,7 @@ import {
 import { PRAYER_ALERT_NAMES, type PrayerAlertName } from "../utils/prayerAlerts";
 import { clearOfflineQuran, getOfflineQuranStorageInfo } from "../utils/quranOffline";
 import { deletePersonalData, exportPersonalData } from "../utils/personalLibrary";
-import { playPrayerChime } from "../utils/prayerChime";
+import { playPrayerChime, unlockPrayerChimeAudio } from "../utils/prayerChime";
 import ChimeTestButton from "../components/ChimeTestButton";
 import "./SettingsPage.css";
 
@@ -1302,7 +1302,7 @@ export default function SettingsPage() {
                     checked={settings.prayer.soundEnabled}
                     onChange={(e) => {
                       const enabled = e.target.checked;
-                      if (enabled) void playPrayerChime();
+                      if (enabled) { unlockPrayerChimeAudio(); void playPrayerChime(0.6); }
                       updateSettings((prev) => ({
                         ...prev,
                         prayer: { ...prev.prayer, soundEnabled: enabled },

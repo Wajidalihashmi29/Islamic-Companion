@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Play } from "lucide-react";
-import { playPrayerChime } from "../utils/prayerChime";
+import { playPrayerChime, unlockPrayerChimeAudio } from "../utils/prayerChime";
 import "./ChimeTestButton.css";
 
 interface ChimeTestButtonProps {
@@ -18,7 +18,7 @@ export default function ChimeTestButton({
 
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
-    void playPrayerChime();
+    unlockPrayerChimeAudio(); void playPrayerChime(0.6);
     setIsPlaying(true);
     window.setTimeout(() => setIsPlaying(false), 2600);
   };

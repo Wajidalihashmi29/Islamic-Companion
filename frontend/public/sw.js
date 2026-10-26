@@ -129,7 +129,7 @@ self.addEventListener("fetch", event => {
 self.addEventListener("push", event => {
   let data = {};
   try { data = event.data?.json() || {}; } catch { data = { body: event.data?.text() }; }
-  event.waitUntil(self.registration.showNotification(data.title || "Prayer time", {
+  const showPromise = self.registration.showNotification(data.title || "Prayer time", {
     body: data.body || "A prayer time has begun.",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
@@ -138,7 +138,15 @@ self.addEventListener("push", event => {
     silent: false,
     vibrate: [250, 100, 250, 100, 400],
     data: { url: data.url || "/prayer" },
-  }));
+  });
+
+  const notifyClientsPromise = self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(clients => {
+    clients.forEach(client => {
+      client.postMessage({ type: "PLAY_PRAYER_CHIME", prayerName: data.title });
+    });
+  }).catch(() => {});
+
+  event.waitUntil(Promise.all([showPromise, notifyClientsPromise]));
 });
 
 self.addEventListener("notificationclick", event => {
