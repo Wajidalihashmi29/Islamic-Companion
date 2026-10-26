@@ -42,8 +42,68 @@ function validateFavoriteSurahs(value: unknown): number[] {
 }
 
 export function loadQuranFavoriteSurahs(profileKey: string): number[] {
-  const saved = localStorage.getItem(`${profileKey}:quran-favorite-surahs`);
-  return saved === null ? [] : validateFavoriteSurahs(JSON.parse(saved));
+  const direct = localStorage.getItem(`${profileKey}:quran-favorite-surahs`);
+  if (direct !== null) {
+    try {
+      return validateFavoriteSurahs(JSON.parse(direct));
+    } catch {
+      return [];
+    }
+  }
+
+  // Fallback to legacy or guest profile keys so previous reader favorites migrate automatically
+  const fallbackKeys = [
+    "ic.appSettings_guest:quran-favorite-surahs",
+    "ic.appSettings:quran-favorite-surahs",
+    "quran-favorite-surahs",
+  ];
+
+  for (const key of fallbackKeys) {
+    try {
+      const val = localStorage.getItem(key);
+      if (val !== null) {
+        const parsed = validateFavoriteSurahs(JSON.parse(val));
+        if (parsed.length > 0) {
+          localStorage.setItem(`${profileKey}:quran-favorite-surahs`, JSON.stringify(parsed));
+          return parsed;
+        }
+      }
+    } catch {}
+  }
+
+  // Scan localStorage for any other user profile's favorites
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k !== `${profileKey}:quran-favorite-surahs` && k.endsWith(":quran-favorite-surahs")) {
+        const val = localStorage.getItem(k);
+        if (val) {
+          const parsed = validateFavoriteSurahs(JSON.parse(val));
+          if (parsed.length > 0) {
+            localStorage.setItem(`${profileKey}:quran-favorite-surahs`, JSON.stringify(parsed));
+            return parsed;
+          }
+        }
+      }
+    }
+  } catch {}
+
+  // Check legacy PDF favorites key
+  try {
+    const pdfFavsRaw = localStorage.getItem("ic.quranPdfFavorites");
+    if (pdfFavsRaw) {
+      const parsed = JSON.parse(pdfFavsRaw);
+      if (Array.isArray(parsed?.surahs) && parsed.surahs.length > 0) {
+        const valid = validateFavoriteSurahs(parsed.surahs);
+        if (valid.length > 0) {
+          localStorage.setItem(`${profileKey}:quran-favorite-surahs`, JSON.stringify(valid));
+          return valid;
+        }
+      }
+    }
+  } catch {}
+
+  return [];
 }
 
 export function saveQuranFavoriteSurahs(profileKey: string, surahs: number[]): void {

@@ -255,8 +255,8 @@ async function getSavedJuzCount(): Promise<number> {
 
 export default function QuranPdfPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const profileKey = useMemo(() => getStorageKeyForUser(user?.id), [user?.id]);
+  const { userIdentifier } = useAuth();
+  const profileKey = useMemo(() => getStorageKeyForUser(userIdentifier), [userIdentifier]);
 
   // Reading Position (Indo-Pak 16 Lines, independent of Reader Quran page)
   const [currentJuz, setCurrentJuz] = useState<number>(() => {
@@ -323,18 +323,10 @@ export default function QuranPdfPage() {
   // Favorites state - synchronized in real-time with QuranReaderPage via profileKey
   const [favoriteSurahIds, setFavoriteSurahIds] = useState<number[]>(() => {
     try {
-      const loaded = loadQuranFavoriteSurahs(profileKey);
-      if (loaded.length > 0) return loaded;
-      const oldRaw = localStorage.getItem(STORAGE_FAV_KEY);
-      if (oldRaw) {
-        const parsed = JSON.parse(oldRaw);
-        if (Array.isArray(parsed?.surahs) && parsed.surahs.length > 0) {
-          saveQuranFavoriteSurahs(profileKey, parsed.surahs);
-          return parsed.surahs;
-        }
-      }
-    } catch {}
-    return [1, 36, 67];
+      return loadQuranFavoriteSurahs(profileKey);
+    } catch {
+      return [];
+    }
   });
 
   const [favoriteParaIds, setFavoriteParaIds] = useState<number[]>(() => {
@@ -361,6 +353,8 @@ export default function QuranPdfPage() {
         if (raw) setFavoriteParaIds(JSON.parse(raw));
       } catch {}
     };
+
+    syncFavorites();
 
     window.addEventListener("ic:libraryUpdated", syncFavorites);
     window.addEventListener("storage", syncFavorites);
