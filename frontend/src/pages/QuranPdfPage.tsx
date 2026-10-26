@@ -437,8 +437,16 @@ export default function QuranPdfPage() {
       document.exitFullscreen().catch(() => {});
     }
     if ("caches" in window) {
-      caches.open("islamic-companion-shell-v4").then(cache => {
-        cache.add("/pdf.worker.min.mjs").catch(() => {});
+      caches.open("islamic-companion-shell-v5").then(cache => {
+        return cache.addAll([
+          "/pdf.worker.min.mjs",
+          "/wasm/jbig2.wasm",
+          "/wasm/openjpeg.wasm",
+          "/wasm/qcms_bg.wasm",
+          "/wasm/quickjs-eval.wasm",
+          "/wasm/jbig2_nowasm_fallback.js",
+          "/wasm/openjpeg_nowasm_fallback.js",
+        ]);
       }).catch(() => {});
     }
   }, []);
@@ -765,6 +773,20 @@ export default function QuranPdfPage() {
     });
 
     try {
+      if ("caches" in window) {
+        caches.open("islamic-companion-shell-v5").then(cache => {
+          return cache.addAll([
+            "/pdf.worker.min.mjs",
+            "/wasm/jbig2.wasm",
+            "/wasm/openjpeg.wasm",
+            "/wasm/qcms_bg.wasm",
+            "/wasm/quickjs-eval.wasm",
+            "/wasm/jbig2_nowasm_fallback.js",
+            "/wasm/openjpeg_nowasm_fallback.js",
+          ]);
+        }).catch(() => {});
+      }
+
       const allJuzNumbers = Array.from({ length: 30 }, (_, i) => i + 1);
       let completedCount = 0;
       let currentIndex = 0;

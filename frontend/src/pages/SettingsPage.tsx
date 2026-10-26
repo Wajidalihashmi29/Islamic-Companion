@@ -1302,7 +1302,7 @@ export default function SettingsPage() {
                     checked={settings.prayer.soundEnabled}
                     onChange={(e) => {
                       const enabled = e.target.checked;
-                      if (enabled) { unlockPrayerChimeAudio(); void playPrayerChime(0.6); }
+                      if (enabled) { unlockPrayerChimeAudio(); void playPrayerChime(); }
                       updateSettings((prev) => ({
                         ...prev,
                         prayer: { ...prev.prayer, soundEnabled: enabled },

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Download, WifiOff, X } from "lucide-react";
 
 interface InstallPromptEvent extends Event {
@@ -34,7 +35,11 @@ export default function AppStatusBar() {
     };
   }, []);
 
+  const location = useLocation();
+
   if (dismissed) return null;
+  // Never overlay the holy Mushaf on the dedicated PDF page
+  if (location.pathname.startsWith("/quran-pdf")) return null;
   if (online && !installPrompt) return null;
 
   return (

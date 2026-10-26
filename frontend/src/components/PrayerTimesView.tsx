@@ -639,7 +639,7 @@ export default function PrayerTimesView() {
                       <input type="checkbox" checked={settings.prayer.soundEnabled}
                         onChange={event => {
                           const enabled = event.target.checked;
-                          if (enabled) { unlockPrayerChimeAudio(); void playPrayerChime(0.6); }
+                          if (enabled) { unlockPrayerChimeAudio(); void playPrayerChime(); }
                           updatePrayerPreferences({ soundEnabled: enabled });
                         }} />
                       <span aria-hidden="true" />

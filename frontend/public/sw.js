@@ -1,4 +1,4 @@
-const SHELL_CACHE = "islamic-companion-shell-v4";
+const SHELL_CACHE = "islamic-companion-shell-v5";
 const QURAN_CACHE = "islamic-companion-quran-v1";
 const DEVELOPMENT_HOST = self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
 
@@ -32,6 +32,12 @@ async function precacheShell() {
     "/icon-192.png",
     "/icon-512.png",
     "/pdf.worker.min.mjs",
+    "/wasm/jbig2.wasm",
+    "/wasm/openjpeg.wasm",
+    "/wasm/qcms_bg.wasm",
+    "/wasm/quickjs-eval.wasm",
+    "/wasm/jbig2_nowasm_fallback.js",
+    "/wasm/openjpeg_nowasm_fallback.js",
   ])];
 
   await Promise.all(requiredAssets.map(url => cacheResponse(cache, url, true)));
@@ -118,6 +124,8 @@ self.addEventListener("fetch", event => {
     url.pathname.endsWith(".mjs") ||
     url.pathname.endsWith(".wasm") ||
     url.pathname.endsWith(".bcmap") ||
+    url.pathname.endsWith(".pdf") ||
+    url.pathname.startsWith("/quran-pdfs/") ||
     url.pathname.includes("/cmaps/") ||
     url.pathname.includes("/standard_fonts/") ||
     url.pathname.includes("/wasm/")

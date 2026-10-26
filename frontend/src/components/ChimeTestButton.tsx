@@ -18,7 +18,7 @@ export default function ChimeTestButton({
 
   const handlePlay = (e: React.MouseEvent) => {
     e.stopPropagation();
-    unlockPrayerChimeAudio(); void playPrayerChime(0.6);
+    unlockPrayerChimeAudio(); void playPrayerChime();
     setIsPlaying(true);
     window.setTimeout(() => setIsPlaying(false), 2600);
   };

@@ -26,7 +26,7 @@ export default function PrayerAlarmManager() {
         if (event.data?.type === "PLAY_PRAYER_CHIME") {
           const currentSettings = loadSettings();
           if (currentSettings.prayer.soundEnabled) {
-            void playPrayerChime(0.6);
+            void playPrayerChime();
           }
         }
       };
@@ -76,7 +76,7 @@ export default function PrayerAlarmManager() {
             const isAlertEnabledForPrayer = settings.prayer.alertPrayers.includes(prayerName);
             if (settings.prayer.soundEnabled && isAlertEnabledForPrayer) {
               unlockPrayerChimeAudio();
-              void playPrayerChime(0.6);
+              void playPrayerChime();
             }
 
             // 2. Display notification safely if notifications enabled
