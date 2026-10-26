@@ -1,4 +1,4 @@
-const SHELL_CACHE = "islamic-companion-shell-v3";
+const SHELL_CACHE = "islamic-companion-shell-v4";
 const QURAN_CACHE = "islamic-companion-quran-v1";
 const DEVELOPMENT_HOST = self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
 
@@ -31,6 +31,7 @@ async function precacheShell() {
     "/manifest.webmanifest",
     "/icon-192.png",
     "/icon-512.png",
+    "/pdf.worker.min.mjs",
   ])];
 
   await Promise.all(requiredAssets.map(url => cacheResponse(cache, url, true)));
@@ -112,7 +113,15 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (["script", "style", "font", "image"].includes(request.destination)) {
+  if (
+    ["script", "style", "font", "image", "worker"].includes(request.destination) ||
+    url.pathname.endsWith(".mjs") ||
+    url.pathname.endsWith(".wasm") ||
+    url.pathname.endsWith(".bcmap") ||
+    url.pathname.includes("/cmaps/") ||
+    url.pathname.includes("/standard_fonts/") ||
+    url.pathname.includes("/wasm/")
+  ) {
     event.respondWith(cacheFirst(request));
   }
 });

@@ -129,7 +129,14 @@ async function fetchJuzPdf(
   forceFresh: boolean = false,
   onProgress?: (pct: number) => void,
 ): Promise<ArrayBuffer> {
-  const candidates: string[] = [];
+  const candidates: string[] = [
+    // 1. Direct Local Edge CDN (hosted statically in public/ on Vercel's global edge, 0 latency)
+    `/quran-pdfs/indopak/${juz}.pdf`,
+    // 2. jsDelivr Free Global CDN mirror
+    `https://cdn.jsdelivr.net/gh/Wajidalihashmi29/Islamic-Companion@Prod/frontend/public/quran-pdfs/indopak/${juz}.pdf`,
+    // 3. Raw GitHub Free CDN mirror
+    `https://raw.githubusercontent.com/Wajidalihashmi29/Islamic-Companion/Prod/frontend/public/quran-pdfs/indopak/${juz}.pdf`,
+  ];
   const base = import.meta.env.VITE_API_BASE_URL;
   if (base && !base.startsWith("/")) {
     candidates.push(`${base.replace(/\/+$/, "")}/quran/pdf/indopak/${juz}${forceFresh ? "?refresh=true" : ""}`);
@@ -361,10 +368,15 @@ export default function QuranPdfPage() {
     });
   };
 
-  // Ensure browser fullscreen API is NOT active to eliminate intrusive OS/browser notification bubbles
+  // Ensure browser fullscreen API is NOT active and precache PDF worker for offline reliability
   useEffect(() => {
     if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
+    }
+    if ("caches" in window) {
+      caches.open("islamic-companion-shell-v4").then(cache => {
+        cache.add("/pdf.worker.min.mjs").catch(() => {});
+      }).catch(() => {});
     }
   }, []);
 
@@ -525,8 +537,9 @@ export default function QuranPdfPage() {
       setLoading(true);
       setErrorMessage("");
 
+      let pdfData: ArrayBuffer | null = null;
       try {
-        let pdfData: ArrayBuffer | null = forceFresh ? null : await getJuzFromDB(targetJuz);
+        pdfData = forceFresh ? null : await getJuzFromDB(targetJuz);
 
         if (!pdfData) {
           setDownloading(true);
@@ -568,7 +581,10 @@ export default function QuranPdfPage() {
         void renderPage(doc, resolvedPage);
       } catch (err: any) {
         console.error("Failed to load PDF:", err);
-        showError(`Unable to load Para ${targetJuz}. Tap Retry to download again.`);
+        const msg = !navigator.onLine && !pdfData
+          ? `Para ${targetJuz} is not downloaded yet. Connect to the internet to download it.`
+          : `Unable to load Para ${targetJuz}. Tap Retry to download again.`;
+        showError(msg);
         setLoading(false);
         setDownloading(false);
       }

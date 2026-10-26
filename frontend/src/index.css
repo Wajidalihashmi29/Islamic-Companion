@@ -445,7 +445,20 @@ html, body, #root {
 .app-status-bar.is-offline { color: #704f08; background: #fff8df; border-color: #e0b84f; }
 .app-status-bar span { flex: 1; font-size: .84rem; line-height: 1.45; }
 .app-status-bar button { padding: 7px 11px; border: 0; border-radius: 9px; color: #fff; background: var(--teal-700); }
-.app-status-bar .app-status-dismiss { padding: 6px; color: inherit; background: transparent; }
+.app-status-bar .app-status-dismiss {
+  padding: 6px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+.app-status-bar .app-status-dismiss:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
 
 @media (max-width: 600px) {
   .app-status-bar { right: 10px; bottom: 10px; left: 10px; max-width: none; }
