@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/quran/pdf/indopak/:juz",
+      "destination": "https://islamicstudies.info/quran/juz/:juz.pdf"
+    },
+    {
+      "source": "/quran-proxy/:match*",
+      "destination": "https://islamicstudies.info/:match*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

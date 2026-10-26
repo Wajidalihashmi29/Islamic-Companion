@@ -80,36 +80,73 @@ if (typeof (Promise as any).withResolvers === "undefined") {
 // 2. Set worker source to static file
 pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
-async function fetchWithProgress(url: string, onProgress: (pct: number) => void): Promise<ArrayBuffer> {
+async function fetchSingleCandidate(url: string, onProgress?: (pct: number) => void): Promise<ArrayBuffer> {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const ctype = res.headers.get("content-type") || "";
+  if (ctype.includes("text/html")) throw new Error("Received HTML response instead of PDF");
+
   const total = Number(res.headers.get("content-length")) || 0;
+  let buf: ArrayBuffer;
   if (!res.body || total <= 0) {
-    onProgress(50);
-    const buf = await res.arrayBuffer();
-    onProgress(100);
-    return buf;
+    if (onProgress) onProgress(50);
+    buf = await res.arrayBuffer();
+    if (onProgress) onProgress(100);
+  } else {
+    const reader = res.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let received = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value) {
+        chunks.push(value);
+        received += value.length;
+        if (onProgress) onProgress(Math.min(99, Math.round((received / total) * 100)));
+      }
+    }
+    const result = new Uint8Array(received);
+    let offset = 0;
+    for (const c of chunks) {
+      result.set(c, offset);
+      offset += c.length;
+    }
+    if (onProgress) onProgress(100);
+    buf = result.buffer;
   }
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let received = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (value) {
-      chunks.push(value);
-      received += value.length;
-      onProgress(Math.min(99, Math.round((received / total) * 100)));
+
+  if (buf.byteLength < 50000) throw new Error("PDF byte size too small");
+  const magic = new Uint8Array(buf.slice(0, 4));
+  // Validate %PDF (0x25, 0x50, 0x44, 0x46)
+  if (magic[0] !== 0x25 || magic[1] !== 0x50 || magic[2] !== 0x44 || magic[3] !== 0x46) {
+    throw new Error("Invalid PDF signature (expected %PDF)");
+  }
+  return buf;
+}
+
+async function fetchJuzPdf(
+  juz: number,
+  forceFresh: boolean = false,
+  onProgress?: (pct: number) => void,
+): Promise<ArrayBuffer> {
+  const candidates: string[] = [];
+  const base = import.meta.env.VITE_API_BASE_URL;
+  if (base && !base.startsWith("/")) {
+    candidates.push(`${base.replace(/\/+$/, "")}/quran/pdf/indopak/${juz}${forceFresh ? "?refresh=true" : ""}`);
+  }
+  candidates.push(`/api/quran/pdf/indopak/${juz}${forceFresh ? "?refresh=true" : ""}`);
+  candidates.push(`/quran-proxy/quran/juz/${juz}.pdf`);
+  candidates.push(`https://islamicstudies.info/quran/juz/${juz}.pdf`);
+
+  let lastError: any = null;
+  for (const url of candidates) {
+    try {
+      return await fetchSingleCandidate(url, onProgress);
+    } catch (e) {
+      lastError = e;
     }
   }
-  const result = new Uint8Array(received);
-  let offset = 0;
-  for (const c of chunks) {
-    result.set(c, offset);
-    offset += c.length;
-  }
-  onProgress(100);
-  return result.buffer;
+  throw lastError || new Error(`Failed to load Para ${juz} from all mirrors.`);
 }
 
 const STORAGE_PAGE_KEY = "ic.quranPdfPage";
@@ -152,13 +189,21 @@ async function saveJuzToDB(juz: number, data: ArrayBuffer): Promise<void> {
 async function getJuzFromDB(juz: number): Promise<ArrayBuffer | null> {
   try {
     const db = await openJuzDB();
-    return new Promise((resolve, reject) => {
+    const data: ArrayBuffer | null = await new Promise((resolve, reject) => {
       const tx = db.transaction(DB_STORE, "readonly");
       const store = tx.objectStore(DB_STORE);
       const req = store.get(`indopak_${juz}`);
       req.onsuccess = () => resolve(req.result || null);
       req.onerror = () => reject(req.error);
     });
+    if (!data || data.byteLength < 50000) return null;
+    const header = new Uint8Array(data.slice(0, 4));
+    // Verify genuine %PDF header
+    if (header[0] !== 0x25 || header[1] !== 0x50 || header[2] !== 0x44 || header[3] !== 0x46) {
+      await deleteJuzFromDB(juz);
+      return null;
+    }
+    return data;
   } catch {
     return null;
   }
@@ -196,10 +241,6 @@ async function getSavedJuzCount(): Promise<number> {
   } catch {
     return 0;
   }
-}
-
-function getJuzDownloadUrl(juz: number, refresh: boolean = false): string {
-  return `/api/quran/pdf/indopak/${juz}${refresh ? "?refresh=true" : ""}`;
 }
 
 export default function QuranPdfPage() {
@@ -320,20 +361,11 @@ export default function QuranPdfPage() {
     });
   };
 
-  // Request fullscreen by default on load or first interaction
+  // Ensure browser fullscreen API is NOT active to eliminate intrusive OS/browser notification bubbles
   useEffect(() => {
-    const enterFullscreen = () => {
-      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    };
-    enterFullscreen();
-    window.addEventListener("touchstart", enterFullscreen, { once: true });
-    window.addEventListener("click", enterFullscreen, { once: true });
-    return () => {
-      window.removeEventListener("touchstart", enterFullscreen);
-      window.removeEventListener("click", enterFullscreen);
-    };
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
   }, []);
 
   // Clean navigation back to home with fullscreen exit
@@ -350,7 +382,7 @@ export default function QuranPdfPage() {
     navigate("/", { replace: true });
   }, [navigate]);
 
-  // Clean up fullscreen on unmount so home screen is never left in fullscreen mode
+  // Clean up fullscreen on unmount so home screen is never left in browser fullscreen mode
   useEffect(() => {
     return () => {
       if (document.fullscreenElement) {
@@ -388,23 +420,10 @@ export default function QuranPdfPage() {
       goBackToHome();
     };
 
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        setIsFullscreen(false);
-        navigate("/", { replace: true });
-      } else {
-        setIsFullscreen(true);
-      }
-    };
-
     window.addEventListener("popstate", handlePopState);
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
 
     return () => {
       window.removeEventListener("popstate", handlePopState);
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
     };
   }, [navigate, goBackToHome, showIndexDrawer, showMenuDrawer, showJumpDialog]);
 
@@ -429,7 +448,8 @@ export default function QuranPdfPage() {
           } catch {}
         }
 
-        const clampedPage = Math.max(1, Math.min(pageNum, doc.numPages));
+        const maxAllowed = getJuzPageCount(currentJuz);
+        const clampedPage = Math.max(1, Math.min(pageNum, Math.min(doc.numPages, maxAllowed)));
         const page = await doc.getPage(clampedPage);
 
         const containerW = viewportElem.clientWidth;
@@ -492,7 +512,7 @@ export default function QuranPdfPage() {
         }
       }
     },
-    [zoomLevel],
+    [zoomLevel, currentJuz],
   );
 
   // Load and cache PDF document (supports forceFresh for clean Retry)
@@ -512,11 +532,9 @@ export default function QuranPdfPage() {
           setDownloading(true);
           setDownloadPercent(10);
 
-          const url = getJuzDownloadUrl(targetJuz, forceFresh);
-          pdfData = await fetchWithProgress(url, pct => {
+          pdfData = await fetchJuzPdf(targetJuz, forceFresh, pct => {
             setDownloadPercent(pct);
           });
-          if (pdfData.byteLength < 50000) throw new Error("Downloaded PDF is invalid");
           await saveJuzToDB(targetJuz, pdfData);
         }
 
@@ -665,14 +683,8 @@ export default function QuranPdfPage() {
           try {
             const existing = await getJuzFromDB(j);
             if (!existing) {
-              const url = getJuzDownloadUrl(j);
-              const res = await fetch(url);
-              if (res.ok) {
-                const data = await res.arrayBuffer();
-                if (data.byteLength > 50000) {
-                  await saveJuzToDB(j, data);
-                }
-              }
+              const data = await fetchJuzPdf(j, false);
+              await saveJuzToDB(j, data);
             }
           } catch (e) {
             console.warn(`Para ${j} download issue:`, e);
@@ -1394,9 +1406,10 @@ export default function QuranPdfPage() {
 
       {/* 6. JUMP TO PAGE MODAL (Horizontally centered above mobile numpad, exact printed page mapping) */}
       {showJumpDialog && (
-        <div className="quran-pdf-modal-backdrop for-jump" onClick={() => setShowJumpDialog(false)}>
+        <div className="quran-pdf-modal-backdrop for-jump" dir="ltr" onClick={() => setShowJumpDialog(false)}>
           <form
             className="quran-pdf-jump-dialog"
+            dir="ltr"
             onClick={e => e.stopPropagation()}
             onSubmit={e => {
               e.preventDefault();
