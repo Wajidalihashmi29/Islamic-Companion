@@ -7,10 +7,6 @@ import {
   MoreVertical,
   Home as HomeIcon,
   RotateCcw,
-  ZoomIn,
-  ZoomOut,
-  Maximize,
-  Minimize,
   BookMarked,
   Star,
   Search,
@@ -18,6 +14,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import * as pdfjsLib from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import { useAuth } from "../context/AuthContext";
+import { getStorageKeyForUser, queueCloudSave } from "../utils/settingsStorage";
+import { loadQuranFavoriteSurahs, saveQuranFavoriteSurahs } from "../utils/quranNavigation";
 import {
   QURAN_JUZ_LIST,
   getJuzPageCount,
@@ -161,6 +160,10 @@ const STORAGE_JUZ_KEY = "ic.quranPdfJuz";
 const STORAGE_PROMPT_KEY = "ic.quranPdfPromptAnswered";
 const STORAGE_FAV_KEY = "ic.quranPdfFavorites";
 
+const getPdfPageStorageKey = (profileKey: string) => `${profileKey}:quran-pdf-page`;
+const getPdfJuzStorageKey = (profileKey: string) => `${profileKey}:quran-pdf-juz`;
+const getPdfParasFavStorageKey = (profileKey: string) => `${profileKey}:quran-favorite-paras`;
+
 const DB_NAME = "IslamicCompanion_PDF_v3";
 const DB_STORE = "juz_cache";
 
@@ -252,17 +255,37 @@ async function getSavedJuzCount(): Promise<number> {
 
 export default function QuranPdfPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const profileKey = useMemo(() => getStorageKeyForUser(user?.id), [user?.id]);
 
-  // Reading Position (Indo-Pak 16 Lines)
+  // Reading Position (Indo-Pak 16 Lines, independent of Reader Quran page)
   const [currentJuz, setCurrentJuz] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(STORAGE_JUZ_KEY));
+    const saved = Number(
+      localStorage.getItem(getPdfJuzStorageKey(profileKey)) ||
+      localStorage.getItem(STORAGE_JUZ_KEY)
+    );
     return Number.isInteger(saved) && saved >= 1 && saved <= 30 ? saved : 1;
   });
   const [currentPage, setCurrentPage] = useState<number>(() => {
-    const saved = Number(localStorage.getItem(STORAGE_PAGE_KEY));
+    const saved = Number(
+      localStorage.getItem(getPdfPageStorageKey(profileKey)) ||
+      localStorage.getItem(STORAGE_PAGE_KEY)
+    );
     return Number.isInteger(saved) && saved >= 1 ? saved : 1;
   });
   const [numPages, setNumPages] = useState<number>(0);
+
+  // Synchronous refs to prevent stale closure during rapid page turns / loop navigation
+  const currentJuzRef = useRef(currentJuz);
+  const currentPageRef = useRef(currentPage);
+
+  useEffect(() => {
+    currentJuzRef.current = currentJuz;
+  }, [currentJuz]);
+
+  useEffect(() => {
+    currentPageRef.current = currentPage;
+  }, [currentPage]);
 
   // Loading & Error States
   const [loading, setLoading] = useState(true);
@@ -297,14 +320,55 @@ export default function QuranPdfPage() {
   const [indexTab, setIndexTab] = useState<"paras" | "surahs" | "favorites">("paras");
   const [indexSearch, setIndexSearch] = useState("");
 
-  // Favorites state
-  const [favorites, setFavorites] = useState<{ paras: number[]; surahs: number[] }>(() => {
+  // Favorites state - synchronized in real-time with QuranReaderPage via profileKey
+  const [favoriteSurahIds, setFavoriteSurahIds] = useState<number[]>(() => {
     try {
-      const raw = localStorage.getItem(STORAGE_FAV_KEY);
-      if (raw) return JSON.parse(raw);
+      const loaded = loadQuranFavoriteSurahs(profileKey);
+      if (loaded.length > 0) return loaded;
+      const oldRaw = localStorage.getItem(STORAGE_FAV_KEY);
+      if (oldRaw) {
+        const parsed = JSON.parse(oldRaw);
+        if (Array.isArray(parsed?.surahs) && parsed.surahs.length > 0) {
+          saveQuranFavoriteSurahs(profileKey, parsed.surahs);
+          return parsed.surahs;
+        }
+      }
     } catch {}
-    return { paras: [1, 30], surahs: [1, 36, 67] };
+    return [1, 36, 67];
   });
+
+  const [favoriteParaIds, setFavoriteParaIds] = useState<number[]>(() => {
+    try {
+      const raw = localStorage.getItem(getPdfParasFavStorageKey(profileKey));
+      if (raw) return JSON.parse(raw);
+      const oldRaw = localStorage.getItem(STORAGE_FAV_KEY);
+      if (oldRaw) {
+        const parsed = JSON.parse(oldRaw);
+        if (Array.isArray(parsed?.paras)) return parsed.paras;
+      }
+    } catch {}
+    return [1, 30];
+  });
+
+  // Keep favorites in sync in real time across reader tabs and modes
+  useEffect(() => {
+    const syncFavorites = () => {
+      try {
+        setFavoriteSurahIds(loadQuranFavoriteSurahs(profileKey));
+      } catch {}
+      try {
+        const raw = localStorage.getItem(getPdfParasFavStorageKey(profileKey));
+        if (raw) setFavoriteParaIds(JSON.parse(raw));
+      } catch {}
+    };
+
+    window.addEventListener("ic:libraryUpdated", syncFavorites);
+    window.addEventListener("storage", syncFavorites);
+    return () => {
+      window.removeEventListener("ic:libraryUpdated", syncFavorites);
+      window.removeEventListener("storage", syncFavorites);
+    };
+  }, [profileKey]);
 
   // Jump to Page Dialog States
   const [showJumpDialog, setShowJumpDialog] = useState(false);
@@ -312,9 +376,6 @@ export default function QuranPdfPage() {
   const [jumpPrintedInput, setJumpPrintedInput] = useState("");
   const [jumpJuzSelect, setJumpJuzSelect] = useState<number>(1);
   const [jumpJuzPageInput, setJumpJuzPageInput] = useState("1");
-
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // One-time prompt state (ask once)
   const [showPrompt, setShowPrompt] = useState(() => {
@@ -348,24 +409,32 @@ export default function QuranPdfPage() {
 
   const toggleFavoritePara = (paraNum: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites(prev => {
-      const exists = prev.paras.includes(paraNum);
-      const updated = exists ? prev.paras.filter(p => p !== paraNum) : [...prev.paras, paraNum];
-      const next = { ...prev, paras: updated };
-      localStorage.setItem(STORAGE_FAV_KEY, JSON.stringify(next));
-      return next;
+    setFavoriteParaIds(prev => {
+      const exists = prev.includes(paraNum);
+      const nextParas = exists ? prev.filter(p => p !== paraNum) : [...prev, paraNum].sort((a, b) => a - b);
+      localStorage.setItem(getPdfParasFavStorageKey(profileKey), JSON.stringify(nextParas));
+      window.dispatchEvent(new Event("ic:libraryUpdated"));
+      queueCloudSave();
+      return nextParas;
     });
   };
 
   const toggleFavoriteSurah = (surahNum: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites(prev => {
-      const exists = prev.surahs.includes(surahNum);
-      const updated = exists ? prev.surahs.filter(s => s !== surahNum) : [...prev.surahs, surahNum];
-      const next = { ...prev, surahs: updated };
-      localStorage.setItem(STORAGE_FAV_KEY, JSON.stringify(next));
-      return next;
-    });
+    let currentSurahs: number[] = [];
+    try {
+      currentSurahs = loadQuranFavoriteSurahs(profileKey);
+    } catch {
+      currentSurahs = favoriteSurahIds;
+    }
+    const exists = currentSurahs.includes(surahNum);
+    const nextSurahs = exists
+      ? currentSurahs.filter(s => s !== surahNum)
+      : [...currentSurahs, surahNum].sort((a, b) => a - b);
+    try {
+      saveQuranFavoriteSurahs(profileKey, nextSurahs);
+    } catch {}
+    setFavoriteSurahIds(nextSurahs);
   };
 
   // Ensure browser fullscreen API is NOT active and precache PDF worker for offline reliability
@@ -439,15 +508,17 @@ export default function QuranPdfPage() {
     };
   }, [navigate, goBackToHome, showIndexDrawer, showMenuDrawer, showJumpDialog]);
 
-  // Persist reading position
+  // Persist reading position independently for PDF mode
   useEffect(() => {
+    localStorage.setItem(getPdfPageStorageKey(profileKey), String(currentPage));
+    localStorage.setItem(getPdfJuzStorageKey(profileKey), String(currentJuz));
     localStorage.setItem(STORAGE_PAGE_KEY, String(currentPage));
     localStorage.setItem(STORAGE_JUZ_KEY, String(currentJuz));
-  }, [currentPage, currentJuz]);
+  }, [currentPage, currentJuz, profileKey]);
 
   // Direct, pixel-perfect render fitting complete screen edge-to-edge
   const renderPage = useCallback(
-    async (doc: PDFDocumentProxy | null, pageNum: number) => {
+    async (doc: PDFDocumentProxy | null, pageNum: number, targetJuz?: number) => {
       if (!doc) return;
       const canvas = canvasRef.current;
       const viewportElem = viewportRef.current;
@@ -460,7 +531,8 @@ export default function QuranPdfPage() {
           } catch {}
         }
 
-        const maxAllowed = getJuzPageCount(currentJuz);
+        const effectiveJuz = targetJuz ?? currentJuzRef.current;
+        const maxAllowed = getJuzPageCount(effectiveJuz);
         const clampedPage = Math.max(1, Math.min(pageNum, Math.min(doc.numPages, maxAllowed)));
         const page = await doc.getPage(clampedPage);
 
@@ -484,8 +556,8 @@ export default function QuranPdfPage() {
         const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
 
         // Calculate exact scale so the Quran page fills the entire viewport head to toe
-        const scaleX = ((containerW * dpr) / boxW) * zoomLevel;
-        const scaleY = ((containerH * dpr) / boxH) * zoomLevel;
+        const scaleX = (containerW * dpr) / boxW;
+        const scaleY = (containerH * dpr) / boxH;
 
         const baseVp = page.getViewport({ scale: 1 });
         const fittedVp = baseVp.clone({ scale: 1 });
@@ -524,7 +596,7 @@ export default function QuranPdfPage() {
         }
       }
     },
-    [zoomLevel, currentJuz],
+    [],
   );
 
   // Load and cache PDF document (supports forceFresh for clean Retry)
@@ -568,17 +640,19 @@ export default function QuranPdfPage() {
 
         const doc = await loadingTask.promise;
         activeDocRef.current = doc;
+        currentJuzRef.current = targetJuz;
         const maxAllowed = getJuzPageCount(targetJuz);
         const effectivePages = Math.min(doc.numPages, maxAllowed);
         setNumPages(effectivePages);
         const resolvedPage = Math.max(1, Math.min(targetPage, effectivePages));
+        currentPageRef.current = resolvedPage;
         setCurrentPage(resolvedPage);
         setLoading(false);
         setDownloading(false);
         void refreshSavedCount();
 
-        // Render page immediately upon load
-        void renderPage(doc, resolvedPage);
+        // Render page immediately upon load with explicit targetJuz
+        void renderPage(doc, resolvedPage, targetJuz);
       } catch (err: any) {
         console.error("Failed to load PDF:", err);
         const msg = !navigator.onLine && !pdfData
@@ -595,27 +669,30 @@ export default function QuranPdfPage() {
   // Clean retry: removes corrupted entry from cache and forces a fresh download
   const handleRetry = async () => {
     setErrorMessage("");
-    await deleteJuzFromDB(currentJuz);
-    void loadPdfDocument(currentJuz, true, currentPage);
+    await deleteJuzFromDB(currentJuzRef.current);
+    void loadPdfDocument(currentJuzRef.current, true, currentPageRef.current);
   };
 
   // Turn page logic
   const goToPage = useCallback(
     (targetPage: number) => {
-      if (numPages <= 0) return;
-      const clamped = Math.max(1, Math.min(targetPage, numPages));
-      if (clamped === currentPage) return;
+      const juz = currentJuzRef.current;
+      const maxAllowed = getJuzPageCount(juz);
+      const effectiveTotal = numPages > 0 ? Math.min(numPages, maxAllowed) : maxAllowed;
+      const clamped = Math.max(1, Math.min(targetPage, effectiveTotal));
+      if (clamped === currentPageRef.current) return;
 
-      const dir = clamped > currentPage ? "next" : "prev";
+      const dir = clamped > currentPageRef.current ? "next" : "prev";
       setTurnAnim(dir);
+      currentPageRef.current = clamped;
       setCurrentPage(clamped);
-      void renderPage(activeDocRef.current, clamped);
+      void renderPage(activeDocRef.current, clamped, juz);
 
       setTimeout(() => {
         setTurnAnim(null);
       }, 300);
     },
-    [currentPage, numPages, renderPage],
+    [numPages, renderPage],
   );
 
   // Switch Juz cleanly with instant load & render
@@ -623,44 +700,46 @@ export default function QuranPdfPage() {
     (targetJuz: number, targetPage: number = 1) => {
       setShowIndexDrawer(false);
       setShowMenuDrawer(false);
-      if (targetJuz === currentJuz && activeDocRef.current) {
+      if (targetJuz === currentJuzRef.current && activeDocRef.current) {
         goToPage(targetPage);
         return;
       }
+      currentJuzRef.current = targetJuz;
+      currentPageRef.current = targetPage;
       setCurrentJuz(targetJuz);
       setCurrentPage(targetPage);
       void loadPdfDocument(targetJuz, false, targetPage);
     },
-    [currentJuz, goToPage, loadPdfDocument],
+    [goToPage, loadPdfDocument],
   );
 
   // Advance page with loop: end of Para 30 wraps around to Para 1 Page 1!
   const advancePage = useCallback(() => {
-    const maxAllowed = getJuzPageCount(currentJuz);
+    const maxAllowed = getJuzPageCount(currentJuzRef.current);
     const effectiveTotal = numPages > 0 ? Math.min(numPages, maxAllowed) : maxAllowed;
-    if (currentPage < effectiveTotal) {
-      goToPage(currentPage + 1);
-    } else if (currentJuz < 30) {
-      selectJuz(currentJuz + 1, 1);
+    if (currentPageRef.current < effectiveTotal) {
+      goToPage(currentPageRef.current + 1);
+    } else if (currentJuzRef.current < 30) {
+      selectJuz(currentJuzRef.current + 1, 1);
     } else {
       // Loop: Going right from last page of Para 30 takes you to first page of Para 1
       selectJuz(1, 1);
     }
-  }, [currentPage, numPages, currentJuz, goToPage, selectJuz]);
+  }, [numPages, goToPage, selectJuz]);
 
-  // Retreat page with loop: going left from Para 1 Page 1 wraps to Para 30 Page 30!
+  // Retreat page with loop: going left from Para 1 Page 1 wraps to Para 30 Page 31 (Dua Khatam-ul-Qur'an)!
   const retreatPage = useCallback(() => {
-    if (currentPage > 1) {
-      goToPage(currentPage - 1);
-    } else if (currentJuz > 1) {
-      const prevJuz = currentJuz - 1;
+    if (currentPageRef.current > 1) {
+      goToPage(currentPageRef.current - 1);
+    } else if (currentJuzRef.current > 1) {
+      const prevJuz = currentJuzRef.current - 1;
       const prevJuzLastPage = getJuzPageCount(prevJuz);
       selectJuz(prevJuz, prevJuzLastPage);
     } else {
-      // Loop: Going left from first page (Para 1, Page 1) takes you to last page of last Para (Para 30, Page 30)
+      // Loop: Going left from first page (Para 1, Page 1) takes you to last page of last Para (Para 30, Page 31)
       selectJuz(30, getJuzPageCount(30));
     }
-  }, [currentPage, currentJuz, goToPage, selectJuz]);
+  }, [goToPage, selectJuz]);
 
   // Initial load
   useEffect(() => {
@@ -833,26 +912,11 @@ export default function QuranPdfPage() {
           e.preventDefault();
           retreatPage();
           break;
-        case "f":
-        case "F":
-          e.preventDefault();
-          toggleFullscreen();
-          break;
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [advancePage, retreatPage, showPrompt, showMenuDrawer, showIndexDrawer, showJumpDialog]);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen?.().catch(() => {});
-      setIsFullscreen(false);
-    }
-  };
 
   const handleAcceptPrompt = () => {
     localStorage.setItem(STORAGE_PROMPT_KEY, "true");
@@ -891,15 +955,15 @@ export default function QuranPdfPage() {
   }, [indexSearch]);
 
   const favoriteParas = useMemo(() => {
-    return QURAN_JUZ_LIST.filter(j => favorites.paras.includes(j.number));
-  }, [favorites.paras]);
+    return QURAN_JUZ_LIST.filter(j => favoriteParaIds.includes(j.number));
+  }, [favoriteParaIds]);
 
   const favoriteSurahs = useMemo(() => {
-    return QURAN_SURAHS.filter(s => favorites.surahs.includes(s.number));
-  }, [favorites.surahs]);
+    return QURAN_SURAHS.filter(s => favoriteSurahIds.includes(s.number));
+  }, [favoriteSurahIds]);
 
   return (
-    <div className={`quran-pdf-immersive-root${isFullscreen ? " is-fullscreen" : ""}`} dir="ltr">
+    <div className="quran-pdf-immersive-root" dir="ltr">
       {/* 1. ONE-TIME DOWNLOAD ASK DIALOG (Indo-Pak 16-Line Script) */}
       {showPrompt && (
         <div className="quran-pdf-modal-backdrop">
@@ -1141,56 +1205,6 @@ export default function QuranPdfPage() {
 
               <div className="quran-pdf-sheet-divider" />
 
-              {/* Zoom controls */}
-              <div className="quran-pdf-sheet-row">
-                <span>Zoom Level ({Math.round(zoomLevel * 100)}%):</span>
-                <div className="quran-pdf-zoom-buttons">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = Math.max(0.7, zoomLevel - 0.15);
-                      setZoomLevel(next);
-                    }}
-                    disabled={zoomLevel <= 0.7}
-                    title="Zoom Out"
-                  >
-                    <ZoomOut size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setZoomLevel(1)}
-                  >
-                    Reset
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = Math.min(2.2, zoomLevel + 0.15);
-                      setZoomLevel(next);
-                    }}
-                    disabled={zoomLevel >= 2.2}
-                    title="Zoom In"
-                  >
-                    <ZoomIn size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Fullscreen toggle */}
-              <button
-                type="button"
-                className="quran-pdf-sheet-btn"
-                onClick={() => {
-                  toggleFullscreen();
-                  setShowMenuDrawer(false);
-                }}
-              >
-                {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
-                <span>{isFullscreen ? "Exit Fullscreen" : "Fullscreen Mode"}</span>
-              </button>
-
-              <div className="quran-pdf-sheet-divider" />
-
               {/* Back to Home button */}
               <button
                 type="button"
@@ -1272,7 +1286,7 @@ export default function QuranPdfPage() {
               {/* TAB 1: PARAS (JUZ 1-30) */}
               {indexTab === "paras" &&
                 filteredParas.map(j => {
-                  const isFav = favorites.paras.includes(j.number);
+                  const isFav = favoriteParaIds.includes(j.number);
                   const isCurrent = currentJuz === j.number;
                   const startPage = getPrintedPageNumber(j.number, 1);
                   return (
@@ -1310,7 +1324,7 @@ export default function QuranPdfPage() {
               {/* TAB 2: SURAHS (1-114) */}
               {indexTab === "surahs" &&
                 filteredSurahs.map(s => {
-                  const isFav = favorites.surahs.includes(s.number);
+                  const isFav = favoriteSurahIds.includes(s.number);
                   return (
                     <div
                       key={s.number}
