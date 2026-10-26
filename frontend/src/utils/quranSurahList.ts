@@ -37,8 +37,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Aal-i-Imraan",
     "meaning": "The Family of Imraan",
     "juz": 3,
-    "pageInJuz": 11,
-    "printedPage": 67
+    "pageInJuz": 12,
+    "printedPage": 68
   },
   {
     "number": 4,
@@ -77,8 +77,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-A'raaf",
     "meaning": "The Heights",
     "juz": 8,
-    "pageInJuz": 14,
-    "printedPage": 210
+    "pageInJuz": 13,
+    "printedPage": 209
   },
   {
     "number": 8,
@@ -107,8 +107,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Yunus",
     "meaning": "Jonas",
     "juz": 11,
-    "pageInJuz": 2,
-    "printedPage": 282
+    "pageInJuz": 8,
+    "printedPage": 288
   },
   {
     "number": 11,
@@ -156,9 +156,9 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameArabic": "الحجر",
     "nameEnglish": "Al-Hijr",
     "meaning": "The Rock",
-    "juz": 14,
-    "pageInJuz": 1,
-    "printedPage": 365
+    "juz": 13,
+    "pageInJuz": 28,
+    "printedPage": 364
   },
   {
     "number": 16,
@@ -167,8 +167,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "An-Nahl",
     "meaning": "The Bee",
     "juz": 14,
-    "pageInJuz": 15,
-    "printedPage": 379
+    "pageInJuz": 8,
+    "printedPage": 372
   },
   {
     "number": 17,
@@ -297,8 +297,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Ankaboot",
     "meaning": "The Spider",
     "juz": 20,
-    "pageInJuz": 21,
-    "printedPage": 553
+    "pageInJuz": 20,
+    "printedPage": 552
   },
   {
     "number": 30,
@@ -377,8 +377,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "As-Saaffaat",
     "meaning": "Those drawn up in Ranks",
     "juz": 23,
-    "pageInJuz": 1,
-    "printedPage": 613
+    "pageInJuz": 6,
+    "printedPage": 618
   },
   {
     "number": 38,
@@ -427,8 +427,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Ash-Shura",
     "meaning": "Consultation",
     "juz": 25,
-    "pageInJuz": 1,
-    "printedPage": 667
+    "pageInJuz": 2,
+    "printedPage": 668
   },
   {
     "number": 43,
@@ -447,8 +447,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Ad-Dukhaan",
     "meaning": "The Smoke",
     "juz": 25,
-    "pageInJuz": 25,
-    "printedPage": 691
+    "pageInJuz": 20,
+    "printedPage": 686
   },
   {
     "number": 45,
@@ -457,8 +457,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Jaathiya",
     "meaning": "Crouching",
     "juz": 25,
-    "pageInJuz": 30,
-    "printedPage": 696
+    "pageInJuz": 25,
+    "printedPage": 691
   },
   {
     "number": 46,
@@ -477,8 +477,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Muhammad",
     "meaning": "Muhammad",
     "juz": 26,
-    "pageInJuz": 4,
-    "printedPage": 700
+    "pageInJuz": 8,
+    "printedPage": 704
   },
   {
     "number": 48,
@@ -487,8 +487,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Fath",
     "meaning": "The Victory",
     "juz": 26,
-    "pageInJuz": 8,
-    "printedPage": 704
+    "pageInJuz": 14,
+    "printedPage": 710
   },
   {
     "number": 49,
@@ -497,8 +497,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Hujuraat",
     "meaning": "The Inner Apartments",
     "juz": 26,
-    "pageInJuz": 14,
-    "printedPage": 710
+    "pageInJuz": 20,
+    "printedPage": 716
   },
   {
     "number": 50,
@@ -507,8 +507,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Qaaf",
     "meaning": "The letter Qaaf",
     "juz": 26,
-    "pageInJuz": 18,
-    "printedPage": 714
+    "pageInJuz": 25,
+    "printedPage": 721
   },
   {
     "number": 51,
@@ -517,8 +517,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Adh-Dhaariyat",
     "meaning": "The Winnowing Winds",
     "juz": 26,
-    "pageInJuz": 25,
-    "printedPage": 721
+    "pageInJuz": 29,
+    "printedPage": 725
   },
   {
     "number": 52,
@@ -547,8 +547,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Qamar",
     "meaning": "The Moon",
     "juz": 27,
-    "pageInJuz": 14,
-    "printedPage": 740
+    "pageInJuz": 10,
+    "printedPage": 736
   },
   {
     "number": 55,
@@ -557,8 +557,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Ar-Rahmaan",
     "meaning": "The Beneficent",
     "juz": 27,
-    "pageInJuz": 19,
-    "printedPage": 745
+    "pageInJuz": 14,
+    "printedPage": 740
   },
   {
     "number": 56,
@@ -567,8 +567,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Waaqia",
     "meaning": "The Inevitable",
     "juz": 27,
-    "pageInJuz": 24,
-    "printedPage": 750
+    "pageInJuz": 19,
+    "printedPage": 745
   },
   {
     "number": 57,
@@ -577,8 +577,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Hadid",
     "meaning": "The Iron",
     "juz": 27,
-    "pageInJuz": 26,
-    "printedPage": 752
+    "pageInJuz": 24,
+    "printedPage": 750
   },
   {
     "number": 58,
@@ -597,8 +597,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Hashr",
     "meaning": "The Exile",
     "juz": 28,
-    "pageInJuz": 4,
-    "printedPage": 760
+    "pageInJuz": 5,
+    "printedPage": 761
   },
   {
     "number": 60,
@@ -607,8 +607,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Mumtahana",
     "meaning": "She that is to be examined",
     "juz": 28,
-    "pageInJuz": 8,
-    "printedPage": 764
+    "pageInJuz": 10,
+    "printedPage": 766
   },
   {
     "number": 61,
@@ -617,8 +617,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "As-Saff",
     "meaning": "The Ranks",
     "juz": 28,
-    "pageInJuz": 12,
-    "printedPage": 768
+    "pageInJuz": 14,
+    "printedPage": 770
   },
   {
     "number": 62,
@@ -627,8 +627,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Jumu'a",
     "meaning": "Friday",
     "juz": 28,
-    "pageInJuz": 14,
-    "printedPage": 770
+    "pageInJuz": 17,
+    "printedPage": 773
   },
   {
     "number": 63,
@@ -637,8 +637,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Munaafiqoon",
     "meaning": "The Hypocrites",
     "juz": 28,
-    "pageInJuz": 16,
-    "printedPage": 772
+    "pageInJuz": 19,
+    "printedPage": 775
   },
   {
     "number": 64,
@@ -647,8 +647,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "At-Taghaabun",
     "meaning": "Mutual Disillusion",
     "juz": 28,
-    "pageInJuz": 18,
-    "printedPage": 774
+    "pageInJuz": 21,
+    "printedPage": 777
   },
   {
     "number": 65,
@@ -657,8 +657,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "At-Talaaq",
     "meaning": "Divorce",
     "juz": 28,
-    "pageInJuz": 21,
-    "printedPage": 777
+    "pageInJuz": 24,
+    "printedPage": 780
   },
   {
     "number": 66,
@@ -667,8 +667,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "At-Tahrim",
     "meaning": "The Prohibition",
     "juz": 28,
-    "pageInJuz": 24,
-    "printedPage": 780
+    "pageInJuz": 27,
+    "printedPage": 783
   },
   {
     "number": 67,
@@ -797,8 +797,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "An-Naazi'aat",
     "meaning": "Those who drag forth",
     "juz": 30,
-    "pageInJuz": 3,
-    "printedPage": 821
+    "pageInJuz": 2,
+    "printedPage": 820
   },
   {
     "number": 80,
@@ -807,8 +807,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Abasa",
     "meaning": "He frowned",
     "juz": 30,
-    "pageInJuz": 5,
-    "printedPage": 823
+    "pageInJuz": 4,
+    "printedPage": 822
   },
   {
     "number": 81,
@@ -837,8 +837,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Mutaffifin",
     "meaning": "Defrauding",
     "juz": 30,
-    "pageInJuz": 9,
-    "printedPage": 827
+    "pageInJuz": 8,
+    "printedPage": 826
   },
   {
     "number": 84,
@@ -847,8 +847,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Inshiqaaq",
     "meaning": "The Splitting Open",
     "juz": 30,
-    "pageInJuz": 11,
-    "printedPage": 829
+    "pageInJuz": 10,
+    "printedPage": 828
   },
   {
     "number": 85,
@@ -857,8 +857,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Burooj",
     "meaning": "The Constellations",
     "juz": 30,
-    "pageInJuz": 12,
-    "printedPage": 830
+    "pageInJuz": 11,
+    "printedPage": 829
   },
   {
     "number": 86,
@@ -867,8 +867,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "At-Taariq",
     "meaning": "The Morning Star",
     "juz": 30,
-    "pageInJuz": 13,
-    "printedPage": 831
+    "pageInJuz": 12,
+    "printedPage": 830
   },
   {
     "number": 87,
@@ -877,8 +877,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-A'laa",
     "meaning": "The Most High",
     "juz": 30,
-    "pageInJuz": 14,
-    "printedPage": 832
+    "pageInJuz": 13,
+    "printedPage": 831
   },
   {
     "number": 88,
@@ -887,8 +887,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Ghaashiya",
     "meaning": "The Overwhelming",
     "juz": 30,
-    "pageInJuz": 15,
-    "printedPage": 833
+    "pageInJuz": 14,
+    "printedPage": 832
   },
   {
     "number": 89,
@@ -897,8 +897,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Fajr",
     "meaning": "The Dawn",
     "juz": 30,
-    "pageInJuz": 16,
-    "printedPage": 834
+    "pageInJuz": 15,
+    "printedPage": 833
   },
   {
     "number": 90,
@@ -907,8 +907,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Balad",
     "meaning": "The City",
     "juz": 30,
-    "pageInJuz": 18,
-    "printedPage": 836
+    "pageInJuz": 17,
+    "printedPage": 835
   },
   {
     "number": 91,
@@ -917,8 +917,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Ash-Shams",
     "meaning": "The Sun",
     "juz": 30,
-    "pageInJuz": 19,
-    "printedPage": 837
+    "pageInJuz": 18,
+    "printedPage": 836
   },
   {
     "number": 92,
@@ -927,8 +927,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Lail",
     "meaning": "The Night",
     "juz": 30,
-    "pageInJuz": 20,
-    "printedPage": 838
+    "pageInJuz": 19,
+    "printedPage": 837
   },
   {
     "number": 93,
@@ -937,8 +937,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Ad-Dhuhaa",
     "meaning": "The Morning Hours",
     "juz": 30,
-    "pageInJuz": 21,
-    "printedPage": 839
+    "pageInJuz": 20,
+    "printedPage": 838
   },
   {
     "number": 94,
@@ -947,8 +947,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Ash-Sharh",
     "meaning": "The Consolation",
     "juz": 30,
-    "pageInJuz": 21,
-    "printedPage": 839
+    "pageInJuz": 20,
+    "printedPage": 838
   },
   {
     "number": 95,
@@ -1007,8 +1007,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Aadiyaat",
     "meaning": "The Chargers",
     "juz": 30,
-    "pageInJuz": 23,
-    "printedPage": 841
+    "pageInJuz": 24,
+    "printedPage": 842
   },
   {
     "number": 101,
@@ -1017,8 +1017,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Qaari'a",
     "meaning": "The Calamity",
     "juz": 30,
-    "pageInJuz": 24,
-    "printedPage": 842
+    "pageInJuz": 25,
+    "printedPage": 843
   },
   {
     "number": 102,
@@ -1027,8 +1027,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "At-Takaathur",
     "meaning": "Competition",
     "juz": 30,
-    "pageInJuz": 24,
-    "printedPage": 842
+    "pageInJuz": 25,
+    "printedPage": 843
   },
   {
     "number": 103,
@@ -1037,8 +1037,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Asr",
     "meaning": "The Declining Day, Epoch",
     "juz": 30,
-    "pageInJuz": 25,
-    "printedPage": 843
+    "pageInJuz": 26,
+    "printedPage": 844
   },
   {
     "number": 104,
@@ -1047,8 +1047,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Humaza",
     "meaning": "The Traducer",
     "juz": 30,
-    "pageInJuz": 25,
-    "printedPage": 843
+    "pageInJuz": 26,
+    "printedPage": 844
   },
   {
     "number": 105,
@@ -1057,8 +1057,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Fil",
     "meaning": "The Elephant",
     "juz": 30,
-    "pageInJuz": 25,
-    "printedPage": 843
+    "pageInJuz": 26,
+    "printedPage": 844
   },
   {
     "number": 106,
@@ -1067,8 +1067,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Quraish",
     "meaning": "Quraysh",
     "juz": 30,
-    "pageInJuz": 26,
-    "printedPage": 844
+    "pageInJuz": 27,
+    "printedPage": 845
   },
   {
     "number": 107,
@@ -1077,8 +1077,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Maa'un",
     "meaning": "Almsgiving",
     "juz": 30,
-    "pageInJuz": 26,
-    "printedPage": 844
+    "pageInJuz": 27,
+    "printedPage": 845
   },
   {
     "number": 108,
@@ -1087,8 +1087,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Kawthar",
     "meaning": "Abundance",
     "juz": 30,
-    "pageInJuz": 26,
-    "printedPage": 844
+    "pageInJuz": 28,
+    "printedPage": 846
   },
   {
     "number": 109,
@@ -1097,8 +1097,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Kaafiroon",
     "meaning": "The Disbelievers",
     "juz": 30,
-    "pageInJuz": 27,
-    "printedPage": 845
+    "pageInJuz": 28,
+    "printedPage": 846
   },
   {
     "number": 110,
@@ -1107,8 +1107,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "An-Nasr",
     "meaning": "Divine Support",
     "juz": 30,
-    "pageInJuz": 27,
-    "printedPage": 845
+    "pageInJuz": 28,
+    "printedPage": 846
   },
   {
     "number": 111,
@@ -1117,8 +1117,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Masad",
     "meaning": "The Palm Fibre",
     "juz": 30,
-    "pageInJuz": 27,
-    "printedPage": 845
+    "pageInJuz": 29,
+    "printedPage": 847
   },
   {
     "number": 112,
@@ -1127,8 +1127,8 @@ export const QURAN_SURAHS: QuranSurahItem[] = [
     "nameEnglish": "Al-Ikhlaas",
     "meaning": "Sincerity",
     "juz": 30,
-    "pageInJuz": 28,
-    "printedPage": 846
+    "pageInJuz": 29,
+    "printedPage": 847
   },
   {
     "number": 113,

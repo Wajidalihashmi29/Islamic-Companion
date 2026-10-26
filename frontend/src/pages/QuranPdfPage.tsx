@@ -599,18 +599,6 @@ export default function QuranPdfPage() {
     void loadPdfDocument(currentJuz, true, currentPage);
   };
 
-  // Switch Juz cleanly with instant load & render
-  const selectJuz = useCallback(
-    (targetJuz: number, targetPage: number = 1) => {
-      setShowIndexDrawer(false);
-      setShowMenuDrawer(false);
-      setCurrentJuz(targetJuz);
-      setCurrentPage(targetPage);
-      void loadPdfDocument(targetJuz, false, targetPage);
-    },
-    [loadPdfDocument],
-  );
-
   // Turn page logic
   const goToPage = useCallback(
     (targetPage: number) => {
@@ -628,6 +616,22 @@ export default function QuranPdfPage() {
       }, 300);
     },
     [currentPage, numPages, renderPage],
+  );
+
+  // Switch Juz cleanly with instant load & render
+  const selectJuz = useCallback(
+    (targetJuz: number, targetPage: number = 1) => {
+      setShowIndexDrawer(false);
+      setShowMenuDrawer(false);
+      if (targetJuz === currentJuz && activeDocRef.current) {
+        goToPage(targetPage);
+        return;
+      }
+      setCurrentJuz(targetJuz);
+      setCurrentPage(targetPage);
+      void loadPdfDocument(targetJuz, false, targetPage);
+    },
+    [currentJuz, goToPage, loadPdfDocument],
   );
 
   // Advance page with loop: end of Para 30 wraps around to Para 1 Page 1!
